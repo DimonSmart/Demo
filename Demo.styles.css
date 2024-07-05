@@ -72,8 +72,8 @@ main[b-j9gssnu9fd] {
     }
 
     .top-row[b-j9gssnu9fd], article[b-j9gssnu9fd] {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
     }
 }
 /* /Layout/NavMenu.razor.rz.scp.css */
@@ -128,10 +128,8 @@ main[b-j9gssnu9fd] {
     .nav-item[b-i4gb6bolqe]  a {
         color: #d7d7d7;
         border-radius: 4px;
-        height: 3rem;
         display: flex;
-        align-items: center;
-        line-height: 3rem;
+        align-items: center;    
     }
 
 .nav-item[b-i4gb6bolqe]  a.active {
