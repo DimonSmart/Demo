@@ -1,7 +1,57 @@
-﻿@page "/"
+﻿<style>
+    :root {
+        --gap-size: 20px;
+    }
 
-<PageTitle>Home</PageTitle>
+    .card-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--gap-size);
+    }
 
-<h1>Hello, world!</h1>
+    .card {
+        flex: 1 1 calc(33.333% - var(--gap-size));
+        max-width: 250px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        padding: 20px;
+        border-radius: 8px;
+    }
 
-Welcome to your new app.
+        .card img {
+            width: 200px;
+            height: 200px;
+        }
+
+    .card-content {
+        margin-top: 10px;
+    }
+</style>
+
+@page "/"
+
+<PageTitle>DimonSmart home</PageTitle>
+
+<h1>DimonSmart</h1>
+
+<section>
+    <p>Hi, I'm DimonSmart, a professional C# developer, speaker, and YouTuber with a programming-related channel. I enjoy sharing my knowledge and creating useful projects for the developer community.</p>
+</section>
+
+<section>
+    <h2>Projects</h2>
+    <div class="card-container">
+        <div class="card">
+            <img src="images/stringdiff.png" alt="StringDiff Project Image">
+            <div class="card-content">
+                <h3>String Diff</h3>
+                <p>A tool for comparing differences between strings with high accuracy.</p>
+                <a href="link-to-demo-page" class="btn btn-primary">View Demo</a>
+            </div>
+        </div>
+        <!-- Additional cards can be added here -->
+    </div>
+</section>
+
+@code {
+    // Add any required code for the page here
+}
