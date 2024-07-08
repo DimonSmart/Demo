@@ -1,0 +1,30 @@
+﻿.diffviewbox-header-text {
+    color: royalblue;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.diffviewbox-container {
+    border: 2px solid #000;
+    padding: 15px;
+    height: 250px;
+    overflow-y: scroll;
+}
+
+.diffviewbox-inserted-text {
+    background-color: red;
+}
+
+.diffviewbox-deleted-text {
+    background-color: lightcoral;
+    text-decoration: line-through;
+}
+
+.diffviewbox-modified-text {
+    background-color: yellow;
+}
+
+.diffviewbox-unchanged-text {
+    background-color: white;
+}

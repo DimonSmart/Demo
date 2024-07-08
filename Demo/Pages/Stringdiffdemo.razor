@@ -35,8 +35,7 @@
     </div>
 
     <div style="margin-top: 20px;">
-        <h2>Differences</h2>
-        <DiffViewBox Diff="@StringDiffHighlightedResult" />
+        <DiffViewBox HeaderText="Text differences" Diff="@StringDiffHighlightedResult" />
     </div>
 </section>
 
@@ -71,9 +70,8 @@
         }
     }
 
-    private TextDiff StringDiffHighlightedResult = default;
+    private TextDiff? StringDiffHighlightedResult = default;
 
-    // Placeholder method to simulate diff calculation
     private void CalculateDiff()
     {
         var options = new StringDiffOptions(MinDiffLength, BreakOnWords ? DefaultWordBoundaryDetector.Instance : null);
@@ -81,7 +79,6 @@
         StringDiffHighlightedResult = stringDiff.ComputeDiff(TextLeft, TextRight);
     }
 
-    // Example text setters
     private void SetExample1()
     {
         TextLeft = "It was the best of times, it was the worst of times.";
@@ -98,14 +95,14 @@
 
     private void SetExample3()
     {
-        TextLeft = "2 x 2 = 4\n3 x 3 = 9\n4 x 4 = 16";
+        TextLeft = "2 x 2 = 5\n3 x 3 = 9\n4 x 4 = 16";
         TextRight = "2 x 2 = 4\n3 x 3 = 9\n4 x 4 = 20";
         CalculateDiff();
     }
 
     private void SetExample4()
     {
-        TextLeft = "public void Example()\n{\n    Console.WriteLine(\"Hello, world!\");\n}";
+        TextLeft = "public void Example()\n{\n    Console.WriteLine(\"hello, world!\");\n}";
         TextRight = "public void Example()\n{\n    Console.WriteLine(\"Hello, universe!\");\n}";
         CalculateDiff();
     }
@@ -113,7 +110,7 @@
     private void SetExample5()
     {
         TextLeft = "Ingredients:\n- 1 cup sugar\n- 2 cups flour\n- 1/2 cup butter";
-        TextRight = "Ingredients:\n- 1 cup sugar\n- 2 cups flour\n- 1/2 cup margarine";
+        TextRight = "Ingredients:\n- 1 big cup sugar\n- 3 cups flour\n- 1/2 cup margarine";
         CalculateDiff();
     }
 }
