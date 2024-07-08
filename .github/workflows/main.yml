@@ -24,6 +24,9 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore Demo
 
+    - name: Update base href in index.html
+      run: sed -i 's|<base href="/" />|<base href="/Demo/" />|g' Demo/wwwroot/index.html
+
     - name: Build
       run: dotnet build Demo --configuration release --no-restore
 
