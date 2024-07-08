@@ -1,4 +1,5 @@
 ﻿@page "/stringdiffdemo"
+@using Demo.Stringdiffdemo
 @using DimonSmart.StringDiff
 @using System.Text
 
@@ -35,9 +36,7 @@
 
     <div style="margin-top: 20px;">
         <h2>Differences</h2>
-        <div style="border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto;">
-            @StringDiffResult
-        </div>
+        <DiffViewBox Diff="@StringDiffHighlightedResult" />
     </div>
 </section>
 
@@ -71,23 +70,15 @@
             }
         }
     }
-    private string StringDiffResult { get; set; } = string.Empty;
+
+    private TextDiff StringDiffHighlightedResult = default;
 
     // Placeholder method to simulate diff calculation
     private void CalculateDiff()
     {
         var options = new StringDiffOptions(MinDiffLength, BreakOnWords ? DefaultWordBoundaryDetector.Instance : null);
         var stringDiff = new StringDiff(options);
-
-        var textDiff = stringDiff.ComputeDiff(TextLeft, TextRight);
-
-        var sb = new StringBuilder();
-        foreach (var edit in textDiff.Edits)
-        {
-            sb.AppendLine($"Offset: {edit.StartPosition}, Length: {edit.DeletedLength}, Replacement: {edit.InsertedText}");
-        }
-
-        StringDiffResult = sb.ToString();
+        StringDiffHighlightedResult = stringDiff.ComputeDiff(TextLeft, TextRight);
     }
 
     // Example text setters

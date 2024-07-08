@@ -1,0 +1,35 @@
+﻿@using DimonSmart.StringDiff
+<h3>DiffViewBox</h3>
+
+<div style="margin-top: 20px;">
+    @if (!string.IsNullOrEmpty(HeaderText))
+    {
+        <h2 class="diffviewbox-header-text">@HeaderText</h2>
+    }
+    <div style="border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto;">
+        @((MarkupString)StringDiffHighlightedResult)
+    </div>
+</div>
+
+@code {
+    private string StringDiffHighlightedResult { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? HeaderText { get; set; }
+
+    private TextDiff _diff;
+    [Parameter]
+    public TextDiff Diff
+    {
+        get => _diff;
+        set
+        {
+            _diff = value;
+            if (_diff != null)
+            {
+                var reconstructor = new HighlightedStringReconstructor();
+                StringDiffHighlightedResult = reconstructor.Reconstruct(_diff.Edits, _diff.SourceText);
+            }
+        }
+    }
+}
