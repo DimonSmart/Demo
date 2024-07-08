@@ -1,4 +1,6 @@
 ﻿@page "/stringdiffdemo"
+@using DimonSmart.StringDiff
+@using System.Text
 
 <PageTitle>StringDiff Demo</PageTitle>
 
@@ -13,8 +15,8 @@
     <div style="margin-top: 20px;">
         <h2>Options</h2>
         <label>
-            <input type="checkbox" @bind="BreakOnWords" />
-            Break on words
+          <input type="checkbox" @bind="BreakOnWords" />
+              Break on words
         </label>
         <br />
         <label>
@@ -24,11 +26,11 @@
     </div>
 
     <div style="margin-top: 20px;">
-        <button @onclick="SetExample1">Example 1: Famous Book Quote</button>
-        <button @onclick="SetExample2">Example 2: Poetry</button>
-        <button @onclick="SetExample3">Example 3: Numbers</button>
-        <button @onclick="SetExample4">Example 4: Program Code</button>
-        <button @onclick="SetExample5">Example 5: Cooking Recipe</button>
+        <button @onclick="SetExample1">1: Book Quote</button>
+        <button @onclick="SetExample2">2: Poetry</button>
+        <button @onclick="SetExample3">3: Numbers</button>
+        <button @onclick="SetExample4">4: Program Code</button>
+        <button @onclick="SetExample5">5: Cooking Recipe</button>
     </div>
 
     <div style="margin-top: 20px;">
@@ -42,15 +44,50 @@
 @code {
     private string TextLeft { get; set; } = string.Empty;
     private string TextRight { get; set; } = string.Empty;
-    private bool BreakOnWords { get; set; } = false;
-    private int MinDiffLength { get; set; } = 1;
+    private bool _breakOnWords;
+    private bool BreakOnWords
+    {
+        get => _breakOnWords;
+        set
+        {
+            if (_breakOnWords != value)
+            {
+                _breakOnWords = value;
+                CalculateDiff();
+            }
+        }
+    }
+
+    private int _minDiffLength = 1;
+    private int MinDiffLength
+    {
+        get => _minDiffLength;
+        set
+        {
+            if (_minDiffLength != value)
+            {
+                _minDiffLength = value;
+                CalculateDiff();
+            }
+        }
+    }
     private string StringDiffResult { get; set; } = string.Empty;
 
     // Placeholder method to simulate diff calculation
     private void CalculateDiff()
     {
-        // Implement the actual diff logic here
-        StringDiffResult = $"Comparing:\n{TextLeft}\n\nWith:\n{TextRight}";
+        var options = new StringDiffOptions(MinDiffLength, BreakOnWords ? DefaultWordBoundaryDetector.Instance : null);
+        var stringDiff = new StringDiff(options);
+
+        var textDiff = stringDiff.ComputeDiff(TextLeft, TextRight);
+
+        var sb = new StringBuilder();
+        foreach (var edit in textDiff.Edits)
+        {
+            sb.AppendLine($"Offset: {edit.StartPosition}, Length: {edit.DeletedLength}, Replacement: {edit.InsertedText}");
+        }
+
+        StringDiffResult = sb.ToString();
     }
 
     // Example text setters
