@@ -160,3 +160,24 @@ main[b-j9gssnu9fd] {
         overflow-y: auto;
     }
 }
+/* /Stringdiffdemo/DiffViewBox.razor.rz.scp.css */
+/* DiffViewBox.razor.css */
+.diffviewbox-header-text[b-0o72w9hy8h] {
+    color: #0078d4;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+/* DiffViewBox.razor.css */
+.inserted-text[b-0o72w9hy8h] {
+    background-color: lightgreen;
+}
+
+.deleted-text[b-0o72w9hy8h] {
+    background-color: lightcoral;
+    text-decoration: line-through;
+}
+
+.modified-text[b-0o72w9hy8h] {
+    background-color: lightyellow;
+}
