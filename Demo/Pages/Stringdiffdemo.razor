@@ -1,0 +1,91 @@
+﻿@page "/stringdiffdemo"
+
+<PageTitle>StringDiff Demo</PageTitle>
+
+<h1>StringDiff Demo</h1>
+
+<section>
+    <div style="display: flex; gap: 20px;">
+        <textarea @bind="TextLeft" placeholder="Enter text here..." style="width: 45%; height: 150px;"></textarea>
+        <textarea @bind="TextRight" placeholder="Enter text here..." style="width: 45%; height: 150px;"></textarea>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2>Options</h2>
+        <label>
+            <input type="checkbox" @bind="BreakOnWords" />
+            Break on words
+        </label>
+        <br />
+        <label>
+            Minimum diff length: @MinDiffLength
+            <input type="range" min="1" max="10" @bind="MinDiffLength"  />
+        </label>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <button @onclick="SetExample1">Example 1: Famous Book Quote</button>
+        <button @onclick="SetExample2">Example 2: Poetry</button>
+        <button @onclick="SetExample3">Example 3: Numbers</button>
+        <button @onclick="SetExample4">Example 4: Program Code</button>
+        <button @onclick="SetExample5">Example 5: Cooking Recipe</button>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2>Differences</h2>
+        <div style="border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto;">
+            @StringDiffResult
+        </div>
+    </div>
+</section>
+
+@code {
+    private string TextLeft { get; set; } = string.Empty;
+    private string TextRight { get; set; } = string.Empty;
+    private bool BreakOnWords { get; set; } = false;
+    private int MinDiffLength { get; set; } = 1;
+    private string StringDiffResult { get; set; } = string.Empty;
+
+    // Placeholder method to simulate diff calculation
+    private void CalculateDiff()
+    {
+        // Implement the actual diff logic here
+        StringDiffResult = $"Comparing:\n{TextLeft}\n\nWith:\n{TextRight}";
+    }
+
+    // Example text setters
+    private void SetExample1()
+    {
+        TextLeft = "It was the best of times, it was the worst of times.";
+        TextRight = "It was the age of wisdom, it was the age of foolishness.";
+        CalculateDiff();
+    }
+
+    private void SetExample2()
+    {
+        TextLeft = "The woods are lovely, dark and deep,\nBut I have promises to keep,\nAnd miles to go before I sleep,\nAnd miles to go before I sleep.";
+        TextRight = "The woods are lovely, dark and deep,\nBut I have promises to keep,\nAnd kilometers to go before I sleep,\nAnd kilometers to go before I sleep.";
+        CalculateDiff();
+    }
+
+    private void SetExample3()
+    {
+        TextLeft = "2 x 2 = 4\n3 x 3 = 9\n4 x 4 = 16";
+        TextRight = "2 x 2 = 4\n3 x 3 = 9\n4 x 4 = 20";
+        CalculateDiff();
+    }
+
+    private void SetExample4()
+    {
+        TextLeft = "public void Example()\n{\n    Console.WriteLine(\"Hello, world!\");\n}";
+        TextRight = "public void Example()\n{\n    Console.WriteLine(\"Hello, universe!\");\n}";
+        CalculateDiff();
+    }
+
+    private void SetExample5()
+    {
+        TextLeft = "Ingredients:\n- 1 cup sugar\n- 2 cups flour\n- 1/2 cup butter";
+        TextRight = "Ingredients:\n- 1 cup sugar\n- 2 cups flour\n- 1/2 cup margarine";
+        CalculateDiff();
+    }
+}
