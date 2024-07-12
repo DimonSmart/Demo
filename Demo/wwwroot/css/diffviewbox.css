@@ -13,12 +13,12 @@
 }
 
 .diffviewbox-inserted-text {
-    background-color: red;
+    color: dodgerblue;
+    font-weight: bold
 }
 
 .diffviewbox-deleted-text {
-    background-color: lightcoral;
-    text-decoration: line-through;
+    background-color: lightpink;
 }
 
 .diffviewbox-modified-text {
