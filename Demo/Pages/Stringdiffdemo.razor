@@ -9,8 +9,8 @@
 
 <section>
     <div style="display: flex; gap: 20px;">
-        <textarea @bind="TextLeft" placeholder="Enter text here..." style="width: 45%; height: 150px;"></textarea>
-        <textarea @bind="TextRight" placeholder="Enter text here..." style="width: 45%; height: 150px;"></textarea>
+        <textarea @bind="TextLeft" @oninput="OnTextLeftInput" placeholder="Enter text here..." style="width: 45%; height: 150px;"></textarea>
+        <textarea @bind="TextRight" @oninput="OnTextRightInput" placeholder="Enter text here..." style="width: 45%; height: 150px;"></textarea>
     </div>
 
     <div style="margin-top: 20px;">
@@ -35,13 +35,42 @@
     </div>
 
     <div style="margin-top: 20px;">
-        <DiffViewBox HeaderText="Text differences" Diff="@StringDiffHighlightedResult" />
+        <DiffViewBox @ref="diffViewBox" HeaderText="Text differences" Diff="@StringDiffHighlightedResult" />
     </div>
 </section>
 
 @code {
-    private string TextLeft { get; set; } = string.Empty;
-    private string TextRight { get; set; } = string.Empty;
+    private DiffViewBox diffViewBox = default!;
+
+    private string _textLeft = string.Empty;
+
+    private string TextLeft
+    {
+        get => _textLeft;
+        set
+        {
+            if (_textLeft != value)
+            {
+                _textLeft = value;
+                CalculateDiff();
+            }
+        }
+    }
+
+    private string _textRight = string.Empty;
+    private string TextRight
+    {
+        get => _textRight;
+        set
+        {
+            if (_textRight != value)
+            {
+                _textRight = value;
+                CalculateDiff();
+            }
+        }
+    }
+
     private bool _breakOnWords;
     private bool BreakOnWords
     {
@@ -77,6 +106,16 @@
         var options = new StringDiffOptions(MinDiffLength, BreakOnWords ? DefaultWordBoundaryDetector.Instance : null);
         var stringDiff = new StringDiff(options);
         StringDiffHighlightedResult = stringDiff.ComputeDiff(TextLeft, TextRight);
+    }
+
+    private void OnTextLeftInput(ChangeEventArgs e)
+    {
+        TextLeft = e.Value?.ToString() ?? string.Empty;
+    }
+
+    private void OnTextRightInput(ChangeEventArgs e)
+    {
+        TextRight = e.Value?.ToString() ?? string.Empty;
     }
 
     private void SetExample1()

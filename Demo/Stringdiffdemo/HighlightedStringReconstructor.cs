@@ -10,7 +10,7 @@ namespace DimonSmart.StringDiff
         private const string UnchangedTextClass = "diffviewbox-unchanged-text";
 
         protected override string FormatInsertedText(string text) =>
-            $"<span cla{InsertedTextClass}' >{EscapeAndFormatText(text)}</span>";
+            $"<span class='{InsertedTextClass}' >{EscapeAndFormatText(text)}</span>";
 
         protected override string FormatDeletedText(string text) =>
             $"<span class='{DeletedTextClass}'>{EscapeAndFormatText(text)}</span>";
