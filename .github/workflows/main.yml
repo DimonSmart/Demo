@@ -33,6 +33,9 @@ jobs:
     - name: Publish
       run: dotnet publish Demo -c release -o release --no-build
 
+    - name: Copy _redirects file
+      run: cp Demo/_redirects release/wwwroot/_redirects
+
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
