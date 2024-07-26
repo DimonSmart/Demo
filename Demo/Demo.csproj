@@ -14,10 +14,4 @@
     <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="8.0.7" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="_redirects">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>
