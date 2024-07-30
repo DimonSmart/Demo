@@ -1,0 +1,182 @@
+﻿@page "/mazegeneratordemo"
+@using MazeGenerator
+
+<PageTitle>Maze Generator Demo</PageTitle>
+
+<h1>Maze Generator Demo</h1>
+
+<section>
+    <div style="margin-bottom: 20px;">
+        <label>
+            X Size: @XSize
+            <input type="number" min="1" @bind="XSize" />
+        </label>
+        <br />
+        <label>
+            Y Size: @YSize
+            <input type="number" min="1" @bind="YSize" />
+        </label>
+        <br />
+        <label>
+            Randomness: @Randomness%
+            <input type="range" min="0" max="100" @bind="Randomness" />
+        </label>
+        <br />
+        <label>
+            Stop Wall Probability: @StopWallProbability%
+            <input type="range" min="0" max="100" @bind="StopWallProbability" />
+        </label>
+        <br />
+        <label>
+            Slow Visualization
+            <input type="checkbox" @bind="IsSlowVisualization" />
+        </label>
+        <br />
+        <button @onclick="GenerateMaze">Generate Maze</button>
+        <button @onclick="FindPath">Find Path</button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(@XSize, 20px); gap: 1px;">
+        @for (int y = 0; y < YSize; y++)
+        {
+            for (int x = 0; x < XSize; x++)
+            {
+                <div style="width: 20px; height: 20px; background-color: @GetCellColor(x, y);"></div>
+            }
+        }
+    </div>
+</section>
+
+@code {
+    private int _xSize = 31;
+    private int XSize
+    {
+        get => _xSize;
+        set
+        {
+            if (_xSize != value)
+            {
+                _xSize = value;
+                GenerateMaze();
+            }
+        }
+    }
+
+    private int _ySize = 21;
+    private int YSize
+    {
+        get => _ySize;
+        set
+        {
+            if (_ySize != value)
+            {
+                _ySize = value;
+                GenerateMaze();
+            }
+        }
+    }
+
+    private int _randomness = 50;
+    private int Randomness
+    {
+        get => _randomness;
+        set
+        {
+            if (_randomness != value)
+            {
+                _randomness = value;
+                GenerateMaze();
+            }
+        }
+    }
+
+    private double _stopWallProbability = 50.0;
+    private double StopWallProbability
+    {
+        get => _stopWallProbability;
+        set
+        {
+            if (_stopWallProbability != value)
+            {
+                _stopWallProbability = value;
+                GenerateMaze();
+            }
+        }
+    }
+
+    private bool IsSlowVisualization { get; set; } = false;
+    private MazeGenerator.Maze _maze;
+    private bool[,] MazeVisualization = new bool[1, 1];
+
+    protected override void OnInitialized()
+    {
+        GenerateMaze();
+    }
+
+    private void GenerateMaze()
+    {
+        var options = new MazeGenerator.MazeGenerateOptions(StopWallProbability / 100, Randomness / 100.0);
+        var maze = new Maze(XSize, YSize, () => new Cell());
+        new MazeBuilder<Cell>(maze, options).Build();
+        RedrawMaze();
+    }
+
+    private void RedrawMaze()
+    {
+        MazeVisualization = new bool[XSize, YSize];
+        for (int y = 0; y < YSize; y++)
+        {
+            for (int x = 0; x < XSize; x++)
+            {
+                MazeVisualization[x, y] = _maze.IsWall(x, y);
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async void FindPath()
+    {
+        var wavePlotter = new WavePlotter(this);
+        var result = await Task.Run(() => _maze.FindPath(1, 1, GetEndPointCriteria(XSize - 2, YSize - 2), wave =>
+        {
+            wave.VisualizeWave(wavePlotter);
+            if (IsSlowVisualization)
+            {
+                Thread.Sleep(500);
+            }
+        }));
+
+        if (result.HasValue)
+        {
+            result.Value.VizualizePath();
+        }
+        StateHasChanged();
+    }
+
+    private string GetCellColor(int x, int y)
+    {
+        return MazeVisualization[x, y] ? "black" : "white";
+    }
+
+    private static Func<int, int, bool> GetEndPointCriteria(int endX, int endY)
+    {
+        return (x, y) => x == endX && y == endY;
+    }
+
+    private class WavePlotter : IWavePlotter
+    {
+        private readonly MazeGeneratorDemo _page;
+        private static readonly ConsoleColor[] colors = ((ConsoleColor[])Enum.GetValues(typeof(ConsoleColor))).Skip(1).ToArray();
+
+        public WavePlotter(MazeGeneratorDemo page)
+        {
+            _page = page;
+        }
+
+        public void PlotWave(int x, int y, int waveNumber)
+        {
+            _page.MazeVisualization[x, y] = true;
+            _page.StateHasChanged();
+        }
+    }
+}
