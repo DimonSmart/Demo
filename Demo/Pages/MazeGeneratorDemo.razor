@@ -1,5 +1,6 @@
 ﻿@page "/mazegeneratordemo"
-@using MazeGenerator
+@using Demo.Components
+@using DimonSmart.MazeGenerator
 
 <PageTitle>Maze Generator Demo</PageTitle>
 
@@ -18,8 +19,8 @@
         </label>
         <br />
         <label>
-            Randomness: @Randomness%
-            <input type="range" min="0" max="100" @bind="Randomness" />
+            Emptyness: @Emptiness%
+            <input type="range" min="0" max="100" @bind="Emptiness" />
         </label>
         <br />
         <label>
@@ -32,19 +33,24 @@
             <input type="checkbox" @bind="IsSlowVisualization" />
         </label>
         <br />
-        <button @onclick="GenerateMaze">Generate Maze</button>
+        <button @onclick="GenerateMazeAsync">Generate Maze</button>
         <button @onclick="FindPath">Find Path</button>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(@XSize, 20px); gap: 1px;">
-        @for (int y = 0; y < YSize; y++)
+   
+        @if (_maze != null)
         {
-            for (int x = 0; x < XSize; x++)
+            <div style="display: grid; grid-template-columns: repeat(@XSize, 20px); gap: 1px;">
+            @for (int y = 0; y < YSize; y++)
             {
-                <div style="width: 20px; height: 20px; background-color: @GetCellColor(x, y);"></div>
+                for (int x = 0; x < XSize; x++)
+                {
+                    <MazeCell X=x Y=y Cell=@_maze[x, y] />
+                }
             }
+            </div>
         }
-    </div>
+       
 </section>
 
 @code {
@@ -57,7 +63,7 @@
             if (_xSize != value)
             {
                 _xSize = value;
-                GenerateMaze();
+                if (!IsSlowVisualization) Task.Run(() => GenerateMazeAsync()).ConfigureAwait(false);
             }
         }
     }
@@ -71,21 +77,21 @@
             if (_ySize != value)
             {
                 _ySize = value;
-                GenerateMaze();
+                if (!IsSlowVisualization) Task.Run(() => GenerateMazeAsync()).ConfigureAwait(false);
             }
         }
     }
 
-    private int _randomness = 50;
-    private int Randomness
+    private int _emptiness = 0;
+    private int Emptiness
     {
-        get => _randomness;
+        get => _emptiness;
         set
         {
-            if (_randomness != value)
+            if (_emptiness != value)
             {
-                _randomness = value;
-                GenerateMaze();
+                _emptiness = value;
+                if (!IsSlowVisualization) Task.Run(() => GenerateMazeAsync()).ConfigureAwait(false);
             }
         }
     }
@@ -99,84 +105,113 @@
             if (_stopWallProbability != value)
             {
                 _stopWallProbability = value;
-                GenerateMaze();
+                if (!IsSlowVisualization) Task.Run(() => GenerateMazeAsync()).ConfigureAwait(false);
             }
         }
     }
 
-    private bool IsSlowVisualization { get; set; } = false;
-    private MazeGenerator.Maze _maze;
-    private bool[,] MazeVisualization = new bool[1, 1];
+    private bool _isSlowVisualization = false;
+    private bool IsSlowVisualization
+    {
+        get => _isSlowVisualization;
+        set
+        {
+            if (_isSlowVisualization != value)
+            {
+                _isSlowVisualization = value;
+            }
+        }
+    }
+    private Maze? _maze;
 
     protected override void OnInitialized()
     {
-        GenerateMaze();
+       // GenerateMaze();
     }
 
-    private void GenerateMaze()
+    CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+
+    private void CancelGeneration()
     {
-        var options = new MazeGenerator.MazeGenerateOptions(StopWallProbability / 100, Randomness / 100.0);
-        var maze = new Maze(XSize, YSize, () => new Cell());
-        new MazeBuilder<Cell>(maze, options).Build();
-        RedrawMaze();
+        cancellationTokenSource.Cancel();
+        cancellationTokenSource = new CancellationTokenSource();
     }
 
-    private void RedrawMaze()
+    private async Task GenerateMazeAsync()
     {
-        MazeVisualization = new bool[XSize, YSize];
-        for (int y = 0; y < YSize; y++)
+        CancelGeneration();
+        var options = new DimonSmart.MazeGenerator.MazeGenerateOptions(StopWallProbability / 100, Emptiness / 100.0);
+        var delay = IsSlowVisualization ? TimeSpan.FromMilliseconds(100) : TimeSpan.Zero;
+        var wavePlotter = new MazePlotter(this, delay);
+        _maze = new Maze(XSize, YSize, () => new Demo.Models.MazeCell(), wavePlotter);
+        await Task.Run(() =>
         {
-            for (int x = 0; x < XSize; x++)
-            {
-                MazeVisualization[x, y] = _maze.IsWall(x, y);
-            }
-        }
-        StateHasChanged();
+            new MazeBuilder<MazeCell>(_maze, options).Build(cancellationTokenSource.Token);
+        }, cancellationTokenSource.Token);
     }
 
     private async void FindPath()
     {
-        var wavePlotter = new WavePlotter(this);
+        if (_maze == null) return;
+        var wavePlotter = new MazePlotter(this, TimeSpan.FromMicroseconds(25));
         var result = await Task.Run(() => _maze.FindPath(1, 1, GetEndPointCriteria(XSize - 2, YSize - 2), wave =>
         {
             wave.VisualizeWave(wavePlotter);
             if (IsSlowVisualization)
             {
-                Thread.Sleep(500);
+                Task.Delay(500);
             }
         }));
 
-        if (result.HasValue)
+        if (result != null)
         {
-            result.Value.VizualizePath();
+            result.VizualizePath(wavePlotter);
         }
         StateHasChanged();
     }
 
-    private string GetCellColor(int x, int y)
-    {
-        return MazeVisualization[x, y] ? "black" : "white";
-    }
+    private string GetCellColor(int x, int y) => _maze?.IsWall(x, y) ?? false ? "black" : "white";
 
     private static Func<int, int, bool> GetEndPointCriteria(int endX, int endY)
     {
         return (x, y) => x == endX && y == endY;
     }
 
-    private class WavePlotter : IWavePlotter
+    private class MazePlotter : IWavePlotter, IPathPlotter, IMazePlotter
     {
         private readonly MazeGeneratorDemo _page;
+        private readonly TimeSpan _delay;
         private static readonly ConsoleColor[] colors = ((ConsoleColor[])Enum.GetValues(typeof(ConsoleColor))).Skip(1).ToArray();
 
-        public WavePlotter(MazeGeneratorDemo page)
+        public MazePlotter(MazeGeneratorDemo page, TimeSpan delay)
         {
             _page = page;
+            _delay = delay;
         }
 
         public void PlotWave(int x, int y, int waveNumber)
         {
-            _page.MazeVisualization[x, y] = true;
+            // _page.MazeVisualization[x, y] = true;
             _page.StateHasChanged();
+        }
+
+        public void PlotPath(int x, int y, int waveNumber)
+        {
+            // _page.MazeVisualization[x, y] = true;
+            _page.StateHasChanged();
+        }
+
+        public async void PlotWall(int x, int y)
+        {
+            _page.StateHasChanged();
+            await Task.Delay(_delay);
+            // throw new NotImplementedException();
+        }
+
+        public void PlotPassage(int x, int y)
+        {
+            _page.StateHasChanged();
+           // throw new NotImplementedException();
         }
     }
 }
