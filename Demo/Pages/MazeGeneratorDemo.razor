@@ -174,7 +174,7 @@
 
         _generationInProgress = true;
         CancelGeneration();
-        var options = new DimonSmart.MazeGenerator.MazeGenerateOptions(StopWallProbability / 100, Emptiness / 100.0);
+        var options = new DimonSmart.MazeGenerator.MazeBuildOptions(StopWallProbability / 100, Emptiness / 100.0);
         _maze = new Maze(XSize, YSize, () => new Demo.Models.MazeCell());
         var mazeBuilder = new MazeBuilder<MazeCell>(_maze, options);
         await mazeBuilder.BuildAsync(this, cancellationTokenSource.Token);

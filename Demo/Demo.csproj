@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DimonSmart.MazeGenerator" Version="1.24801.1531" />
+    <PackageReference Include="DimonSmart.MazeGenerator" Version="1.24801.1815" />
     <PackageReference Include="DimonSmart.StringDiff" Version="1.24725.1329" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.7" PrivateAssets="all" />
