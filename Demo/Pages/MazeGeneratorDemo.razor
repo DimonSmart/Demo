@@ -20,26 +20,30 @@
 .value-display {
     display: inline-block;
     width: 3em; /* Enough space to accommodate '100%' */
-    text-align: right; /* Keeps the text right-aligned so it looks consistent */
+    text-align: right;
+}
+
+.margin-right {
+    margin-right: 20px;
 }
 </style>
 
 <PageTitle>Maze Generator Demo</PageTitle>
 
-<h1>Maze Generator Demo</h1>
+<h1>Maze Generator</h1>
 
 <section>
     <div style="margin-bottom: 20px;">
-        <label>
-            X Size: @XSize
-            <input type="number" min="1" @bind="XSize" />
-        </label>
-        <br />
-        <label>
-            Y Size: @YSize
-            <input type="number" min="1" @bind="YSize" />
-        </label>
-        <br />
+        <div class="settings-container">
+             <label class="margin-right">
+                 Width:
+                <input type="number" min="1" max="101" step="2" @bind="XSize" />
+             </label>
+             <label class="margin-right">
+                 Height:
+                <input type="number" min="1" max="101" step="2" @bind="YSize" />
+             </label>
+        </div>
         <div class="settings-container">
             <label class="slider-label">
                 Emptiness: <span class="value-display">@Emptiness%</span>
@@ -89,10 +93,11 @@
         get => _xSize;
         set
         {
+            if (value % 2 == 0) return;
             if (_xSize != value)
             {
                 _xSize = value;
-                if (!IsSlowVisualization) GenerateMazeAsync();
+                if (!IsSlowVisualization) _ = GenerateMazeAsync();
             }
         }
     }
@@ -103,10 +108,11 @@
         get => _ySize;
         set
         {
+            if (value % 2 == 0) return;
             if (_ySize != value)
             {
                 _ySize = value;
-                if (!IsSlowVisualization) GenerateMazeAsync();
+                if (!IsSlowVisualization) _ = GenerateMazeAsync();
             }
         }
     }
@@ -120,7 +126,7 @@
             if (_emptiness != value)
             {
                 _emptiness = value;
-                if (!IsSlowVisualization) GenerateMazeAsync();
+                if (!IsSlowVisualization) _ = GenerateMazeAsync();
             }
         }
     }
@@ -134,7 +140,7 @@
             if (_stopWallProbability != value)
             {
                 _stopWallProbability = value;
-                if (!IsSlowVisualization) GenerateMazeAsync();
+                if (!IsSlowVisualization) _ = GenerateMazeAsync();
             }
         }
     }
@@ -153,9 +159,9 @@
     }
     private Maze? _maze;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // GenerateMaze();
+        await GenerateMazeAsync();
     }
 
     CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
