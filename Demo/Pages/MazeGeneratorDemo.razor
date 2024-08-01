@@ -173,7 +173,6 @@
         CancelGeneration();
         var options = new DimonSmart.MazeGenerator.MazeGenerateOptions(StopWallProbability / 100, Emptiness / 100.0);
         var delay = IsSlowVisualization ? TimeSpan.FromMilliseconds(500) : TimeSpan.Zero;
-        // var mazePlotter = new MazePlotter(this, delay);
         _maze = new Maze(XSize, YSize, () => new Demo.Models.MazeCell());
         new MazeBuilder<MazeCell>(_maze, options).BuildAsync(this, cancellationTokenSource.Token);
         _generationInProgress = false;
