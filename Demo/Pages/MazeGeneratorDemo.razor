@@ -5,13 +5,8 @@
 
 @implements IMazePlotter
 
-
-
-<PageTitle>Maze Generator Demo</PageTitle>
-
-<h1>Maze Generator Demo</h1>
-
-.slider-container {
+<style>
+.settings-container {
     display: flex;
     align-items: center;
 }
@@ -27,8 +22,11 @@
     width: 3em; /* Enough space to accommodate '100%' */
     text-align: right; /* Keeps the text right-aligned so it looks consistent */
 }
+</style>
 
+<PageTitle>Maze Generator Demo</PageTitle>
 
+<h1>Maze Generator Demo</h1>
 
 <section>
     <div style="margin-bottom: 20px;">
@@ -42,25 +40,30 @@
             <input type="number" min="1" @bind="YSize" />
         </label>
         <br />
-        <div class="slider-container">
+        <div class="settings-container">
             <label class="slider-label">
                 Emptiness: <span class="value-display">@Emptiness%</span>
                 <input type="range" min="0" max="100" @bind-value="Emptiness" @bind-value:event="oninput" />
             </label>
         </div>
-        <br />
-        <label>
-            Stop Wall Probability: @StopWallProbability%
-            <input type="range" min="0" max="100" @bind="StopWallProbability" />
-        </label>
-        <br />
-        <label>
-            Slow Visualization
-            <input type="checkbox" @bind="IsSlowVisualization" />
-        </label>
-        <br />
-        <button @onclick="GenerateMaze">Generate Maze</button>
-       
+
+        <div class="settings-container">
+            <label>
+                Wall Shortness: <span class="value-display">@StopWallProbability%</span>
+                <input type="range" min="0" max="100" @bind-value="StopWallProbability" @bind-value:event="oninput" />
+            </label>
+        </div>
+
+        <div class="settings-container">
+            <label>
+                Slow Visualization
+                <input type="checkbox" @bind="IsSlowVisualization" />
+            </label>
+        </div>
+        
+        <div class="settings-container">
+            <button @onclick="GenerateMazeAsync">Generate Maze</button>
+        </div>
     </div>
 
    
@@ -89,7 +92,7 @@
             if (_xSize != value)
             {
                 _xSize = value;
-                if (!IsSlowVisualization) GenerateMaze();
+                if (!IsSlowVisualization) GenerateMazeAsync();
             }
         }
     }
@@ -103,7 +106,7 @@
             if (_ySize != value)
             {
                 _ySize = value;
-                if (!IsSlowVisualization) GenerateMaze();
+                if (!IsSlowVisualization) GenerateMazeAsync();
             }
         }
     }
@@ -117,7 +120,7 @@
             if (_emptiness != value)
             {
                 _emptiness = value;
-                if (!IsSlowVisualization) GenerateMaze();
+                if (!IsSlowVisualization) GenerateMazeAsync();
             }
         }
     }
@@ -131,7 +134,7 @@
             if (_stopWallProbability != value)
             {
                 _stopWallProbability = value;
-                if (!IsSlowVisualization) GenerateMaze();
+                if (!IsSlowVisualization) GenerateMazeAsync();
             }
         }
     }
@@ -165,16 +168,17 @@
 
     private bool _generationInProgress = false;
 
-    private void GenerateMaze()
+    private async Task GenerateMazeAsync()
     {
         if (_generationInProgress) return;
 
         _generationInProgress = true;
         CancelGeneration();
         var options = new DimonSmart.MazeGenerator.MazeGenerateOptions(StopWallProbability / 100, Emptiness / 100.0);
-        var delay = IsSlowVisualization ? TimeSpan.FromMilliseconds(500) : TimeSpan.Zero;
         _maze = new Maze(XSize, YSize, () => new Demo.Models.MazeCell());
-        new MazeBuilder<MazeCell>(_maze, options).BuildAsync(this, cancellationTokenSource.Token);
+        var mazeBuilder = new MazeBuilder<MazeCell>(_maze, options);
+        await mazeBuilder.BuildAsync(this, cancellationTokenSource.Token);
+        StateHasChanged();
         _generationInProgress = false;
     }
 
@@ -213,7 +217,9 @@
 
     public async Task PlotWallAsync(int x, int y)
     {
+        if (!IsSlowVisualization) return;
         StateHasChanged();
-        await Task.Delay(500);
+        var delay =TimeSpan.FromMilliseconds(100);
+        await Task.Delay(delay);
     }
 }
