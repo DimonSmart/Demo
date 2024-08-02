@@ -11,16 +11,21 @@
 
     .card {
         flex: 1 1 calc(33.333% - var(--gap-size));
-        max-width: 250px;
+        display: flex;
+        flex-direction: column;
+        max-width: 300px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
         padding: 20px;
         border-radius: 8px;
+        overflow: hidden;
     }
 
-        .card img {
-            width: 200px;
-            height: 200px;
-        }
+    .card img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        object-fit: cover;
+    }
 
     .card-content {
         margin-top: 10px;
@@ -46,7 +51,7 @@
     <h2>Projects</h2>
     <div class="card-container">
         <div class="card">
-            <img src="images/stringdiff.png" alt="StringDiff Project Image">
+            <img src="images/stringdiff-small.png" alt="StringDiff Project Image">
             <div class="card-content">
                 <h3>String Diff</h3>
                 <p>A tool for comparing differences between strings with high accuracy.</p>
@@ -55,7 +60,7 @@
             </div>
         </div>
         <div class="card">
-            <img src="images/mazegenerator.png" alt="Maze Generator Project Image">
+            <img src="images/mazegenerator-small.png" alt="Maze Generator Project Image">
             <div class="card-content">
                 <h3>Maze Generator</h3>
                 <p>A tool for generating and visualizing mazes with customizable parameters.</p>
