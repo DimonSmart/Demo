@@ -1,0 +1,34 @@
+﻿@using DimonSmart.MazeGenerator
+@using Demo.Models
+
+<div style="display: grid; grid-template-columns: repeat(@XSize, 20px); gap: 1px;">
+    @for (int y = 0; y < YSize; y++)
+    {
+        for (int x = 0; x < XSize; x++)
+        {
+            <MazeCell X=x Y=y Cell=@Maze[x, y] OnCellClick="HandleCellClick" />
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int XSize { get; set; }
+
+    [Parameter]
+    public int YSize { get; set; }
+
+    [Parameter]
+    public Maze Maze { get; set; }
+
+    [Parameter]
+    public EventCallback<(int X, int Y, string Button)> OnMazeCellClick { get; set; }
+
+    private async Task HandleCellClick((int X, int Y, string Button) cellClickInfo)
+    {
+        if (OnMazeCellClick.HasDelegate)
+        {
+            await OnMazeCellClick.InvokeAsync(cellClickInfo);
+        }
+    }
+}
