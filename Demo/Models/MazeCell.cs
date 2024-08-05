@@ -13,6 +13,7 @@ namespace Demo.Models
 
         private SpecialMarks _specialMark = SpecialMarks.None;
         private bool _wall = false;
+        private int? _waveNumber;
 
         public bool IsStart() => _specialMark == SpecialMarks.Start;
 
@@ -27,5 +28,11 @@ namespace Demo.Models
         public void SetEnd() => _specialMark = SpecialMarks.End;
 
         public void ClearSpecialMark() => _specialMark = SpecialMarks.None;
+
+        public void SetWaveNumber(int waveNumber) => _waveNumber = waveNumber;
+
+        public void ResetWaveNumber() => _waveNumber = null;
+
+        public int? WaveNumber => _waveNumber;
     }
 }

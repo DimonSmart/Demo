@@ -13,7 +13,6 @@
     [Parameter] public ICell? Cell { get; set; }
     [Parameter] public EventCallback<(int X, int Y, string Button)> OnCellClick { get; set; }
 
-
     private string GetCellContent()
     {
         if (Cell is MazeCellModel mazeCell)
@@ -22,9 +21,13 @@
             {
                 return "🚩"; // Unicode character for a flag
             }
-            else if (mazeCell.IsEnd())
+            if (mazeCell.IsEnd())
             {
                 return "🏁"; // Unicode character for a checkered flag
+            }
+            if (mazeCell.WaveNumber != null)
+            {
+                return mazeCell.WaveNumber?.ToString() ?? string.Empty;
             }
         }
         return string.Empty;

@@ -4,6 +4,8 @@
 @using Demo.Models
 @using DimonSmart.MazeGenerator
 
+@implements IWavePlotter
+
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze Generator Demo</PageTitle>
 
@@ -33,17 +35,19 @@
                 <input type="range" min="0" max="100" @bind-value="StopWallProbability" @bind-value:event="oninput" />
             </label>
         </div>
+        <div class="settings-container">
+            <button @onclick="FindPathAsync">Find path</button>
+        </div>
     </div>
 
     @if (_maze != null)
     {
-        <MazeDisplay XSize="XSize" YSize="YSize" Maze="_maze" OnMazeCellClick="HandleCellClick" />
+        <MazeDisplay Maze="_maze" OnMazeCellClick="HandleCellClick" />
     }
 
 </section>
 
 @code {
-
     private int _xSize = 31;
     private int XSize
     {
@@ -117,6 +121,7 @@
         _generationInProgress = true;
         _startPoint = null;
         _endPoint = null;
+        ClearWave();
         CancelGeneration();
         var options = new DimonSmart.MazeGenerator.MazeBuildOptions(StopWallProbability / 100, Emptiness / 100.0);
         _maze = new Maze(XSize, YSize, () => new Demo.Models.MazeCellModel());
@@ -141,13 +146,25 @@
     private void HandleCellClick((int X, int Y, string Button) cellClickInfo)
     {
         var (x, y, button) = cellClickInfo;
-        if (button == "left")
+        if (!_startPoint.HasValue || (_startPoint.HasValue && _endPoint.HasValue))
         {
             SetStartPoint(x, y);
+            if (_endPoint.HasValue)
+            {
+                var (oldX, oldY) = _endPoint.Value;
+                (_maze?[oldX, oldY] as MazeCellModel)?.ClearSpecialMark();
+                _endPoint = null;
+                ClearWave();
+            }
+            StateHasChanged();
+            return;
         }
-        else if (button == "right")
+
+        if (_startPoint.HasValue && !_endPoint.HasValue)
         {
             SetEndPoint(x, y);
+            StateHasChanged();
+            return;
         }
     }
 
@@ -160,39 +177,56 @@
         }
         _startPoint = (x, y);
         (_maze?[x, y] as MazeCellModel)?.SetStart();
-        StateHasChanged();
     }
 
     private void SetEndPoint(int x, int y)
     {
-        if (_endPoint.HasValue)
-        {
-            var (oldX, oldY) = _endPoint.Value;
-            (_maze?[oldX, oldY] as MazeCellModel)?.ClearSpecialMark();
-        }
+
         _endPoint = (x, y);
         (_maze?[x, y] as MazeCellModel)?.SetEnd();
+
+    }
+
+    private async Task FindPathAsync()
+    {
+        if (_maze == null) return;
+        if (_startPoint == null || _endPoint == null) return;
+
+
+        // var wavePlotter = new MazePlotter(this, TimeSpan.FromMicroseconds(25));
+        var result =_maze.FindPath(_startPoint.Value.X, _startPoint.Value.Y, 
+            (int x, int y) => x == _endPoint.Value.X && y == _endPoint.Value.Y
+            , wave =>
+        {
+            wave.VisualizeWave(this);
+
+            //    Task.Delay(500);
+
+        });
+
+        //if (result != null)
+        //{
+        //    result.VizualizePath(wavePlotter);
+        //}
         StateHasChanged();
     }
 
+    public void PlotWave(int x, int y, int waveNumber)
+    {
+        if (_maze == null) return;
+        var cell = (MazeCellModel)_maze[x, y];
+        cell.SetWaveNumber(waveNumber);
+    }
 
-    // private async void FindPath()
-    // {
-    //     if (_maze == null) return;
-    //     var wavePlotter = new MazePlotter(this, TimeSpan.FromMicroseconds(25));
-    //     var result = await Task.Run(() => _maze.FindPath(1, 1, GetEndPointCriteria(XSize - 2, YSize - 2), wave =>
-    //     {
-    //         wave.VisualizeWave(wavePlotter);
-    //         if (IsSlowVisualization)
-    //         {
-    //             Task.Delay(500);
-    //         }
-    //     }));
-    //
-    //     if (result != null)
-    //     {
-    //         result.VizualizePath(wavePlotter);
-    //     }
-    //     StateHasChanged();
-    // }
+    private void ClearWave()
+    {
+        if (_maze == null) return;
+        for (int y = 0; y < _maze.Height; y++)
+        {
+            for (int x = 0; x < _maze.Width; x++)
+            {
+                ((MazeCellModel)_maze[x, y]).ResetWaveNumber();
+            }
+        }
+    }
 }

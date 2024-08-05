@@ -2,16 +2,19 @@
 
 @using Demo.Components
 @using Demo.Models
+@using Demo.Services
 @using DimonSmart.MazeGenerator
 
 @implements IMazePlotter
+
+@inject BrowserService BrowserService
 
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze Generator Demo</PageTitle>
 
 <h1>Maze Generator</h1>
 
-<section>
+<section id="mazegeneratordemoid">
     <div style="margin-bottom: 20px;">
         <div class="settings-container">
              <label class="margin-right">
@@ -51,7 +54,7 @@
 
     @if (_maze != null)
     {
-        <MazeDisplay XSize="XSize" YSize="YSize" Maze="_maze"/>
+        <MazeDisplay Maze="_maze"/>
     }
        
 </section>
@@ -129,9 +132,14 @@
     }
     private Maze? _maze;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await GenerateMazeAsync();
+        try
+        {
+            var pageSizes = await BrowserService.GetPageDimensionsWithoutPaddingAsync("mazegeneratordemoid");
+            XSize = ((pageSizes.Width - 24 - 24) / 20) | 1;
+        }
+        catch { };
     }
 
     CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
@@ -146,8 +154,8 @@
 
     private async Task GenerateMazeAsync()
     {
-        if (_generationInProgress) return;
-        _generationInProgress = true;
+       if (_generationInProgress) return;
+       _generationInProgress = true;
         CancelGeneration();   
         var options = new DimonSmart.MazeGenerator.MazeBuildOptions(StopWallProbability / 100, Emptiness / 100.0);
         _maze = new Maze(XSize, YSize, () => new Demo.Models.MazeCellModel());
