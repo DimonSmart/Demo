@@ -1,8 +1,67 @@
-﻿@using DimonSmart.MazeGenerator
+﻿@using Demo.Models
+@using DimonSmart.MazeGenerator
+<div style="width: 20px; height: 20px; background-color: @(GetBackgroundColor()); color: @(GetColor());
+    font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1;"
+    @onclick="HandleLeftClick"
+    @oncontextmenu:preventDefault @oncontextmenu="HandleRightClick">
+    @GetCellContent()
+</div>
+
 @code {
     [Parameter] public int X { get; set; }
     [Parameter] public int Y { get; set; }
     [Parameter] public ICell? Cell { get; set; }
+    [Parameter] public EventCallback<(int X, int Y, string Button)> OnCellClick { get; set; }
+
+    // List of CSS color names
+    private static readonly string[] colors = new[]
+    {
+        "darkblue", "darkgreen", "darkcyan", "darkred", "darkmagenta", "darkgoldenrod",
+        "gray", "darkgray", "blue", "green", "cyan", "red", "magenta", "yellow"
+    };
+    private string GetCellContent()
+    {
+        if (Cell is MazeCellModel mazeCell)
+        {
+            if (mazeCell.IsStart())
+            {
+                return "🚩"; // Unicode character for a flag
+            }
+            if (mazeCell.IsEnd())
+            {
+                return "🏁"; // Unicode character for a checkered flag
+            }
+            if (mazeCell.WaveNumber != null)
+            {
+                return mazeCell.WaveNumber?.ToString() ?? string.Empty;
+            }
+        }
+        return string.Empty;
+    }
+
+    private string GetColor() {
+        if (Cell?.IsWall() ?? true) return "red";
+        if (Cell is MazeCellModel mazeCell && mazeCell.WaveNumber.HasValue)
+        {
+            return colors[mazeCell.WaveNumber.Value % colors.Length];
+        }
+        return "default";
+    }
+
+    private string GetBackgroundColor() =>
+        Cell?.IsWall() ?? false ? "black" : "white";
+
+    private async Task HandleLeftClick(MouseEventArgs e)
+    {
+        if (!OnCellClick.HasDelegate) return;
+        await OnCellClick.InvokeAsync((X, Y, "left"));
+    }
+
+    private async Task HandleRightClick(MouseEventArgs e)
+    {
+        if (!OnCellClick.HasDelegate) return;
+        await OnCellClick.InvokeAsync((X, Y, "right"));
+    }
 }
 
-<div style="width: 20px; height: 20px; background-color: @(Cell?.IsWall() ?? false ? "black" : "white");"></div>
+

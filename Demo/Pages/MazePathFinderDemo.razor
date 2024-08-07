@@ -1,0 +1,168 @@
+﻿@page "/mazepathfinderdemo"
+
+@using Demo.Components
+@using Demo.Models
+@using DimonSmart.MazeGenerator
+
+@inherits MazeBaseComponent
+
+@implements IWavePlotter
+
+<link rel="stylesheet" href="css/demos.css" />
+<PageTitle>Maze Generator Demo</PageTitle>
+
+<h3>PathFinder</h3>
+
+<section id="mazegeneratordemoid">
+    <div style="margin-bottom: 20px;">
+        <div class="settings-container">
+            <label class="margin-right">
+                Width:
+                <input type="number" min="1" max="101" step="2" @bind="XSize" />
+            </label>
+            <label class="margin-right">
+                Height:
+                <input type="number" min="1" max="101" step="2" @bind="YSize" />
+            </label>
+        </div>
+        <div class="settings-container">
+            <label class="slider-label">
+                Emptiness: <span class="value-display">@Emptiness%</span>
+                <input type="range" min="0" max="100" @bind-value="Emptiness" @bind-value:event="oninput" />
+            </label>
+        </div>
+        <div class="settings-container">
+            <label>
+                Wall Shortness: <span class="value-display">@StopWallProbability%</span>
+                <input type="range" min="0" max="100" @bind-value="StopWallProbability" @bind-value:event="oninput" />
+            </label>
+        </div>
+        <div class="settings-container">
+            <label>
+                Slow Visualization
+                <input type="checkbox" @bind="IsSlowVisualization" />
+            </label>
+        </div>
+        <div class="settings-container">
+            <button @onclick="FindPathAsync">Find path</button>
+        </div>
+        <p>Click once to set the start point, click again to set the target point.</p>
+
+    </div>
+
+    @if (_maze != null)
+    {
+        <MazeDisplay Maze="_maze" OnMazeCellClick="HandleCellClick" />
+    }
+
+</section>
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GenerateMazeAsync();
+    }
+
+    private bool _generationInProgress = false;
+
+    protected override async Task GenerateMazeAsync()
+    {
+        if (_generationInProgress) return;
+        _generationInProgress = true;
+        _startPoint = null;
+        _endPoint = null;
+        ClearWave();
+        CancelGeneration();
+        var options = new DimonSmart.MazeGenerator.MazeBuildOptions(StopWallProbability / 100, Emptiness / 100.0);
+        _maze = new Maze<Demo.Models.MazeCellModel>(XSize, YSize);
+        var mazeBuilder = new MazeBuilder(_maze, options);
+        await mazeBuilder.BuildAsync(null, cancellationTokenSource.Token);
+        StateHasChanged();
+        _generationInProgress = false;
+    }
+
+    private (int X, int Y)? _startPoint;
+    private (int X, int Y)? _endPoint;
+
+    private void HandleCellClick((int X, int Y, string Button) cellClickInfo)
+    {
+        var (x, y, button) = cellClickInfo;
+        if (!_startPoint.HasValue || (_startPoint.HasValue && _endPoint.HasValue))
+        {
+            SetStartPoint(x, y);
+            if (_endPoint.HasValue)
+            {
+                var (oldX, oldY) = _endPoint.Value;
+                (_maze?[oldX, oldY] as MazeCellModel)?.ClearSpecialMark();
+                _endPoint = null;
+                ClearWave();
+            }
+            StateHasChanged();
+            return;
+        }
+
+        if (_startPoint.HasValue && !_endPoint.HasValue)
+        {
+            SetEndPoint(x, y);
+            StateHasChanged();
+            return;
+        }
+    }
+
+    private void SetStartPoint(int x, int y)
+    {
+        if (_startPoint.HasValue)
+        {
+            var (oldX, oldY) = _startPoint.Value;
+            (_maze?[oldX, oldY] as MazeCellModel)?.ClearSpecialMark();
+        }
+        _startPoint = (x, y);
+        (_maze?[x, y] as MazeCellModel)?.SetStart();
+    }
+
+    private void SetEndPoint(int x, int y)
+    {
+        _endPoint = (x, y);
+        (_maze?[x, y] as MazeCellModel)?.SetEnd();
+    }
+
+    private async Task FindPathAsync()
+    {
+        if (_maze == null) return;
+        if (_startPoint == null || _endPoint == null) return;
+        CancelGeneration();
+        ClearWave();
+        var pathFinder = new MazePathFinder(_maze, this);
+        var result = await pathFinder
+            .FindPathAsync(_startPoint.Value.X, _startPoint.Value.Y, _endPoint.Value.X, _endPoint.Value.Y, cancellationTokenSource.Token);
+
+        //if (result != null)
+        //{
+        //    result.VizualizePath(wavePlotter);
+        //}
+        StateHasChanged();
+    }
+
+    async Task IWavePlotter.PlotWaveAsync(int x, int y, int waveNumber, CancellationToken cancellationToken)
+    {
+        if (_maze == null) return;
+        var cell = (MazeCellModel)_maze[x, y];
+        cell.SetWaveNumber(waveNumber);
+        if (!IsSlowVisualization) return;
+        await Task.Delay(TimeSpan.FromMilliseconds(25), cancellationToken);
+        StateHasChanged();
+    }
+
+    private void ClearWave()
+    {
+        if (_maze == null) return;
+        for (int y = 0; y < _maze.Height; y++)
+        {
+            for (int x = 0; x < _maze.Width; x++)
+            {
+                ((MazeCellModel)_maze[x, y]).ResetWaveNumber();
+            }
+        }
+    }
+}
