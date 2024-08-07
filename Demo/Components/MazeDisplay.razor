@@ -13,7 +13,7 @@
 
 @code {
     [Parameter]
-    public Maze Maze { get; set; }
+    public IMaze Maze { get; set; }
 
     [Parameter]
     public EventCallback<(int X, int Y, string Button)> OnMazeCellClick { get; set; }

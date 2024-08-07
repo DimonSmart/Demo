@@ -5,9 +5,9 @@
 @using Demo.Services
 @using DimonSmart.MazeGenerator
 
-@implements IMazePlotter
+@inherits MazeBaseComponent
 
-@inject BrowserService BrowserService
+@implements IMazePlotter
 
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze Generator Demo</PageTitle>
@@ -60,106 +60,16 @@
 </section>
 
 @code {
-    private int _xSize = 31;
-    private int XSize
-    {
-        get => _xSize;
-        set
-        {
-            if (value % 2 == 0) return;
-            if (_xSize != value)
-            {
-                _xSize = value;
-                if (!IsSlowVisualization) _ = GenerateMazeAsync();
-            }
-        }
-    }
-
-    private int _ySize = 21;
-    private int YSize
-    {
-        get => _ySize;
-        set
-        {
-            if (value % 2 == 0) return;
-            if (_ySize != value)
-            {
-                _ySize = value;
-                if (!IsSlowVisualization) _ = GenerateMazeAsync();
-            }
-        }
-    }
-
-    private int _emptiness = 0;
-    private int Emptiness
-    {
-        get => _emptiness;
-        set
-        {
-            if (_emptiness != value)
-            {
-                _emptiness = value;
-                if (!IsSlowVisualization) _ = GenerateMazeAsync();
-            }
-        }
-    }
-
-    private double _stopWallProbability = 50.0;
-    private double StopWallProbability
-    {
-        get => _stopWallProbability;
-        set
-        {
-            if (_stopWallProbability != value)
-            {
-                _stopWallProbability = value;
-                if (!IsSlowVisualization) _ = GenerateMazeAsync();
-            }
-        }
-    }
-
-    private bool _isSlowVisualization = false;
-    private bool IsSlowVisualization
-    {
-        get => _isSlowVisualization;
-        set
-        {
-            if (_isSlowVisualization != value)
-            {
-                _isSlowVisualization = value;
-            }
-        }
-    }
-    private Maze? _maze;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        try
-        {
-            var pageSizes = await BrowserService.GetPageDimensionsWithoutPaddingAsync("mazegeneratordemoid");
-            XSize = ((pageSizes.Width - 24 - 24) / 20) | 1;
-        }
-        catch { };
-    }
-
-    CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-
-    private void CancelGeneration()
-    {
-        cancellationTokenSource.Cancel();
-        cancellationTokenSource = new CancellationTokenSource();
-    }
-
+    
     private bool _generationInProgress = false;
-
-    private async Task GenerateMazeAsync()
+    protected override async Task GenerateMazeAsync()
     {
-       if (_generationInProgress) return;
-       _generationInProgress = true;
-        CancelGeneration();   
+        if (_generationInProgress) return;
+        _generationInProgress = true;
+        CancelGeneration();
         var options = new DimonSmart.MazeGenerator.MazeBuildOptions(StopWallProbability / 100, Emptiness / 100.0);
-        _maze = new Maze(XSize, YSize, () => new Demo.Models.MazeCellModel());
-        var mazeBuilder = new MazeBuilder<MazeCell>(_maze, options);
+        _maze = new Maze<Demo.Models.MazeCellModel>(XSize, YSize);
+        var mazeBuilder = new MazeBuilder(_maze, options);
         await mazeBuilder.BuildAsync(this, cancellationTokenSource.Token);
         StateHasChanged();
         _generationInProgress = false;

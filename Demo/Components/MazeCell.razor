@@ -1,7 +1,7 @@
 ﻿@using Demo.Models
 @using DimonSmart.MazeGenerator
-
-<div style="width: 20px; height: 20px; background-color: @(GetBackgroundColor())"
+<div style="width: 20px; height: 20px; background-color: @(GetBackgroundColor()); color: @(GetColor());
+    font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1;"
     @onclick="HandleLeftClick"
     @oncontextmenu:preventDefault @oncontextmenu="HandleRightClick">
     @GetCellContent()
@@ -13,6 +13,12 @@
     [Parameter] public ICell? Cell { get; set; }
     [Parameter] public EventCallback<(int X, int Y, string Button)> OnCellClick { get; set; }
 
+    // List of CSS color names
+    private static readonly string[] colors = new[]
+    {
+        "darkblue", "darkgreen", "darkcyan", "darkred", "darkmagenta", "darkgoldenrod",
+        "gray", "darkgray", "blue", "green", "cyan", "red", "magenta", "yellow"
+    };
     private string GetCellContent()
     {
         if (Cell is MazeCellModel mazeCell)
@@ -31,6 +37,15 @@
             }
         }
         return string.Empty;
+    }
+
+    private string GetColor() {
+        if (Cell?.IsWall() ?? true) return "red";
+        if (Cell is MazeCellModel mazeCell && mazeCell.WaveNumber.HasValue)
+        {
+            return colors[mazeCell.WaveNumber.Value % colors.Length];
+        }
+        return "default";
     }
 
     private string GetBackgroundColor() =>
