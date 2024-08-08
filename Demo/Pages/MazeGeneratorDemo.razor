@@ -17,14 +17,14 @@
 <section id="mazegeneratordemoid">
     <div style="margin-bottom: 20px;">
         <div class="settings-container">
-             <label class="margin-right">
-                 Width:
+            <label class="margin-right">
+                Width:
                 <input type="number" min="1" max="101" step="2" @bind="XSize" />
-             </label>
-             <label class="margin-right">
-                 Height:
+            </label>
+            <label class="margin-right">
+                Height:
                 <input type="number" min="1" max="101" step="2" @bind="YSize" />
-             </label>
+            </label>
         </div>
         <div class="settings-container">
             <label class="slider-label">
@@ -46,7 +46,7 @@
                 <input type="checkbox" @bind="IsSlowVisualization" />
             </label>
         </div>
-        
+
         <div class="settings-container">
             <button @onclick="GenerateMazeAsync">Generate Maze</button>
         </div>
@@ -54,13 +54,13 @@
 
     @if (_maze != null)
     {
-        <MazeDisplay Maze="_maze"/>
+        <MazeDisplay Maze="_maze" />
     }
-       
+
 </section>
 
 @code {
-    
+
     private bool _generationInProgress = false;
     protected override async Task GenerateMazeAsync()
     {
@@ -85,14 +85,14 @@
     public async Task PlotPassageAsync(int x, int y)
     {
         StateHasChanged();
-        await Task.Delay(500);
+        await Task.Delay(50);
     }
 
     public async Task PlotWallAsync(int x, int y)
     {
         if (!IsSlowVisualization) return;
         StateHasChanged();
-        var delay =TimeSpan.FromMilliseconds(100);
+        var delay = TimeSpan.FromMilliseconds(50);
         await Task.Delay(delay);
     }
 }

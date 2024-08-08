@@ -3,32 +3,33 @@
         --gap-size: 20px;
     }
 
-    .card-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--gap-size);
-    }
-
     .card {
         flex: 1 1 calc(33.333% - var(--gap-size));
         display: flex;
         flex-direction: column;
-        max-width: 300px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        min-width: 200px;
+        max-width: 400px;
+        border: 1px solid green;
         padding: 20px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
         border-radius: 8px;
         overflow: hidden;
+        box-sizing: border-box;
+        flex-grow: 1;
     }
 
-    .card img {
-        max-width: 100%;
-        height: auto;
-        display: block;
-        object-fit: cover;
-    }
+        .card img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
 
-    .card-content {
-        margin-top: 10px;
+    .card-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: left;
+        gap: var(--gap-size);
     }
 </style>
 
@@ -42,9 +43,8 @@
     <p>
         Hi, I'm DimonSmart, a professional C# developer, speaker, and YouTuber with a programming-related channel.
         I enjoy sharing my knowledge and creating useful projects for the developer community.
-        <br/>
+        <br />
     </p>
-    
 </section>
 
 <section>
@@ -54,9 +54,11 @@
             <img src="images/stringdiff-small.png" alt="StringDiff Project Image">
             <div class="card-content">
                 <h3>String Diff</h3>
-                <p>A tool for comparing differences between strings with high accuracy orby words</p>
-                <a href="stringdiffdemo" class="btn btn-primary">View Demo</a>
-                <a href="https://github.com/DimonSmart/StringDiff" class="btn btn-secondary">View on GitHub</a>
+                <p>A tool for comparing differences between strings with exact diff or forced diff by words</p>
+                <a href="stringdiffdemo" class="btn btn-secondary btn-sm rounded">Demo</a>
+                <a href="https://github.com/DimonSmart/StringDiff" class="btn btn-secondary btn-sm rounded">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
             </div>
         </div>
         <div class="card">
@@ -64,8 +66,10 @@
             <div class="card-content">
                 <h3>Maze Generator</h3>
                 <p>Maze generation algorithm visualization mazes with customizable parameters</p>
-                <a href="mazegeneratordemo" class="btn btn-primary">View Demo</a>
-                <a href="https://github.com/DimonSmart/MazeGenerator" class="btn btn-secondary">View on GitHub</a>
+                <a href="mazegeneratordemo" class="btn btn-secondary btn-sm rounded">Demo</a>
+                <a href="https://github.com/DimonSmart/MazeGenerator" class="btn btn-secondary btn-sm rounded">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
             </div>
         </div>
         <div class="card">
@@ -73,8 +77,10 @@
             <div class="card-content">
                 <h3>Path Finding Wave Algorithm</h3>
                 <p>Maze path finding wave algorithm visualization</p>
-                <a href="mazepathfinderdemo" class="btn btn-primary">View Demo</a>
-                <a href="https://github.com/DimonSmart/MazeGenerator" class="btn btn-secondary">View on GitHub</a>
+                <a href="mazepathfinderdemo" class="btn btn-secondary btn-sm rounded">Demo</a>
+                <a href="https://github.com/DimonSmart/MazeGenerator" class="btn btn-secondary btn-sm rounded">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
             </div>
         </div>
 

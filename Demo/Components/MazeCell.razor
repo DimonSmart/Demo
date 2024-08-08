@@ -2,8 +2,8 @@
 @using DimonSmart.MazeGenerator
 <div style="width: 20px; height: 20px; background-color: @(GetBackgroundColor()); color: @(GetColor());
     font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1;"
-    @onclick="HandleLeftClick"
-    @oncontextmenu:preventDefault @oncontextmenu="HandleRightClick">
+     @onclick="HandleLeftClick" @oncontextmenu:preventDefault
+     @oncontextmenu="HandleRightClick">
     @GetCellContent()
 </div>
 
@@ -39,7 +39,8 @@
         return string.Empty;
     }
 
-    private string GetColor() {
+    private string GetColor()
+    {
         if (Cell?.IsWall() ?? true) return "red";
         if (Cell is MazeCellModel mazeCell && mazeCell.WaveNumber.HasValue)
         {
