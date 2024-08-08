@@ -13,6 +13,7 @@ namespace Demo.Models
 
         private SpecialMarks _specialMark = SpecialMarks.None;
         private bool _wall = false;
+        private bool _path = false;
         private int? _waveNumber;
 
         public bool IsStart() => _specialMark == SpecialMarks.Start;
@@ -20,6 +21,8 @@ namespace Demo.Models
         public bool IsEnd() => _specialMark == SpecialMarks.End;
 
         public bool IsWall() => _wall;
+
+        public bool IsPath() => _path;
 
         public void MakeWall() => _wall = true;
 
@@ -34,5 +37,9 @@ namespace Demo.Models
         public void ResetWaveNumber() => _waveNumber = null;
 
         public int? WaveNumber => _waveNumber;
+
+        public void SetPath() => _path = true;
+
+        public void ResetPath() => _path = false;
     }
 }

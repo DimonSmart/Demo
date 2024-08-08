@@ -7,6 +7,7 @@
 @inherits MazeBaseComponent
 
 @implements IWavePlotter
+@implements IPathPlotter
 
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze Generator Demo</PageTitle>
@@ -133,14 +134,14 @@
         if (_startPoint == null || _endPoint == null) return;
         CancelGeneration();
         ClearWave();
-        var pathFinder = new MazePathFinder(_maze, this);
-        var result = await pathFinder
-            .FindPathAsync(_startPoint.Value.X, _startPoint.Value.Y, _endPoint.Value.X, _endPoint.Value.Y, cancellationTokenSource.Token);
-
-        //if (result != null)
-        //{
-        //    result.VizualizePath(wavePlotter);
-        //}
+        var waveGenerator = new MazeWaveGenerator(_maze, this);
+        var wave = await waveGenerator
+            .GenerateWaveAsync(_startPoint.Value.X, _startPoint.Value.Y, _endPoint.Value.X, _endPoint.Value.Y, cancellationTokenSource.Token);
+        if (wave.EndPoint != null)
+        {
+            var pathBuilder = new MazePathBuilder(wave, this);
+            await pathBuilder.BuildPathAsync();
+        }
         StateHasChanged();
     }
 
@@ -154,6 +155,16 @@
         StateHasChanged();
     }
 
+    async Task IPathPlotter.PlotPathAsync(int x, int y, int waveNumber, CancellationToken cancellationToken)
+    {
+        if (_maze == null) return;
+        var cell = (MazeCellModel)_maze[x, y];
+        cell.SetPath();
+        if (!IsSlowVisualization) return;
+        await Task.Delay(TimeSpan.FromMilliseconds(25), cancellationToken);
+        StateHasChanged();
+    }
+
     private void ClearWave()
     {
         if (_maze == null) return;
@@ -161,7 +172,9 @@
         {
             for (int x = 0; x < _maze.Width; x++)
             {
-                ((MazeCellModel)_maze[x, y]).ResetWaveNumber();
+                var cell = ((MazeCellModel)_maze[x, y]);
+                cell.ResetWaveNumber();
+                cell.ResetPath();
             }
         }
     }

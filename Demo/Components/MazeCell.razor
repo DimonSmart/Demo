@@ -49,8 +49,11 @@
         return "default";
     }
 
-    private string GetBackgroundColor() =>
-        Cell?.IsWall() ?? false ? "black" : "white";
+    private string GetBackgroundColor()
+    {
+        if (Cell is MazeCellModel mazeCell && mazeCell.IsPath()) return "orange";
+        return Cell?.IsWall() ?? false ? "black" : "white";
+    }
 
     private async Task HandleLeftClick(MouseEventArgs e)
     {
