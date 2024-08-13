@@ -1,0 +1,28 @@
+﻿@page "/hashxdemo"
+
+@using Demo.Components
+@using Demo.Models
+
+<link rel="stylesheet" href="css/demos.css" />
+<PageTitle>HashX Demo coming soon</PageTitle>
+
+<h3>HashX</h3>
+
+<section id="mazegeneratordemoid">
+    <div style="margin-bottom: 20px;">
+        <div class="settings-container">
+            <label class="margin-right">
+                Width:
+                <input type="number" min="1" max="32" @bind="HashXSize" />
+            </label>
+        </div>
+    </div>
+</section>
+
+@code {
+    public int HashXSize { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+    }
+}
