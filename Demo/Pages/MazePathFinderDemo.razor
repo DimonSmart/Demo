@@ -89,6 +89,9 @@
     private void HandleCellClick((int X, int Y, string Button) cellClickInfo)
     {
         var (x, y, button) = cellClickInfo;
+        var mazeCellModel = _maze?[x, y] as MazeCellModel;
+        if (mazeCellModel == null || mazeCellModel.IsWall()) return;
+
         if (!_startPoint.HasValue || (_startPoint.HasValue && _endPoint.HasValue))
         {
             SetStartPoint(x, y);
