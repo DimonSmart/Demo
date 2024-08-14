@@ -127,8 +127,10 @@ else
         var file = e.File;
         if (file != null)
         {
+            // 100 MB limit
+            var maxAllowedSize = 100 * 1024 * 1024; 
             var buffer = new byte[file.Size];
-            await file.OpenReadStream().ReadAsync(buffer);
+            await file.OpenReadStream(maxAllowedSize).ReadAsync(buffer);
             var fileData = new FileData(file.Name, buffer);
             await SetFileAsync(fileData);
         }
