@@ -1,8 +1,9 @@
 ﻿@page "/hashxdemo"
-
+@using Demo.Demos.HashX
+@using DimonSmart.Hash
+@using DimonSmart.Hash.Interfaces
 @using Demo.Components
 @using Demo.Models
-@using Demo.Models.HashX
 
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>HashX Demo coming soon</PageTitle>
@@ -40,14 +41,85 @@ else
     <p>Please upload the file first.</p>
 }
 
+<div class="hash-options">
+    <label>
+        <input type="checkbox" @bind="md5Selected" />
+        <strong>Md5:</strong>
+        <span>Generates an MD5 hash from the input buffer.</span>
+    </label>
+
+    <label>
+        <input type="checkbox" @bind="sha1Selected" />
+        <strong>Sha1:</strong>
+        <span>Generates a SHA1 hash from the input buffer.</span>
+    </label>
+
+    <!-- Xor Component -->
+    <label>
+        <input type="checkbox" @bind="xorSelected" />
+        <strong>Xor:</strong>
+        <span>Xor incoming byte and shift next xor position by one bit, wrap it at the end of buffer.</span>
+        <br />
+        <input type="number" min="@XorMinValue" max="@XorMaxValue" @bind="XorValue" />
+    </label>
+    <br />
+
+    <!-- Zero Component -->
+    <label>
+        <input type="checkbox" @bind="zeroSelected" />
+        <strong>Zero:</strong>
+        <span>Hash always equals buffer. Hash size should be equal to buffer size. Used as a baseline for collision calculation.</span>
+        <br />
+        <input type="number" min="@ZeroMinValue" max="@ZeroMaxValue" @bind="zeroValue" />
+    </label>
+</div>
+
+<!-- Progress Indicator -->
+<p><strong>Progress:</strong> @progressText</p>
+
+<!-- Hash Calculation Result -->
+<label for="hashResult"><strong>Result:</strong></label>
+
+<LogViewer @ref="_logViewer" />
 
 
 @code {
+    private LogViewer _logViewer = null!;
+
     private FileData? _fileData;
 
-    private void SetFile(FileData fileData)
+    // Xor component
+    private const int XorMinValue = 1;
+    private const int XorMaxValue = 2048;
+    private int xorValue = 1;
+    private int XorValue
+    {
+        get => xorValue;
+        set => xorValue = Math.Clamp(value, XorMinValue, XorMaxValue);
+    }
+
+    // Zero component
+    private const int ZeroMinValue = 1;
+    private const int ZeroMaxValue = 2048;
+    private int zeroValue = 1;
+    private int ZeroValue
+    {
+        get => zeroValue;
+        set => zeroValue = Math.Clamp(value, ZeroMinValue, ZeroMaxValue);
+    }
+
+    private bool md5Selected;
+    private bool sha1Selected;
+    private bool xorSelected;
+    private bool zeroSelected;
+
+    private string progressText = "Waiting for input...";
+    private string hashResult = string.Empty;
+
+    private async Task SetFileAsync(FileData fileData)
     {
         _fileData = fileData;
+        await DoCalculationAsync();
     }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
@@ -58,31 +130,71 @@ else
             var buffer = new byte[file.Size];
             await file.OpenReadStream().ReadAsync(buffer);
             var fileData = new FileData(file.Name, buffer);
-            SetFile(fileData);
+            await SetFileAsync(fileData);
         }
     }
 
-    private async Task Drop(DragEventArgs e)
+    public void SetProgress(string text)
     {
-        var items = e.DataTransfer.Items;
-        foreach (var item in items)
-        {
-            
-            
-        }
+        progressText = text;
+        StateHasChanged();
     }
 
     private string dropClass = "";
 
-    private void HandleDragEnter()
+    private void HandleDragEnter() => dropClass = "dropzone-drag";
+
+    private void HandleDragLeave() => dropClass = "";
+
+    private async Task DoCalculationAsync(CancellationToken cancellationToken = default)
     {
-        dropClass = "dropzone-drag";
+        var fileData = _fileData;
+        if (fileData == null) return;
+        SetProgress("Calculation started ...");
+        await _logViewer.ClearAsync();
+
+        var bufferSize = ZeroValue;
+        var zeroHashAlgorithm = new ZeroHashAlgorithm(bufferSize);
+        var result = await CalculateCollisionsAsync(bufferSize, zeroHashAlgorithm, fileData.Data);
+
+        _logViewer?.AddLogEntry(FormatCalculationResult(result));
+
+
+        SetProgress("Calculation finished ...");
     }
 
-    private void HandleDragLeave()
+    private static async Task<UniqueCalculationResult> CalculateCollisionsAsync(int bufferSize, IHashAlgorithm hashAlgorithm, byte[] bytes)
     {
-        dropClass = "";
+        Dictionary<byte[], int> uniqueHashCounter = new(10000, new ByteArrayEqualityComparer());
+        for (var i = 0; i <= bytes.Length - bufferSize; i++)
+        {
+            var xorHash = hashAlgorithm.ComputeHash(bytes, i, bufferSize);
+            if (uniqueHashCounter.TryGetValue(xorHash, out var counter))
+            {
+                uniqueHashCounter[xorHash] = counter + 1;
+            }
+            else
+            {
+                uniqueHashCounter[xorHash] = 1;
+            }
+        }
+
+        return new UniqueCalculationResult(hashAlgorithm.Name, bytes.Length - bufferSize, uniqueHashCounter.Keys.Count, bufferSize, hashAlgorithm.HashSize);
     }
+
+    private string FormatCalculationResult(UniqueCalculationResult result)
+    {
+        return $@"
+Hash algorithm: <b>{result.AlgorithmName}</b><br />
+Blocks Hashed: <b>{result.BlocksHashed}</b><br />
+Unique Hashes: <b>{result.UniqueHashes}</b><br />
+Buffer Size: <b>{result.BufferSize}</b> byte(s)<br />
+Hash Length: <b>{result.HashLength}</b> byte(s)<br />
+";
+    }
+
+
+
 
 }
 
@@ -144,4 +256,30 @@ else
             .file-info-table td:first-child {
                 font-weight: bold;
             }
+
+    .hash-options {
+        margin: 20px 0;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+
+        .hash-options label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+            .hash-options label strong {
+                margin-right: 5px;
+            }
+
+        .hash-options input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        .hash-options input[type="number"] {
+            margin-top: 5px;
+            width: 100px;
+        }
 </style>

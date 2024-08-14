@@ -5,7 +5,7 @@ using DimonSmart.MazeGenerator;
 public abstract class MazeBaseComponent : ComponentBase
 {
     [Inject]
-    protected BrowserService BrowserService { get; set; }
+    protected BrowserService? BrowserService { get; set; }
 
     private int _xSize = 31;
     protected int XSize
