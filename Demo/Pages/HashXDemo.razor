@@ -2,27 +2,146 @@
 
 @using Demo.Components
 @using Demo.Models
+@using Demo.Models.HashX
 
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>HashX Demo coming soon</PageTitle>
 
 <h3>HashX</h3>
 
-<section id="mazegeneratordemoid">
-    <div style="margin-bottom: 20px;">
-        <div class="settings-container">
-            <label class="margin-right">
-                Width:
-                <input type="number" min="1" max="32" @bind="HashXSize" />
-            </label>
-        </div>
-    </div>
-</section>
+<div class="dropzone @dropClass rounded">
+    <InputFile id="fileInput" multiple title=""
+               OnChange="HandleFileSelected"
+               @ondragenter="HandleDragEnter"
+               @ondragleave="HandleDragLeave" />
+    Drop files here or click to upload.
+</div>
+
+<p class="info-text">
+    The uploaded file is stored only on your computer and has not been uploaded anywhere else.
+</p>
+
+<!-- File Information Display -->
+@if (_fileData != null)
+{
+    <table class="file-info-table">
+        <tr>
+            <td><strong>File Name:</strong></td>
+            <td>@_fileData.FileName</td>
+        </tr>
+        <tr>
+            <td><strong>File Size:</strong></td>
+            <td>@_fileData.Data.Length bytes</td>
+        </tr>
+    </table>
+}
+else
+{
+    <p>Please upload the file first.</p>
+}
+
+
 
 @code {
-    public int HashXSize { get; set; }
+    private FileData? _fileData;
 
-    protected override async Task OnInitializedAsync()
+    private void SetFile(FileData fileData)
     {
+        _fileData = fileData;
     }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream().ReadAsync(buffer);
+            var fileData = new FileData(file.Name, buffer);
+            SetFile(fileData);
+        }
+    }
+
+    private async Task Drop(DragEventArgs e)
+    {
+        var items = e.DataTransfer.Items;
+        foreach (var item in items)
+        {
+            
+            
+        }
+    }
+
+    private string dropClass = "";
+
+    private void HandleDragEnter()
+    {
+        dropClass = "dropzone-drag";
+    }
+
+    private void HandleDragLeave()
+    {
+        dropClass = "";
+    }
+
 }
+
+<style>
+    .drop-area {
+        border: 2px dashed grey;
+        padding: 10px;
+        text-align: center;
+    }
+
+    .info-text {
+        margin-top: 5px;
+        font-style: italic;
+        color: grey;
+        font-size: 0.8rem;
+    }
+
+    .dropzone {
+        border: 3px dashed steelblue;
+        margin-bottom: 5px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
+        color: black;
+        font-size: 1.0rem;
+        cursor: pointer;
+        position: relative;
+    }
+
+        .dropzone:hover {
+            background-color: #f3f3f3;
+            color: #333;
+        }
+
+        .dropzone input[type=file] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+    .dropzone-drag {
+        background-color: palegreen;
+    }
+
+    .file-info-table {
+        border-collapse: collapse;
+        margin-top: 5px;
+    }
+
+        .file-info-table td {
+            padding: 2px 5px;
+            vertical-align: top;
+        }
+
+            .file-info-table td:first-child {
+                font-weight: bold;
+            }
+</style>
