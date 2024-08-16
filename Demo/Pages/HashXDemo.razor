@@ -42,12 +42,14 @@ else
 }
 
 <div class="hash-options">
+    <!-- Md5 Component -->
     <label>
         <input type="checkbox" @bind="md5Selected" />
         <strong>Md5:</strong>
         <span>Generates an MD5 hash from the input buffer.</span>
     </label>
 
+    <!-- Sha1 Component -->
     <label>
         <input type="checkbox" @bind="sha1Selected" />
         <strong>Sha1:</strong>
@@ -76,19 +78,58 @@ else
 
 <!-- Progress Indicator -->
 <p><strong>Progress:</strong> @progressText</p>
+<button @onclick="CancelCalculation">Cancel</button>
+<div class="hash-result-container">
+
+    @if (Md5CalculationResult != null)
+    {
+        <div class="hash-result-card">
+            <UniqueCalculationResultDisplay Result="Md5CalculationResult" />
+        </div>
+    }
+
+    @if (Sha1CalculationResult != null)
+    {
+        <div class="hash-result-card">
+            <UniqueCalculationResultDisplay Result="Sha1CalculationResult" />
+        </div>
+    }
+
+    @if (XorCalculationResult != null)
+    {
+        <div class="hash-result-card">
+            <UniqueCalculationResultDisplay Result="XorCalculationResult" />
+        </div>
+    }
+
+    @if (ZeroCalculationResult != null)
+    {
+        <div class="hash-result-card">
+            <UniqueCalculationResultDisplay Result="ZeroCalculationResult" />
+        </div>
+    }
+</div>
 
 <!-- Hash Calculation Result -->
 <label for="hashResult"><strong>Result:</strong></label>
 
-<LogViewer @ref="_logViewer" />
 
+<LogViewer @ref="_logViewer" />
 
 @code {
     private LogViewer _logViewer = null!;
 
     private FileData? _fileData;
+    // Md5
+    private bool md5Selected;
+    private UniqueCalculationResult? Md5CalculationResult;
+
+    // Sha1
+    private bool sha1Selected;
+    private UniqueCalculationResult? Sha1CalculationResult;
 
     // Xor component
+    private bool xorSelected;
     private const int XorMinValue = 1;
     private const int XorMaxValue = 2048;
     private int xorValue = 1;
@@ -97,8 +138,10 @@ else
         get => xorValue;
         set => xorValue = Math.Clamp(value, XorMinValue, XorMaxValue);
     }
+    private UniqueCalculationResult? XorCalculationResult;
 
     // Zero component
+    private bool zeroSelected;
     private const int ZeroMinValue = 1;
     private const int ZeroMaxValue = 2048;
     private int zeroValue = 1;
@@ -107,11 +150,7 @@ else
         get => zeroValue;
         set => zeroValue = Math.Clamp(value, ZeroMinValue, ZeroMaxValue);
     }
-
-    private bool md5Selected;
-    private bool sha1Selected;
-    private bool xorSelected;
-    private bool zeroSelected;
+    private UniqueCalculationResult? ZeroCalculationResult;
 
     private string progressText = "Waiting for input...";
     private string hashResult = string.Empty;
@@ -119,7 +158,7 @@ else
     private async Task SetFileAsync(FileData fileData)
     {
         _fileData = fileData;
-        await DoCalculationAsync();
+        await DoCalculationAsync(_cancellationTokenSource.Token);
     }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
@@ -128,7 +167,7 @@ else
         if (file != null)
         {
             // 100 MB limit
-            var maxAllowedSize = 100 * 1024 * 1024; 
+            var maxAllowedSize = 100 * 1024 * 1024;
             var buffer = new byte[file.Size];
             await file.OpenReadStream(maxAllowedSize).ReadAsync(buffer);
             var fileData = new FileData(file.Name, buffer);
@@ -148,28 +187,72 @@ else
 
     private void HandleDragLeave() => dropClass = "";
 
+
+    private void Reset()
+    {
+        Md5CalculationResult = null;
+        Sha1CalculationResult = null;
+        XorCalculationResult = null;
+        ZeroCalculationResult = null;
+        _cancellationTokenSource = new CancellationTokenSource();
+    }
+
+    CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+
     private async Task DoCalculationAsync(CancellationToken cancellationToken = default)
     {
         var fileData = _fileData;
         if (fileData == null) return;
+        Reset();
         SetProgress("Calculation started ...");
         await _logViewer.ClearAsync();
-
+        StateHasChanged();
         var bufferSize = ZeroValue;
-        var zeroHashAlgorithm = new ZeroHashAlgorithm(bufferSize);
-        var result = await CalculateCollisionsAsync(bufferSize, zeroHashAlgorithm, fileData.Data);
 
-        _logViewer?.AddLogEntry(FormatCalculationResult(result));
+        if (md5Selected)
+        {
+            var md5HashAlgorithm = new Md5HashAlgorithm();
+            Md5CalculationResult = await CalculateCollisionsAsync(bufferSize, md5HashAlgorithm, fileData.Data, _cancellationTokenSource.Token);
+            StateHasChanged();
+            await Task.Delay(TimeSpan.FromSeconds(100));
+        }
+
+        if (sha1Selected)
+        {
+            var sha1HashAlgorithm = new Sha1HashAlgorithm();
+            Sha1CalculationResult = await CalculateCollisionsAsync(bufferSize, sha1HashAlgorithm, fileData.Data, _cancellationTokenSource.Token);
+            await Task.Delay(TimeSpan.FromSeconds(100));
+            StateHasChanged();
+        }
+
+        if (zeroSelected)
+        {
+            var zeroHashAlgorithm = new ZeroHashAlgorithm(bufferSize);
+            ZeroCalculationResult = await CalculateCollisionsAsync(bufferSize, zeroHashAlgorithm, fileData.Data, _cancellationTokenSource.Token);
+            await Task.Delay(TimeSpan.FromSeconds(100));
+            StateHasChanged();
+        }
+
+        if (xorSelected)
+        {
+            var xorHashAlgorithm = new XorHash(bufferSize);
+            XorCalculationResult = await CalculateCollisionsAsync(bufferSize, xorHashAlgorithm, fileData.Data, _cancellationTokenSource.Token);
+            await Task.Delay(TimeSpan.FromSeconds(100));
+            StateHasChanged();
+        }
+
+        // _logViewer?.AddLogEntry(FormatCalculationResult(ZeroCalculationResult));
 
 
         SetProgress("Calculation finished ...");
     }
 
-    private static async Task<UniqueCalculationResult> CalculateCollisionsAsync(int bufferSize, IHashAlgorithm hashAlgorithm, byte[] bytes)
+    private static async Task<UniqueCalculationResult> CalculateCollisionsAsync(int bufferSize, IHashAlgorithm hashAlgorithm, byte[] bytes, CancellationToken cancellationToken)
     {
         Dictionary<byte[], int> uniqueHashCounter = new(10000, new ByteArrayEqualityComparer());
         for (var i = 0; i <= bytes.Length - bufferSize; i++)
         {
+            if (cancellationToken.IsCancellationRequested) break;
             var xorHash = hashAlgorithm.ComputeHash(bytes, i, bufferSize);
             if (uniqueHashCounter.TryGetValue(xorHash, out var counter))
             {
@@ -181,26 +264,52 @@ else
             }
         }
 
-        return new UniqueCalculationResult(hashAlgorithm.Name, bytes.Length - bufferSize, uniqueHashCounter.Keys.Count, bufferSize, hashAlgorithm.HashSize);
+        return new UniqueCalculationResult(hashAlgorithm.Name, bytes.Length - bufferSize + 1, uniqueHashCounter.Keys.Count, bufferSize, hashAlgorithm.HashSize);
     }
 
     private string FormatCalculationResult(UniqueCalculationResult result)
     {
-        return $@"
-Hash algorithm: <b>{result.AlgorithmName}</b><br />
-Blocks Hashed: <b>{result.BlocksHashed}</b><br />
-Unique Hashes: <b>{result.UniqueHashes}</b><br />
-Buffer Size: <b>{result.BufferSize}</b> byte(s)<br />
-Hash Length: <b>{result.HashLength}</b> byte(s)<br />
+        return $@"Hash algorithm: <b>{result.AlgorithmName}</b>
+Blocks Hashed: <b>{result.BlocksHashed}</b>
+Unique Hashes: <b>{result.UniqueHashes}</b>
+Buffer Size: <b>{result.BufferSize}</b> byte(s)
+Hash Length: <b>{result.HashLength}</b> byte(s)
 ";
     }
 
-
-
-
+    private void CancelCalculation()
+    {
+        _cancellationTokenSource.Cancel();
+        SetProgress("Calculation cancelled.");
+    }
 }
 
 <style>
+    :root {
+        --gap-size: 10px;
+    }
+
+    .hash-result-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: left;
+        gap: var(--gap-size);
+    }
+
+  .hash-result-card {
+        flex: 1 1 calc(33.333% - var(--gap-size));
+        display: flex;
+        flex-direction: column;
+        min-width: 200px;
+        max-width: 300px;
+        border: 1px solid gray;
+        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.25);
+        border-radius: 5px;
+        overflow: hidden;
+        box-sizing: border-box;
+        flex-grow: 1;
+    }
+
     .drop-area {
         border: 2px dashed grey;
         padding: 10px;
@@ -211,7 +320,7 @@ Hash Length: <b>{result.HashLength}</b> byte(s)<br />
         margin-top: 5px;
         font-style: italic;
         color: grey;
-        font-size: 0.8rem;
+        font-size: 1.0rem;
     }
 
     .dropzone {
