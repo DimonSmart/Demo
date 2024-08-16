@@ -81,7 +81,11 @@ else
 
 <!-- Progress Indicator -->
 <p><strong>Progress:</strong> @progressText</p>
-<button @onclick="CancelCalculation">Cancel</button>
+
+<button @onclick="StartCalculation" disabled="@isCalculationRunning">Start</button>
+
+<button @onclick="CancelCalculation" disabled="@(isCalculationRunning == false)">Cancel</button>
+
 <div class="hash-result-container">
 
     @if (Md5CalculationResult != null)
@@ -160,10 +164,10 @@ else
     private string progressText = "Waiting for input...";
     private string hashResult = string.Empty;
 
-    private async Task SetFileAsync(FileData fileData)
+    private Task SetFileAsync(FileData fileData)
     {
         _fileData = fileData;
-        await DoCalculationAsync(_cancellationTokenSource.Token);
+        return Task.CompletedTask;
     }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
@@ -178,6 +182,7 @@ else
             var fileData = new FileData(file.Name, buffer);
             await SetFileAsync(fileData);
         }
+        StateHasChanged();
     }
 
     public void SetProgress(string text)
@@ -202,6 +207,19 @@ else
         _cancellationTokenSource = new CancellationTokenSource();
     }
 
+    private readonly Dictionary<Type, Action<UniqueCalculationResult>> _resultAssignmentMap;
+
+    public HashXDemo()
+    {
+        _resultAssignmentMap = new Dictionary<Type, Action<UniqueCalculationResult>>
+        {
+            { typeof(Md5HashAlgorithm), result => Md5CalculationResult = result },
+            { typeof(Sha1HashAlgorithm), result => Sha1CalculationResult = result },
+            { typeof(ZeroHashAlgorithm), result => ZeroCalculationResult = result },
+            { typeof(XorHash), result => XorCalculationResult = result }
+        };
+    }
+
     CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
     private async Task DoCalculationAsync(CancellationToken cancellationToken = default)
@@ -212,56 +230,48 @@ else
         SetProgress("Calculation started ...");
         await _logViewer.ClearAsync();
         StateHasChanged();
+
         var bufferSize = bufferValue;
 
         if (md5Selected)
         {
-            await _logViewer.AddLogEntryAsync("MD5 calculation startd");
-            var md5HashAlgorithm = new Md5HashAlgorithm();
-            Md5CalculationResult = await CalculateCollisionsAsync(bufferSize, md5HashAlgorithm, fileData.Data, _cancellationTokenSource.Token);
-            await _logViewer.AddLogEntryAsync("MD5 calculation finished");
-            StateHasChanged();
-            await Task.Delay(TimeSpan.FromSeconds(100));
+            await ProcessHashAsync(new Md5HashAlgorithm(), fileData.Data, bufferSize, cancellationToken);
         }
 
         if (sha1Selected)
         {
-            await _logViewer.AddLogEntryAsync("SHA1 calculation startd");
-            var sha1HashAlgorithm = new Sha1HashAlgorithm();
-            Sha1CalculationResult = await CalculateCollisionsAsync(bufferSize, sha1HashAlgorithm, fileData.Data, _cancellationTokenSource.Token);
-            await _logViewer.AddLogEntryAsync("SHA1 calculation finished");
-            StateHasChanged();
-            await Task.Delay(TimeSpan.FromSeconds(100));
+            await ProcessHashAsync(new Sha1HashAlgorithm(), fileData.Data, bufferSize, cancellationToken);
         }
 
         if (zeroSelected)
         {
-            await _logViewer.AddLogEntryAsync("ZERO calculation startd");
-            var zeroHashAlgorithm = new ZeroHashAlgorithm(bufferSize);
-            ZeroCalculationResult = await CalculateCollisionsAsync(bufferSize, zeroHashAlgorithm, fileData.Data, _cancellationTokenSource.Token);
-            await _logViewer.AddLogEntryAsync("ZERO calculation finished");
-            StateHasChanged();
-            await Task.Delay(TimeSpan.FromSeconds(100));
+            await ProcessHashAsync(new ZeroHashAlgorithm(bufferSize), fileData.Data, bufferSize, cancellationToken);
         }
 
         if (xorSelected)
         {
-            await _logViewer.AddLogEntryAsync("XOR calculation startd");
-            var xorHashAlgorithm = new XorHash(bufferSize);
-            XorCalculationResult = await CalculateCollisionsAsync(bufferSize, xorHashAlgorithm, fileData.Data, _cancellationTokenSource.Token);
-            await _logViewer.AddLogEntryAsync("XOR calculation finished");
-            StateHasChanged();
-            await Task.Delay(TimeSpan.FromSeconds(100));
+            await ProcessHashAsync(new XorHash(bufferSize), fileData.Data, bufferSize, cancellationToken);
         }
 
         SetProgress("Calculation finished ...");
     }
 
-    private static Task<UniqueCalculationResult> CalculateCollisionsAsync(int bufferSize, IHashAlgorithm hashAlgorithm, byte[] bytes, CancellationToken cancellationToken)
+    private async Task ProcessHashAsync(IHashAlgorithm hashAlgorithm, byte[] data, int bufferSize, CancellationToken cancellationToken)
+    {
+        await _logViewer.AddLogEntryAsync($"{hashAlgorithm.Name} calculation started");
+        var result = await CalculateCollisionsAsync(bufferSize, hashAlgorithm, data, cancellationToken);
+        _resultAssignmentMap[hashAlgorithm.GetType()](result);
+        await _logViewer.AddLogEntryAsync($"{hashAlgorithm.Name} calculation finished");
+        StateHasChanged();
+        await Task.Yield();
+    }
+
+    private static async Task<UniqueCalculationResult> CalculateCollisionsAsync(int bufferSize, IHashAlgorithm hashAlgorithm, byte[] bytes, CancellationToken cancellationToken)
     {
         Dictionary<byte[], int> uniqueHashCounter = new(10000, new ByteArrayEqualityComparer());
         for (var i = 0; i <= bytes.Length - bufferSize; i++)
         {
+            if (i % 1000 == 0) await Task.Yield();
             if (cancellationToken.IsCancellationRequested) break;
             var xorHash = hashAlgorithm.ComputeHash(bytes, i, bufferSize);
             if (uniqueHashCounter.TryGetValue(xorHash, out var counter))
@@ -274,7 +284,7 @@ else
             }
         }
 
-        return Task.FromResult(new UniqueCalculationResult(hashAlgorithm.Name, bytes.Length - bufferSize + 1, uniqueHashCounter.Keys.Count, bufferSize, hashAlgorithm.HashSize));
+        return new UniqueCalculationResult(hashAlgorithm.Name, bytes.Length - bufferSize + 1, uniqueHashCounter.Keys.Count, bufferSize, hashAlgorithm.HashSize);
     }
 
     private string FormatCalculationResult(UniqueCalculationResult result)
@@ -287,11 +297,36 @@ Hash Length: <b>{result.HashLength}</b> byte(s)
 ";
     }
 
-    private void CancelCalculation()
+    private void CancelCalculation(MouseEventArgs e)
     {
-        _cancellationTokenSource.Cancel();
-        SetProgress("Calculation cancelled.");
+        if (isCalculationRunning)
+        {
+            _cancellationTokenSource.Cancel();
+            SetProgress("Calculation cancelled.");
+        }
     }
+
+    private bool isCalculationRunning = false;
+
+    private async Task StartCalculation(MouseEventArgs e)
+    {
+        if (isCalculationRunning)
+            return;
+
+        isCalculationRunning = true;
+        StateHasChanged();
+
+        try
+        {
+            await DoCalculationAsync(_cancellationTokenSource.Token);
+        }
+        finally
+        {
+            isCalculationRunning = false;
+            StateHasChanged();
+        }
+    }
+
 }
 
 <style>
