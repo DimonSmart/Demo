@@ -60,19 +60,22 @@ else
     <label>
         <input type="checkbox" @bind="xorSelected" />
         <strong>Xor:</strong>
-        <span>Xor incoming byte and shift next xor position by one bit, wrap it at the end of buffer.</span>
-        <br />
         <input type="number" min="@XorMinValue" max="@XorMaxValue" @bind="XorValue" />
+        <span>Xor incoming byte and shift next xor position by one bit, wrap it at the end of buffer.</span>
     </label>
-    <br />
 
     <!-- Zero Component -->
     <label>
         <input type="checkbox" @bind="zeroSelected" />
         <strong>Zero:</strong>
-        <span>Hash always equals buffer. Hash size should be equal to buffer size. Used as a baseline for collision calculation.</span>
-        <br />
-        <input type="number" min="@ZeroMinValue" max="@ZeroMaxValue" @bind="zeroValue" />
+        <span>Hash always equals buffer. Used as a baseline for collision calculation.</span>
+    </label>
+
+    <!-- BUffer length -->
+    <label>
+        <strong>BufferLength:</strong>
+        <input type="number" min="@BufferMinValue" max="@BufferMaxValue" @bind="bufferValue" />
+        <span>Length of the block to be hashed.</span>
     </label>
 </div>
 
@@ -113,7 +116,6 @@ else
 <!-- Hash Calculation Result -->
 <label for="hashResult"><strong>Result:</strong></label>
 
-
 <LogViewer @ref="_logViewer" />
 
 @code {
@@ -130,7 +132,7 @@ else
 
     // Xor component
     private bool xorSelected;
-    private const int XorMinValue = 1;
+    private const int XorMinValue = 4;
     private const int XorMaxValue = 2048;
     private int xorValue = 1;
     private int XorValue
@@ -142,15 +144,18 @@ else
 
     // Zero component
     private bool zeroSelected;
-    private const int ZeroMinValue = 1;
-    private const int ZeroMaxValue = 2048;
-    private int zeroValue = 1;
-    private int ZeroValue
-    {
-        get => zeroValue;
-        set => zeroValue = Math.Clamp(value, ZeroMinValue, ZeroMaxValue);
-    }
+
     private UniqueCalculationResult? ZeroCalculationResult;
+
+    // Buffer
+    private const int BufferMinValue = 1;
+    private const int BufferMaxValue = 2048;
+    private int bufferValue = 16;
+    private int BufferValue
+    {
+        get => bufferValue;
+        set => bufferValue = Math.Clamp(value, BufferMinValue, BufferMaxValue);
+    }
 
     private string progressText = "Waiting for input...";
     private string hashResult = string.Empty;
@@ -207,47 +212,52 @@ else
         SetProgress("Calculation started ...");
         await _logViewer.ClearAsync();
         StateHasChanged();
-        var bufferSize = ZeroValue;
+        var bufferSize = bufferValue;
 
         if (md5Selected)
         {
+            await _logViewer.AddLogEntryAsync("MD5 calculation startd");
             var md5HashAlgorithm = new Md5HashAlgorithm();
             Md5CalculationResult = await CalculateCollisionsAsync(bufferSize, md5HashAlgorithm, fileData.Data, _cancellationTokenSource.Token);
+            await _logViewer.AddLogEntryAsync("MD5 calculation finished");
             StateHasChanged();
             await Task.Delay(TimeSpan.FromSeconds(100));
         }
 
         if (sha1Selected)
         {
+            await _logViewer.AddLogEntryAsync("SHA1 calculation startd");
             var sha1HashAlgorithm = new Sha1HashAlgorithm();
             Sha1CalculationResult = await CalculateCollisionsAsync(bufferSize, sha1HashAlgorithm, fileData.Data, _cancellationTokenSource.Token);
-            await Task.Delay(TimeSpan.FromSeconds(100));
+            await _logViewer.AddLogEntryAsync("SHA1 calculation finished");
             StateHasChanged();
+            await Task.Delay(TimeSpan.FromSeconds(100));
         }
 
         if (zeroSelected)
         {
+            await _logViewer.AddLogEntryAsync("ZERO calculation startd");
             var zeroHashAlgorithm = new ZeroHashAlgorithm(bufferSize);
             ZeroCalculationResult = await CalculateCollisionsAsync(bufferSize, zeroHashAlgorithm, fileData.Data, _cancellationTokenSource.Token);
-            await Task.Delay(TimeSpan.FromSeconds(100));
+            await _logViewer.AddLogEntryAsync("ZERO calculation finished");
             StateHasChanged();
+            await Task.Delay(TimeSpan.FromSeconds(100));
         }
 
         if (xorSelected)
         {
+            await _logViewer.AddLogEntryAsync("XOR calculation startd");
             var xorHashAlgorithm = new XorHash(bufferSize);
             XorCalculationResult = await CalculateCollisionsAsync(bufferSize, xorHashAlgorithm, fileData.Data, _cancellationTokenSource.Token);
-            await Task.Delay(TimeSpan.FromSeconds(100));
+            await _logViewer.AddLogEntryAsync("XOR calculation finished");
             StateHasChanged();
+            await Task.Delay(TimeSpan.FromSeconds(100));
         }
-
-        // _logViewer?.AddLogEntry(FormatCalculationResult(ZeroCalculationResult));
-
 
         SetProgress("Calculation finished ...");
     }
 
-    private static async Task<UniqueCalculationResult> CalculateCollisionsAsync(int bufferSize, IHashAlgorithm hashAlgorithm, byte[] bytes, CancellationToken cancellationToken)
+    private static Task<UniqueCalculationResult> CalculateCollisionsAsync(int bufferSize, IHashAlgorithm hashAlgorithm, byte[] bytes, CancellationToken cancellationToken)
     {
         Dictionary<byte[], int> uniqueHashCounter = new(10000, new ByteArrayEqualityComparer());
         for (var i = 0; i <= bytes.Length - bufferSize; i++)
@@ -264,7 +274,7 @@ else
             }
         }
 
-        return new UniqueCalculationResult(hashAlgorithm.Name, bytes.Length - bufferSize + 1, uniqueHashCounter.Keys.Count, bufferSize, hashAlgorithm.HashSize);
+        return Task.FromResult(new UniqueCalculationResult(hashAlgorithm.Name, bytes.Length - bufferSize + 1, uniqueHashCounter.Keys.Count, bufferSize, hashAlgorithm.HashSize));
     }
 
     private string FormatCalculationResult(UniqueCalculationResult result)

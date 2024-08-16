@@ -19,11 +19,12 @@
     private string logContent = string.Empty;
     private ElementReference logContainer;
 
-    public void AddLogEntry(string message)
+    public Task AddLogEntryAsync(string message)
     {
         logContent += message + "<br />";
         StateHasChanged();
         ScrollToBottom();
+        return Task.CompletedTask;
     }
 
     public async Task ClearAsync()
