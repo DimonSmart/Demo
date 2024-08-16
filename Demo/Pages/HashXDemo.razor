@@ -82,7 +82,7 @@ else
 <!-- Progress Indicator -->
 <p><strong>Progress:</strong> @progressText</p>
 
-<button @onclick="StartCalculation" disabled="@isCalculationRunning">Start</button>
+<button @onclick="StartCalculation" disabled="@(isCalculationRunning || _fileData == null)">Start</button>
 
 <button @onclick="CancelCalculation" disabled="@(isCalculationRunning == false)">Cancel</button>
 
@@ -167,6 +167,7 @@ else
     private Task SetFileAsync(FileData fileData)
     {
         _fileData = fileData;
+        StateHasChanged();
         return Task.CompletedTask;
     }
 
@@ -182,7 +183,6 @@ else
             var fileData = new FileData(file.Name, buffer);
             await SetFileAsync(fileData);
         }
-        StateHasChanged();
     }
 
     public void SetProgress(string text)
