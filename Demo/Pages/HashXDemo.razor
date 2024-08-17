@@ -135,15 +135,15 @@ else
     private FileData? _fileData;
 
     // Md5
-    private bool _md5Selected;
+    private bool _md5Selected = true;
     private UniqueCalculationResult? _md5CalculationResult;
 
     // Sha1
-    private bool _sha1Selected;
+    private bool _sha1Selected = true;
     private UniqueCalculationResult? _sha1CalculationResult;
 
     // Xor component
-    private bool _xorSelected;
+    private bool _xorSelected = true;
     private const int XorMinValue = 4;
     private const int XorMaxValue = 2048;
     private int _xorValue = 4;
@@ -157,7 +157,7 @@ else
     private UniqueCalculationResult? _xorCalculationResult;
 
     // Zero component
-    private bool _zeroSelected;
+    private bool _zeroSelected = true;
 
     private UniqueCalculationResult? _zeroCalculationResult;
 
