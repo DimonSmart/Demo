@@ -76,7 +76,7 @@
         ClearWave();
         CancelGeneration();
         var options = new DimonSmart.MazeGenerator.MazeBuildOptions(StopWallProbability / 100, Emptiness / 100.0);
-        _maze = new Maze<Demo.Models.MazeCellModel>(XSize, YSize);
+        _maze = new Maze<MazeCellModel>(XSize, YSize);
         var mazeBuilder = new MazeBuilder(_maze, options);
         await mazeBuilder.BuildAsync(null, cancellationTokenSource.Token);
         StateHasChanged();

@@ -1,0 +1,43 @@
+﻿<div class="log-viewer" @onclick="ScrollToBottom" @ref="logContainer">
+    @((MarkupString)logContent)
+</div>
+
+<style>
+    .log-viewer {
+        width: 100%;
+        height: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        overflow-y: auto;
+        font-family: Consolas, monospace;
+        white-space: pre-wrap;
+        line-height: 0.8;
+    }
+</style>
+
+@code {
+    private string logContent = string.Empty;
+    private ElementReference logContainer;
+
+    public Task AddLogEntryAsync(string message)
+    {
+        logContent += message + "<br />";
+        StateHasChanged();
+        ScrollToBottom();
+        return Task.CompletedTask;
+    }
+
+    public async Task ClearAsync()
+    {
+        logContent = string.Empty;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ScrollToBottom()
+    {
+      //  InvokeAsync(async () =>
+      //  {
+      //      await logContainer.ScrollToElementAsync();
+      //  });
+    }
+}

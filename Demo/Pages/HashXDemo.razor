@@ -1,28 +1,448 @@
 ﻿@page "/hashxdemo"
-
 @using Demo.Components
-@using Demo.Models
+@using Demo.Demos.HashX
+@using DimonSmart.Hash
+@using DimonSmart.Hash.Interfaces
 
-<link rel="stylesheet" href="css/demos.css" />
+<link rel="stylesheet" href="css/demos.css"/>
 <PageTitle>HashX Demo coming soon</PageTitle>
 
 <h3>HashX</h3>
 
-<section id="mazegeneratordemoid">
-    <div style="margin-bottom: 20px;">
-        <div class="settings-container">
-            <label class="margin-right">
-                Width:
-                <input type="number" min="1" max="32" @bind="HashXSize" />
-            </label>
+<div class="dropzone @_dropClass rounded">
+    <InputFile id="fileInput" multiple title=""
+               OnChange="HandleFileSelected"
+               @ondragenter="HandleDragEnter"
+               @ondragleave="HandleDragLeave"/>
+    Drop files here or click to upload.
+</div>
+
+<p class="info-text">
+    The uploaded file is stored only on your computer and has not been uploaded anywhere else.
+</p>
+
+<!-- File Information Display -->
+@if (_fileData != null)
+{
+    <table class="file-info-table">
+        <tr>
+            <td>
+                <strong>File Name:</strong>
+            </td>
+            <td>@_fileData.FileName</td>
+        </tr>
+        <tr>
+            <td>
+                <strong>File Size:</strong>
+            </td>
+            <td>@_fileData.Data.Length bytes</td>
+        </tr>
+    </table>
+}
+else
+{
+    <p>Please upload the file first.</p>
+}
+
+<div class="hash-options">
+    <!-- Md5 Component -->
+    <label>
+        <input type="checkbox" @bind="_md5Selected"/>
+        <strong>Md5:</strong>
+        <span>Generates an MD5 hash from the input buffer.</span>
+    </label>
+
+    <!-- Sha1 Component -->
+    <label>
+        <input type="checkbox" @bind="_sha1Selected"/>
+        <strong>Sha1:</strong>
+        <span>Generates a SHA1 hash from the input buffer.</span>
+    </label>
+
+    <!-- Xor Component -->
+    <label>
+        <input type="checkbox" @bind="_xorSelected"/>
+        <strong>Xor:</strong>
+        <input type="number" min="@XorMinValue" max="@XorMaxValue" @bind="XorValue"/>
+        <span>Xor incoming byte and shift next xor position by one bit, wrap it at the end of buffer.</span>
+    </label>
+
+    <!-- Zero Component -->
+    <label>
+        <input type="checkbox" @bind="_zeroSelected"/>
+        <strong>Zero:</strong>
+        <span>Hash always equals buffer. Used as a baseline for collision calculation.</span>
+    </label>
+
+    <!-- Buffer length -->
+    <label>
+        <strong>BufferLength:</strong>
+        <input type="number" min="@BufferMinValue" max="@BufferMaxValue" @bind="BufferValue"/>
+        <span>Length of the block to be hashed.</span>
+    </label>
+</div>
+
+<!-- Progress Indicator -->
+<p>
+    <strong>Progress:</strong> @_progressText
+</p>
+
+<button @onclick="StartCalculation" disabled="@(_isCalculationRunning || _fileData == null)">Start</button>
+
+<button @onclick="CancelCalculation" disabled="@(_isCalculationRunning == false)">Cancel</button>
+
+<div class="hash-result-container">
+
+    @if (_md5CalculationResult != null)
+    {
+        <div class="hash-result-card">
+            <UniqueCalculationResultDisplay Result="_md5CalculationResult"/>
         </div>
-    </div>
-</section>
+    }
+
+    @if (_sha1CalculationResult != null)
+    {
+        <div class="hash-result-card">
+            <UniqueCalculationResultDisplay Result="_sha1CalculationResult"/>
+        </div>
+    }
+
+    @if (_xorCalculationResult != null)
+    {
+        <div class="hash-result-card">
+            <UniqueCalculationResultDisplay Result="_xorCalculationResult"/>
+        </div>
+    }
+
+    @if (_zeroCalculationResult != null)
+    {
+        <div class="hash-result-card">
+            <UniqueCalculationResultDisplay Result="_zeroCalculationResult"/>
+        </div>
+    }
+</div>
+
+<!-- Hash Calculation Result -->
+<label for="hashProcessLog">
+    <strong>Result:</strong>
+</label>
+
+<LogViewer id="hashProcessLog" @ref="_logViewer"/>
 
 @code {
-    public int HashXSize { get; set; }
+    private LogViewer _logViewer = null!;
 
-    protected override async Task OnInitializedAsync()
+    private FileData? _fileData;
+
+    // Md5
+    private bool _md5Selected;
+    private UniqueCalculationResult? _md5CalculationResult;
+
+    // Sha1
+    private bool _sha1Selected;
+    private UniqueCalculationResult? _sha1CalculationResult;
+
+    // Xor component
+    private bool _xorSelected;
+    private const int XorMinValue = 4;
+    private const int XorMaxValue = 2048;
+    private int _xorValue = 4;
+
+    private int XorValue
     {
+        get => _xorValue;
+        set => _xorValue = Math.Clamp(value, XorMinValue, XorMaxValue);
     }
+
+    private UniqueCalculationResult? _xorCalculationResult;
+
+    // Zero component
+    private bool _zeroSelected;
+
+    private UniqueCalculationResult? _zeroCalculationResult;
+
+    // Buffer
+    private const int BufferMinValue = 1;
+    private const int BufferMaxValue = 2048;
+    private int _bufferValue = 16;
+
+    private int BufferValue
+    {
+        get => _bufferValue;
+        set => _bufferValue = Math.Clamp(value, BufferMinValue, BufferMaxValue);
+    }
+
+    private string _progressText = "Waiting for input...";
+
+    private Task SetFileAsync(FileData fileData)
+    {
+        _fileData = fileData;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        // 100 MB limit
+        const int maxAllowedSize = 100 * 1024 * 1024;
+        var buffer = new byte[file.Size];
+        var bytesRead = await file.OpenReadStream(maxAllowedSize).ReadAsync(buffer, CancellationToken.None);
+        if (bytesRead != file.Size || bytesRead == 0) return;
+        var fileData = new FileData(file.Name, buffer);
+        await SetFileAsync(fileData);
+    }
+
+    private void SetProgress(string text)
+    {
+        _progressText = text;
+        StateHasChanged();
+    }
+
+    private string _dropClass = "";
+
+    private void HandleDragEnter()
+    {
+        _dropClass = "dropzone-drag";
+    }
+
+    private void HandleDragLeave()
+    {
+        _dropClass = "";
+    }
+
+    private void Reset()
+    {
+        _md5CalculationResult = null;
+        _sha1CalculationResult = null;
+        _xorCalculationResult = null;
+        _zeroCalculationResult = null;
+        _cancellationTokenSource = new CancellationTokenSource();
+    }
+
+    private readonly Dictionary<Type, Action<UniqueCalculationResult>> _resultAssignmentMap;
+
+    public HashXDemo()
+    {
+        _resultAssignmentMap = new Dictionary<Type, Action<UniqueCalculationResult>>
+        {
+            { typeof(Md5WebAssemblyAdaptedHashAlgorithm), result => _md5CalculationResult = result },
+            { typeof(Sha1HashAlgorithm), result => _sha1CalculationResult = result },
+            { typeof(ZeroHashAlgorithm), result => _zeroCalculationResult = result },
+            { typeof(XorHash), result => _xorCalculationResult = result }
+        };
+    }
+
+    CancellationTokenSource _cancellationTokenSource = new();
+
+    private async Task DoCalculationAsync(CancellationToken cancellationToken = default)
+    {
+        var fileData = _fileData;
+        if (fileData == null) return;
+        Reset();
+        SetProgress("Calculation started ...");
+        await _logViewer.ClearAsync();
+        StateHasChanged();
+
+        var bufferSize = BufferValue;
+
+        if (_md5Selected)
+        {
+            await ProcessHashAsync(new Md5WebAssemblyAdaptedHashAlgorithm(), fileData.Data, bufferSize, cancellationToken);
+        }
+
+        if (_sha1Selected)
+        {
+            await ProcessHashAsync(new Sha1HashAlgorithm(), fileData.Data, bufferSize, cancellationToken);
+        }
+
+        if (_zeroSelected)
+        {
+            await ProcessHashAsync(new ZeroHashAlgorithm(bufferSize), fileData.Data, bufferSize, cancellationToken);
+        }
+
+        if (_xorSelected)
+        {
+            await ProcessHashAsync(new XorHash(bufferSize), fileData.Data, bufferSize, cancellationToken);
+        }
+
+        SetProgress("Calculation finished ...");
+    }
+
+    private async Task ProcessHashAsync(IHashAlgorithm hashAlgorithm, byte[] data, int bufferSize, CancellationToken cancellationToken)
+    {
+        await _logViewer.AddLogEntryAsync($"{hashAlgorithm.Name} calculation started");
+        var result = await CalculateCollisionsAsync(bufferSize, hashAlgorithm, data, cancellationToken);
+        _resultAssignmentMap[hashAlgorithm.GetType()](result);
+        await _logViewer.AddLogEntryAsync($"{hashAlgorithm.Name} calculation finished");
+        StateHasChanged();
+        await Task.Yield();
+        await Task.Delay(1, cancellationToken);
+    }
+
+    private async Task<UniqueCalculationResult> CalculateCollisionsAsync(int bufferSize, IHashAlgorithm hashAlgorithm, byte[] bytes, CancellationToken cancellationToken)
+    {
+        Dictionary<byte[], int> uniqueHashCounter = new(10000, new ByteArrayEqualityComparer());
+        for (var i = 0; i <= bytes.Length - bufferSize; i++)
+        {
+            if (i % 1000 == 0)
+            {
+                StateHasChanged();
+                await Task.Yield();
+            }
+
+            if (cancellationToken.IsCancellationRequested) break;
+            var xorHash = hashAlgorithm.ComputeHash(bytes, i, bufferSize);
+            if (uniqueHashCounter.TryGetValue(xorHash, out var counter))
+            {
+                uniqueHashCounter[xorHash] = counter + 1;
+            }
+            else
+            {
+                uniqueHashCounter[xorHash] = 1;
+            }
+        }
+
+        return new UniqueCalculationResult(hashAlgorithm.Name, bytes.Length - bufferSize + 1, uniqueHashCounter.Keys.Count, bufferSize, hashAlgorithm.HashSize);
+    }
+
+    private void CancelCalculation(MouseEventArgs e)
+    {
+        if (!_isCalculationRunning) return;
+        _cancellationTokenSource.Cancel();
+        SetProgress("Calculation cancelled.");
+    }
+
+    private bool _isCalculationRunning;
+
+    private async Task StartCalculation(MouseEventArgs e)
+    {
+        if (_isCalculationRunning)
+            return;
+
+        _isCalculationRunning = true;
+        StateHasChanged();
+
+        try
+        {
+            await DoCalculationAsync(_cancellationTokenSource.Token);
+        }
+        finally
+        {
+            _isCalculationRunning = false;
+            StateHasChanged();
+        }
+    }
+
 }
+
+<style>
+    :root {
+        --gap-size: 10px;
+    }
+
+    .hash-result-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: left;
+        gap: var(--gap-size);
+    }
+
+  .hash-result-card {
+        flex: 1 1 calc(33.333% - var(--gap-size));
+        display: flex;
+        flex-direction: column;
+        min-width: 200px;
+        max-width: 300px;
+        border: 1px solid gray;
+        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.25);
+        border-radius: 5px;
+        overflow: hidden;
+        box-sizing: border-box;
+        flex-grow: 1;
+    }
+
+    .drop-area {
+        border: 2px dashed grey;
+        padding: 10px;
+        text-align: center;
+    }
+
+    .info-text {
+        margin-top: 5px;
+        font-style: italic;
+        color: grey;
+        font-size: 1.0rem;
+    }
+
+    .dropzone {
+        border: 3px dashed steelblue;
+        margin-bottom: 5px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
+        color: black;
+        font-size: 1.0rem;
+        cursor: pointer;
+        position: relative;
+    }
+
+        .dropzone:hover {
+            background-color: #f3f3f3;
+            color: #333;
+        }
+
+        .dropzone input[type=file] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+    .dropzone-drag {
+        background-color: palegreen;
+    }
+
+    .file-info-table {
+        border-collapse: collapse;
+        margin-top: 5px;
+    }
+
+        .file-info-table td {
+            padding: 2px 5px;
+            vertical-align: top;
+        }
+
+            .file-info-table td:first-child {
+                font-weight: bold;
+            }
+
+    .hash-options {
+        margin: 20px 0;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+
+        .hash-options label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+            .hash-options label strong {
+                margin-right: 5px;
+            }
+
+        .hash-options input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        .hash-options input[type="number"] {
+            margin-top: 5px;
+            width: 100px;
+        }
+</style>
