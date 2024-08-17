@@ -34,8 +34,8 @@
         </div>
         <div class="settings-container">
             <label>
-                Wall Shortness: <span class="value-display">@StopWallProbability%</span>
-                <input type="range" min="0" max="100" @bind-value="StopWallProbability" @bind-value:event="oninput" />
+                Wall Shortness: <span class="value-display">@WallShortness%</span>
+                <input type="range" min="0" max="100" @bind-value="WallShortness" @bind-value:event="oninput" />
             </label>
         </div>
         <div class="settings-container">
@@ -75,10 +75,10 @@
         _endPoint = null;
         ClearWave();
         CancelGeneration();
-        var options = new DimonSmart.MazeGenerator.MazeBuildOptions(StopWallProbability / 100, Emptiness / 100.0);
+        var options = new DimonSmart.MazeGenerator.MazeBuildOptions(WallShortness / 100, Emptiness / 100.0);
         _maze = new Maze<MazeCellModel>(XSize, YSize);
         var mazeBuilder = new MazeBuilder(_maze, options);
-        await mazeBuilder.BuildAsync(null, cancellationTokenSource.Token);
+        await mazeBuilder.BuildAsync(null, CancellationTokenSource.Token);
         StateHasChanged();
         _generationInProgress = false;
     }
@@ -139,7 +139,7 @@
         ClearWave();
         var waveGenerator = new MazeWaveGenerator(_maze, this);
         var wave = await waveGenerator
-            .GenerateWaveAsync(_startPoint.Value.X, _startPoint.Value.Y, _endPoint.Value.X, _endPoint.Value.Y, cancellationTokenSource.Token);
+            .GenerateWaveAsync(_startPoint.Value.X, _startPoint.Value.Y, _endPoint.Value.X, _endPoint.Value.Y, CancellationTokenSource.Token);
         if (wave.EndPoint != null)
         {
             var pathBuilder = new MazePathBuilder(wave, this);

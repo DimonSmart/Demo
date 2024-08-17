@@ -1,6 +1,8 @@
-using Microsoft.AspNetCore.Components;
 using Demo.Services;
 using DimonSmart.MazeGenerator;
+using Microsoft.AspNetCore.Components;
+
+namespace Demo.Pages;
 
 public abstract class MazeBaseComponent : ComponentBase
 {
@@ -52,32 +54,18 @@ public abstract class MazeBaseComponent : ComponentBase
         }
     }
 
-    private double _stopWallProbability = 50.0;
-    protected double StopWallProbability
+    private double _wallShortness = 5.0;
+    protected double WallShortness
     {
-        get => _stopWallProbability;
+        get => _wallShortness;
         set
         {
-            if (_stopWallProbability != value)
-            {
-                _stopWallProbability = value;
-                if (!IsSlowVisualization) _ = GenerateMazeAsync();
-            }
+            _wallShortness = value;
+            if (!IsSlowVisualization) _ = GenerateMazeAsync();
         }
     }
 
-    private bool _isSlowVisualization = false;
-    protected bool IsSlowVisualization
-    {
-        get => _isSlowVisualization;
-        set
-        {
-            if (_isSlowVisualization != value)
-            {
-                _isSlowVisualization = value;
-            }
-        }
-    }
+    protected bool IsSlowVisualization { get; set; }
 
     protected IMaze? _maze;
 
@@ -99,11 +87,11 @@ public abstract class MazeBaseComponent : ComponentBase
 
     protected abstract Task GenerateMazeAsync();
 
-    protected CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    protected CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
 
     protected void CancelGeneration()
     {
-        cancellationTokenSource.Cancel();
-        cancellationTokenSource = new CancellationTokenSource();
+        CancellationTokenSource.Cancel();
+        CancellationTokenSource = new CancellationTokenSource();
     }
 }
