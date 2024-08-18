@@ -7,79 +7,85 @@
 <link rel="stylesheet" href="css/demos.css"/>
 <PageTitle>HashX Demo coming soon</PageTitle>
 
-<h3>HashX</h3>
+<h3>HashX Research demo</h3>
 
-<div class="dropzone @_dropClass rounded">
-    <InputFile id="fileInput" multiple title=""
-               OnChange="HandleFileSelected"
-               @ondragenter="HandleDragEnter"
-               @ondragleave="HandleDragLeave"/>
-    Drop files here or click to upload.
-</div>
+<div class="hash-dashboard-container">
+    <div class="hash-dashboard-item hash-dashboard-droparea">
+        <div class="dropzone @_dropClass rounded">
+            <InputFile id="fileInput" multiple title=""
+                       OnChange="HandleFileSelected"
+                       @ondragenter="HandleDragEnter"
+                       @ondragleave="HandleDragLeave"/>
+            Drop files here or click to upload.
+        </div>
 
-<p class="info-text">
-    The uploaded file is stored only on your computer and has not been uploaded anywhere else.
-</p>
+        <p class="info-text">
+            The uploaded file is stored only on your computer and has not been uploaded anywhere else.
+        </p>
 
-<!-- File Information Display -->
-@if (_fileData != null)
-{
-    <table class="file-info-table">
-        <tr>
-            <td>
-                <strong>File Name:</strong>
-            </td>
-            <td>@_fileData.FileName</td>
-        </tr>
-        <tr>
-            <td>
-                <strong>File Size:</strong>
-            </td>
-            <td>@_fileData.Data.Length bytes</td>
-        </tr>
-    </table>
-}
-else
-{
-    <p>Please upload the file first.</p>
-}
+        <!-- File Information Display -->
+        @if (_fileData != null)
+        {
+            <table class="file-info-table">
+                <tr>
+                    <td>
+                        <strong>File Name:</strong>
+                    </td>
+                    <td>@_fileData.FileName</td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>File Size:</strong>
+                    </td>
+                    <td>@_fileData.Data.Length bytes</td>
+                </tr>
+            </table>
+        }
+        else
+        {
+            <p>Please upload the file first.</p>
+        }
+    </div>
+    <div class="hash-dashboard-item hash-dashboard-item">
 
-<div class="hash-options">
-    <!-- Md5 Component -->
-    <label>
-        <input type="checkbox" @bind="_md5Selected"/>
-        <strong>Md5:</strong>
-        <span>Generates an MD5 hash from the input buffer.</span>
-    </label>
+        <div class="hash-options">
+            <!-- Md5 Component -->
+            <label>
+                <input type="checkbox" @bind="_md5Selected"/>
+                <strong>Md5:</strong>
+                <span>Generates an MD5 hash from the input buffer.</span>
+            </label>
 
-    <!-- Sha1 Component -->
-    <label>
-        <input type="checkbox" @bind="_sha1Selected"/>
-        <strong>Sha1:</strong>
-        <span>Generates a SHA1 hash from the input buffer.</span>
-    </label>
+            <!-- Sha1 Component -->
+            <label>
+                <input type="checkbox" @bind="_sha1Selected"/>
+                <strong>Sha1:</strong>
+                <span>Generates a SHA1 hash from the input buffer.</span>
+            </label>
 
-    <!-- Xor Component -->
-    <label>
-        <input type="checkbox" @bind="_xorSelected"/>
-        <strong>Xor:</strong>
-        <input type="number" min="@XorMinValue" max="@XorMaxValue" @bind="XorValue"/>
-        <span>Xor incoming byte and shift next xor position by one bit, wrap it at the end of buffer.</span>
-    </label>
+            <!-- Xor Component -->
+            <label>
+                <input type="checkbox" @bind="_xorSelected"/>
+                <strong>Xor:</strong>
+                <input type="number" min="@XorMinValue" max="@XorMaxValue" @bind="XorValue"/>
+                <span>Xor incoming byte and shift next xor position by one bit, wrap it at the end of buffer.</span>
+            </label>
 
-    <!-- Zero Component -->
-    <label>
-        <input type="checkbox" @bind="_zeroSelected"/>
-        <strong>Zero:</strong>
-        <span>Hash always equals buffer. Used as a baseline for collision calculation.</span>
-    </label>
+            <!-- Zero Component -->
+            <label>
+                <input type="checkbox" @bind="_zeroSelected"/>
+                <strong>Zero:</strong>
+                <span>Hash always equals buffer. Used as a baseline for collision calculation.</span>
+            </label>
 
-    <!-- Buffer length -->
-    <label>
-        <strong>BufferLength:</strong>
-        <input type="number" min="@BufferMinValue" max="@BufferMaxValue" @bind="BufferValue"/>
-        <span>Length of the block to be hashed.</span>
-    </label>
+            <!-- Buffer length -->
+            <label>
+                <strong>BufferLength:</strong>
+                <input type="number" min="@BufferMinValue" max="@BufferMaxValue" @bind="BufferValue"/>
+                <span>Length of the block to be hashed.</span>
+            </label>
+        </div>
+    </div>
 </div>
 
 <!-- Progress Indicator -->
@@ -341,14 +347,41 @@ else
         --gap-size: 10px;
     }
 
-    .hash-result-container {
+    .hash-dashboard-container {
         display: flex;
         flex-wrap: wrap;
         justify-content: left;
         gap: var(--gap-size);
     }
 
-  .hash-result-card {
+    .hash-dashboard-item {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .hash-dashboard-droparea {
+        flex: 1 1 200px;
+        min-width: 150px;
+        max-width: 100%;
+    }
+
+    .hash-dashboard-options {
+        flex: 2 1 auto;
+        min-width: 300px;
+        max-width: 100%;
+    }
+
+    .hash-result-container {
+        margin-top: var(--gap-size);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: left;
+        gap: var(--gap-size);
+    }
+
+    .hash-result-card {
         flex: 1 1 calc(33.333% - var(--gap-size));
         display: flex;
         flex-direction: column;
@@ -421,7 +454,7 @@ else
             }
 
     .hash-options {
-        margin: 20px 0;
+        margin: 0;
         padding: 10px;
         border: 1px solid #ccc;
         border-radius: 5px;
