@@ -6,7 +6,7 @@
         <div class="diffviewbox-header-text">@HeaderText</div>
     }
     <div class="diffviewbox-container">
-        @_stringDiffHighlightedResult
+        @StringDiffHighlightedResult
     </div>
     <div class="diffviewbox-legend">
         <span class="diffviewbox-inserted-text">Added</span>
@@ -17,7 +17,7 @@
 </div>
 
 @code {
-    private MarkupString _stringDiffHighlightedResult { get; set; }
+    private MarkupString StringDiffHighlightedResult { get; set; }
     private TextDiff? _diff;
 
     [Parameter]
@@ -33,11 +33,11 @@
             _diff = value;
             if (_diff == null)
             {
-                _stringDiffHighlightedResult = new MarkupString();
+                StringDiffHighlightedResult = new MarkupString();
                 return;
             }
             var reconstructor = new HighlightedStringReconstructor();
-            _stringDiffHighlightedResult = new MarkupString(reconstructor.Reconstruct(_diff.Edits, _diff.SourceText));
+            StringDiffHighlightedResult = new MarkupString(reconstructor.Reconstruct(_diff.Edits, _diff.SourceText));
         }
     }
 }

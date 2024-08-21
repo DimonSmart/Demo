@@ -67,7 +67,7 @@
             <label>
                 <input type="checkbox" @bind="_xorSelected"/>
                 <strong>Xor:</strong>
-                <input type="number" min="@XorMinValue" max="@XorMaxValue" @bind="XorValue"/>
+                <input type="number" min="@XorMinValue" max="@XorMaxValue" @bind="XorHashSize"/>
                 <span>Xor incoming byte and shift next xor position by one bit, wrap it at the end of buffer.</span>
             </label>
 
@@ -152,12 +152,12 @@
     private bool _xorSelected = true;
     private const int XorMinValue = 4;
     private const int XorMaxValue = 2048;
-    private int _xorValue = 4;
+    private int _xorHashSize = 4;
 
-    private int XorValue
+    private int XorHashSize
     {
-        get => _xorValue;
-        set => _xorValue = Math.Clamp(value, XorMinValue, XorMaxValue);
+        get => _xorHashSize;
+        set => _xorHashSize = Math.Clamp(value, XorMinValue, XorMaxValue);
     }
 
     private UniqueCalculationResult? _xorCalculationResult;
@@ -269,7 +269,7 @@
 
         if (_xorSelected)
         {
-            await ProcessHashAsync(new XorHash(bufferSize), fileData.Data, bufferSize, cancellationToken);
+            await ProcessHashAsync(new XorHash(XorHashSize), fileData.Data, bufferSize, cancellationToken);
         }
 
         SetProgress("Calculation finished ...");

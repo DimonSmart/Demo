@@ -1,5 +1,5 @@
-﻿<div class="log-viewer" @onclick="ScrollToBottom" @ref="logContainer">
-    @((MarkupString)logContent)
+﻿<div class="log-viewer" @ref="_logContainer">
+    @((MarkupString)_logContent)
 </div>
 
 <style>
@@ -16,28 +16,19 @@
 </style>
 
 @code {
-    private string logContent = string.Empty;
-    private ElementReference logContainer;
+    private string _logContent = string.Empty;
+    private ElementReference _logContainer;
 
     public Task AddLogEntryAsync(string message)
     {
-        logContent += message + "<br />";
+        _logContent += message + "<br />";
         StateHasChanged();
-        ScrollToBottom();
         return Task.CompletedTask;
     }
 
     public async Task ClearAsync()
     {
-        logContent = string.Empty;
+        _logContent = string.Empty;
         await InvokeAsync(StateHasChanged);
-    }
-
-    private void ScrollToBottom()
-    {
-      //  InvokeAsync(async () =>
-      //  {
-      //      await logContainer.ScrollToElementAsync();
-      //  });
     }
 }

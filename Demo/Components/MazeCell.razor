@@ -13,28 +13,25 @@
     [Parameter] public ICell? Cell { get; set; }
     [Parameter] public EventCallback<(int X, int Y, string Button)> OnCellClick { get; set; }
 
-    // List of CSS color names
-    private static readonly string[] colors = new[]
-    {
+    private static readonly string[] Colors =
+    [
         "darkblue", "darkgreen", "darkcyan", "darkred", "darkmagenta", "darkgoldenrod",
         "gray", "darkgray", "blue", "green", "cyan", "red", "magenta", "yellow"
-    };
+    ];
     private string GetCellContent()
     {
-        if (Cell is MazeCellModel mazeCell)
+        if (Cell is not MazeCellModel mazeCell) return string.Empty;
+        if (mazeCell.IsStart())
         {
-            if (mazeCell.IsStart())
-            {
-                return "🚩"; // Unicode character for a flag
-            }
-            if (mazeCell.IsEnd())
-            {
-                return "🏁"; // Unicode character for a checkered flag
-            }
-            if (mazeCell.WaveNumber != null)
-            {
-                return mazeCell.WaveNumber?.ToString() ?? string.Empty;
-            }
+            return "🚩"; // Unicode character for a flag
+        }
+        if (mazeCell.IsEnd())
+        {
+            return "🏁"; // Unicode character for a checkered flag
+        }
+        if (mazeCell.WaveNumber != null)
+        {
+            return mazeCell.WaveNumber?.ToString() ?? string.Empty;
         }
         return string.Empty;
     }
@@ -44,7 +41,7 @@
         if (Cell?.IsWall() ?? true) return "red";
         if (Cell is MazeCellModel mazeCell && mazeCell.WaveNumber.HasValue)
         {
-            return colors[mazeCell.WaveNumber.Value % colors.Length];
+            return Colors[mazeCell.WaveNumber.Value % Colors.Length];
         }
         return "default";
     }
@@ -67,5 +64,3 @@
         await OnCellClick.InvokeAsync((X, Y, "right"));
     }
 }
-
-

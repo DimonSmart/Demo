@@ -1,10 +1,9 @@
 ﻿@using DimonSmart.MazeGenerator
-@using Demo.Models
 
 <div style="display: grid; grid-template-columns: repeat(@Maze.Width, 20px); gap: 1px;">
-    @for (int y = 0; y < Maze.Height; y++)
+    @for (var y = 0; y < Maze.Height; y++)
     {
-        for (int x = 0; x < Maze.Width; x++)
+        for (var x = 0; x < Maze.Width; x++)
         {
             <MazeCell X=x Y=y Cell=@Maze[x, y] OnCellClick="HandleCellClick" />
         }
@@ -13,7 +12,7 @@
 
 @code {
     [Parameter]
-    public IMaze Maze { get; set; }
+    public IMaze? Maze { get; set; }
 
     [Parameter]
     public EventCallback<(int X, int Y, string Button)> OnMazeCellClick { get; set; }
