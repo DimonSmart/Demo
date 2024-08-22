@@ -1,7 +1,6 @@
 ﻿@page "/stringdiffdemo"
 @using Demo.Stringdiffdemo
 @using DimonSmart.StringDiff
-@using System.Text
 
 <PageTitle>StringDiff Demo</PageTitle>
 
@@ -9,8 +8,8 @@
 
 <section>
     <div style="display: flex; gap: 20px;">
-        <textarea @bind="TextLeft" @oninput="OnTextLeftInput" placeholder="Enter text here..." style="width: 45%; height: 150px;"></textarea>
-        <textarea @bind="TextRight" @oninput="OnTextRightInput" placeholder="Enter text here..." style="width: 45%; height: 150px;"></textarea>
+        <textarea @bind="TextLeft" @oninput="OnTextLeftInput" placeholder="Enter text here..." rows="8" style="width: 50%; resize: vertical;"></textarea>
+        <textarea @bind="TextRight" @oninput="OnTextRightInput" placeholder="Enter text here..." rows="8" style="width: 50%; resize: vertical;"></textarea>
     </div>
 
     <div style="margin-top: 20px;">
@@ -35,13 +34,11 @@
     </div>
 
     <div style="margin-top: 20px;">
-        <DiffViewBox @ref="diffViewBox" HeaderText="Text differences" Diff="@StringDiffHighlightedResult" />
+        <DiffViewBox HeaderText="Text differences" Diff="@_stringDiffHighlightedResult" />
     </div>
 </section>
 
 @code {
-    private DiffViewBox diffViewBox = default!;
-
     private string _textLeft = string.Empty;
 
     private string TextLeft
@@ -49,11 +46,9 @@
         get => _textLeft;
         set
         {
-            if (_textLeft != value)
-            {
-                _textLeft = value;
-                CalculateDiff();
-            }
+            if (_textLeft == value) return;
+            _textLeft = value;
+            CalculateDiff();
         }
     }
 
@@ -63,11 +58,9 @@
         get => _textRight;
         set
         {
-            if (_textRight != value)
-            {
-                _textRight = value;
-                CalculateDiff();
-            }
+            if (_textRight == value) return;
+            _textRight = value;
+            CalculateDiff();
         }
     }
 
@@ -77,11 +70,9 @@
         get => _breakOnWords;
         set
         {
-            if (_breakOnWords != value)
-            {
-                _breakOnWords = value;
-                CalculateDiff();
-            }
+            if (_breakOnWords == value) return;
+            _breakOnWords = value;
+            CalculateDiff();
         }
     }
 
@@ -91,21 +82,19 @@
         get => _minDiffLength;
         set
         {
-            if (_minDiffLength != value)
-            {
-                _minDiffLength = value;
-                CalculateDiff();
-            }
+            if (_minDiffLength == value) return;
+            _minDiffLength = value;
+            CalculateDiff();
         }
     }
 
-    private TextDiff? StringDiffHighlightedResult = default;
+    private TextDiff? _stringDiffHighlightedResult;
 
     private void CalculateDiff()
     {
         var options = new StringDiffOptions(MinDiffLength, BreakOnWords ? DefaultWordBoundaryDetector.Instance : null);
         var stringDiff = new StringDiff(options);
-        StringDiffHighlightedResult = stringDiff.ComputeDiff(TextLeft, TextRight);
+        _stringDiffHighlightedResult = stringDiff.ComputeDiff(TextLeft, TextRight);
     }
 
     private void OnTextLeftInput(ChangeEventArgs e)
