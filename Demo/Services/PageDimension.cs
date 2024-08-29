@@ -1,8 +1,6 @@
 ﻿namespace Demo.Services
 {
-    public class PageDimension
+    public class PageDimension : Dimension
     {
-        public int Width { get; set; }
-        public int Height { get; set; }
     }
 }

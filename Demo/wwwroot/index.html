@@ -54,6 +54,17 @@
             }
             return null;
         };
+        function getElementSize(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                return {
+                    width: element.offsetWidth,
+                    height: element.offsetHeight
+                };
+            } else {
+                return { width: 0, height: 0 };
+            }
+        }
     </script>
 
     <script src="_framework/blazor.webassembly.js"></script>

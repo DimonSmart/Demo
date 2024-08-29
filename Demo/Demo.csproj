@@ -12,6 +12,7 @@
     <PackageReference Include="DimonSmart.HashX" Version="1.24813.951" />
     <PackageReference Include="DimonSmart.MazeGenerator" Version="1.24817.745" />
     <PackageReference Include="DimonSmart.StringDiff" Version="1.24725.1329" />
+    <PackageReference Include="Excubo.Blazor.Canvas" Version="3.2.60" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.8" PrivateAssets="all" />
     <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="8.0.8" />

@@ -5,6 +5,8 @@ VisualStudioVersion = 17.10.35013.160
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Demo", "Demo\Demo.csproj", "{DC9E220C-7259-4B01-8AED-CD55E293D5CF}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneticAlgorithmTests", "GeneticAlgorithmTests\GeneticAlgorithmTests.csproj", "{AAA942A7-B1A8-4174-9EC9-3E62CCED8115}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{DC9E220C-7259-4B01-8AED-CD55E293D5CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DC9E220C-7259-4B01-8AED-CD55E293D5CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DC9E220C-7259-4B01-8AED-CD55E293D5CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAA942A7-B1A8-4174-9EC9-3E62CCED8115}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAA942A7-B1A8-4174-9EC9-3E62CCED8115}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAA942A7-B1A8-4174-9EC9-3E62CCED8115}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAA942A7-B1A8-4174-9EC9-3E62CCED8115}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

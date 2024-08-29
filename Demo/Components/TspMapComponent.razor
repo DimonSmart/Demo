@@ -1,0 +1,109 @@
+﻿@page "/tsp-map"
+@using Demo.Services
+@using Excubo.Blazor.Canvas
+@using Excubo.Blazor.Canvas.Contexts
+@using Demo.Demos.TSM
+@using Demo.Demos.TSM.GeneralGenetic
+
+<div id="@CanvasId" class="@Class" style="width:@Width; height:@Height">
+    @if (_canvasWidth != 0)
+    {
+        <Canvas @ref="_canvasReference" width="@_canvasWidth" height="@_canvasHeight">abc</Canvas>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Width { get; set; }
+    [Parameter] public string? Height { get; set; }
+    [Parameter] public TsmProblemData? ProblemData { get; set; }
+    [Parameter] public ChromosomeWithScore<TsmChromosome>? BestSolution { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    [Inject]
+    protected BrowserService BrowserService { get; set; } = null!;
+    private const string CanvasId = "tsm_canvas";
+    private Canvas? _canvasReference;
+    private Context2D? _context;
+    private int _canvasWidth;
+    private int _canvasHeight;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var size = await BrowserService.GetElementSizeByIdAsync(CanvasId);
+            _canvasWidth = size.Width;
+            _canvasHeight = size.Height;
+            StateHasChanged();
+        }
+
+        if (_canvasReference != null && ProblemData != null && BestSolution != null)
+        {
+            _context = await _canvasReference.GetContext2DAsync();
+            await _context.ClearRectAsync(0, 0, _canvasWidth, _canvasHeight);
+
+            await _context.FillStyleAsync("black");
+            foreach (var city in ProblemData.Cities)
+            {
+                var (scaledX, scaledY) = ScaleCoordinates(city.X, city.Y);
+                await _context.BeginPathAsync();
+                await _context.ArcAsync(scaledX, scaledY, 5, 0, 2 * Math.PI);
+                await _context.FillAsync(FillRule.NonZero);
+            }
+
+            await _context.StrokeStyleAsync("blue");
+            var cities = BestSolution.Chromosome.Cities;
+            for (int i = 0; i < cities.Length - 1; i++)
+            {
+                var fromCity = ProblemData.Cities[cities[i]];
+                var toCity = ProblemData.Cities[cities[i + 1]];
+
+                var (scaledFromX, scaledFromY) = ScaleCoordinates(fromCity.X, fromCity.Y);
+                var (scaledToX, scaledToY) = ScaleCoordinates(toCity.X, toCity.Y);
+
+                await _context.BeginPathAsync();
+                await _context.MoveToAsync(scaledFromX, scaledFromY);
+                await _context.LineToAsync(scaledToX, scaledToY);
+                await _context.StrokeAsync();
+            }
+
+            await DrawStartSign(ProblemData.Cities[cities[0]]);
+            await DrawFinishSign(ProblemData.Cities[cities[^1]]);
+        }
+    }
+
+    private async Task DrawStartSign(City startCity)
+    {
+        var (scaledX, scaledY) = ScaleCoordinates(startCity.X, startCity.Y);
+
+        await _context!.FillStyleAsync("red");
+        await _context.FontAsync("16px Arial");
+        await _context.FillTextAsync("🚩", scaledX - 4, scaledY - 10);
+    }
+
+    private async Task DrawFinishSign(City finishCity)
+    {
+        var (scaledX, scaledY) = ScaleCoordinates(finishCity.X, finishCity.Y);
+
+        await _context!.FillStyleAsync("black");
+        await _context.FontAsync("16px Arial");
+        await _context.FillTextAsync("🏁", scaledX - 4, scaledY - 10);
+    }
+
+    private (double X, double Y) ScaleCoordinates(double x, double y)
+    {
+        double scaleX = (double)_canvasWidth / ProblemData.MapWidth;
+        double scaleY = (double)_canvasHeight / ProblemData.MapHeight;
+
+        double scaledX = x * scaleX;
+        double scaledY = y * scaleY;
+
+        return (scaledX, scaledY);
+    }
+
+    public class CanvasSize
+    {
+        public double Width { get; set; }
+        public double Height { get; set; }
+    }
+}

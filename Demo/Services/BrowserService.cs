@@ -8,5 +8,10 @@ namespace Demo.Services
         {
             return await js.InvokeAsync<PageDimension>("getPageDimensionsWithoutPadding", elementId);
         }
+
+        public async Task<Dimension> GetElementSizeByIdAsync(string elementId)
+        {
+            return await js.InvokeAsync<Dimension>("getElementSize", elementId);
+        }
     }
 }
