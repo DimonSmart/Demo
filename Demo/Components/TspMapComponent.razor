@@ -6,7 +6,7 @@
 @using Demo.Demos.TSM.GeneralGenetic
 
 <div id="@CanvasId" class="@Class" style="width:@Width; height:@Height">
-    @if (_canvasWidth != 0)
+    @if (_canvasWidth != 0 && _canvasHeight != 0)
     {
         <Canvas @ref="_canvasReference" width="@_canvasWidth" height="@_canvasHeight">abc</Canvas>
     }

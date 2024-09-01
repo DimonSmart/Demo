@@ -2,12 +2,12 @@
 @using Demo.Components
 @using Demo.Demos.TSM
 @using Demo.Demos.TSM.GeneralGenetic
-<link rel="stylesheet" href="css/demos.css" />
+<link rel="stylesheet" href="css/demos.css"/>
 
 <PageTitle>Travelling Salesman</PageTitle>
 
 <div class="page-container">
-    
+
     <div class="parameters-container">
         <h3>Travelling Salesman</h3>
 
@@ -36,7 +36,6 @@
                 <label>Number of Cities:</label>
                 <input type="number" @bind="NumberOfCities" min="@NumberOfCitiesMin" max="@NumberOfCitiesMax" title="The number of cities in the traveling salesman problem."/>
             </div>
-            
 
         </div>
         @if (Genetic == null)
@@ -68,6 +67,7 @@
     private int PopulationSizeValue { get; set; } = 100;
     private const int PopulationSizeMin = 1;
     private const int PopulationSizeMax = 1000;
+
     private int PopulationSize
     {
         get => PopulationSizeValue;
@@ -81,6 +81,7 @@
     private int BestChromosomesValue { get; set; } = 50;
     private const int BestChromosomesMin = 1;
     private const int BestChromosomesMax = 100;
+
     private int BestChromosomes
     {
         get => BestChromosomesValue;
@@ -94,6 +95,7 @@
     private int CrossoverChromosomesValue { get; set; } = 25;
     private const int CrossoverChromosomesMin = 1;
     private const int CrossoverChromosomesMax = 100;
+
     private int CrossoverChromosomes
     {
         get => CrossoverChromosomesValue;
@@ -107,6 +109,7 @@
     private int MutationChromosomesValue { get; set; } = 25;
     private const int MutationChromosomesMin = 1;
     private const int MutationChromosomesMax = 100;
+
     private int MutationChromosomes
     {
         get => MutationChromosomesValue;
@@ -120,6 +123,7 @@
     private int NumberOfCitiesValue { get; set; } = 10;
     private const int NumberOfCitiesMin = 1;
     private const int NumberOfCitiesMax = 100;
+
     private int NumberOfCities
     {
         get => NumberOfCitiesValue;
@@ -133,6 +137,7 @@
     private int MaxIterationsWithoutChangeValue { get; set; } = 10000;
     private const int MaxIterationsWithoutChangeMin = 0;
     private const int MaxIterationsWithoutChangeMax = 1000000;
+
     private int MaxIterationsWithoutChange
     {
         get => MaxIterationsWithoutChangeValue;
@@ -151,12 +156,12 @@
     private void InitializeGenetic()
     {
         // TODO: apply UI parameters
-        var geneticAlgorithmSettings = new GeneticAlgorithmSettings()
+        var geneticAlgorithmSettings = new GeneticAlgorithmSettings
         {
-                Population = PopulationSize,
-                BestChromosomes = BestChromosomes,
-                CrossoverChromosomes = CrossoverChromosomes,
-                MutationChromosomes = MutationChromosomes
+            Population = PopulationSize,
+            BestChromosomes = BestChromosomes,
+            CrossoverChromosomes = CrossoverChromosomes,
+            MutationChromosomes = MutationChromosomes
         };
 
         var randomProvider = RandomProvider.Shared;
@@ -183,6 +188,7 @@
             await Task.Delay(1);
         } while (IsAuto && Iteration < MaxIterationsWithoutChangeValue);
     }
+
 }
 
 <style>
@@ -203,6 +209,7 @@
     .map-component {
         flex-grow: 1;
         min-height: 100px;
+        min-width: 100px;
     }
 
     canvas {
