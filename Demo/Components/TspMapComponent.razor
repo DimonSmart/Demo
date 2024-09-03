@@ -1,9 +1,9 @@
 ﻿@page "/tsp-map"
+@using Demo.Demos.TSM
+@using Demo.Demos.TSM.GeneralGenetic
 @using Demo.Services
 @using Excubo.Blazor.Canvas
 @using Excubo.Blazor.Canvas.Contexts
-@using Demo.Demos.TSM
-@using Demo.Demos.TSM.GeneralGenetic
 
 <div id="@CanvasId" class="@Class" style="width:@Width; height:@Height">
     @if (_canvasWidth != 0 && _canvasHeight != 0)
@@ -19,11 +19,9 @@
     [Parameter] public ChromosomeWithScore<TsmChromosome>? BestSolution { get; set; }
     [Parameter] public string? Class { get; set; }
 
-    [Inject]
-    protected BrowserService BrowserService { get; set; } = null!;
+    [Inject] protected BrowserService BrowserService { get; set; } = null!;
     private const string CanvasId = "tsm_canvas";
     private Canvas? _canvasReference;
-    private Context2D? _context;
     private int _canvasWidth;
     private int _canvasHeight;
 
@@ -39,71 +37,79 @@
 
         if (_canvasReference != null && ProblemData != null && BestSolution != null)
         {
-            _context = await _canvasReference.GetContext2DAsync();
-            await _context.ClearRectAsync(0, 0, _canvasWidth, _canvasHeight);
+            var context = await _canvasReference.GetContext2DAsync();
+            await context.ClearRectAsync(0, 0, _canvasWidth, _canvasHeight);
 
-            await _context.FillStyleAsync("black");
-            foreach (var city in ProblemData.Cities)
-            {
-                var (scaledX, scaledY) = ScaleCoordinates(city.X, city.Y);
-                await _context.BeginPathAsync();
-                await _context.ArcAsync(scaledX, scaledY, 5, 0, 2 * Math.PI);
-                await _context.FillAsync(FillRule.NonZero);
-            }
+            await DrawCitiesAsync(context, ProblemData.Cities);
+            var path = BestSolution.Chromosome.Cities;
 
-            await _context.StrokeStyleAsync("blue");
-            var cities = BestSolution.Chromosome.Cities;
-            for (int i = 0; i < cities.Length - 1; i++)
-            {
-                var fromCity = ProblemData.Cities[cities[i]];
-                var toCity = ProblemData.Cities[cities[i + 1]];
+            await DrawPath(context, path);
 
-                var (scaledFromX, scaledFromY) = ScaleCoordinates(fromCity.X, fromCity.Y);
-                var (scaledToX, scaledToY) = ScaleCoordinates(toCity.X, toCity.Y);
-
-                await _context.BeginPathAsync();
-                await _context.MoveToAsync(scaledFromX, scaledFromY);
-                await _context.LineToAsync(scaledToX, scaledToY);
-                await _context.StrokeAsync();
-            }
-
-            await DrawStartSign(ProblemData.Cities[cities[0]]);
-            await DrawFinishSign(ProblemData.Cities[cities[^1]]);
+            await DrawStartSign(context, ProblemData.Cities[path[0]]);
+            await DrawFinishSign(context, ProblemData.Cities[path[^1]]);
         }
     }
 
-    private async Task DrawStartSign(City startCity)
+    private async Task DrawPath(Context2D context, IReadOnlyList<int> path)
+    {
+        await context.StrokeStyleAsync("blue");
+        await context.LineWidthAsync(2);
+
+        await context.BeginPathAsync();
+        for (var i = 0; i < path.Count - 1; i++)
+        {
+            var fromCity = ProblemData!.Cities[path[i]];
+            var toCity = ProblemData.Cities[path[i + 1]];
+
+            var (scaledFromX, scaledFromY) = ScaleCoordinates(fromCity.X, fromCity.Y);
+            var (scaledToX, scaledToY) = ScaleCoordinates(toCity.X, toCity.Y);
+
+            await context.MoveToAsync(scaledFromX, scaledFromY);
+            await context.LineToAsync(scaledToX, scaledToY);
+        }
+
+        await context.StrokeAsync();
+    }
+
+    private async Task DrawCitiesAsync(Context2D context, IEnumerable<City> cities)
+    {
+        await context.FillStyleAsync("black");
+        foreach (var city in cities)
+        {
+            var (scaledX, scaledY) = ScaleCoordinates(city.X, city.Y);
+            await context.BeginPathAsync();
+            await context.ArcAsync(scaledX, scaledY, 5, 0, 2 * Math.PI);
+            await context.FillAsync(FillRule.NonZero);
+        }
+    }
+
+    private async Task DrawStartSign(Context2D context, City startCity)
     {
         var (scaledX, scaledY) = ScaleCoordinates(startCity.X, startCity.Y);
 
-        await _context!.FillStyleAsync("red");
-        await _context.FontAsync("16px Arial");
-        await _context.FillTextAsync("🚩", scaledX - 4, scaledY - 10);
+        await context.FillStyleAsync("red");
+        await context.FontAsync("16px Arial");
+        await context.FillTextAsync("🚩", scaledX - 4, scaledY - 10);
     }
 
-    private async Task DrawFinishSign(City finishCity)
+    private async Task DrawFinishSign(Context2D context, City finishCity)
     {
         var (scaledX, scaledY) = ScaleCoordinates(finishCity.X, finishCity.Y);
 
-        await _context!.FillStyleAsync("black");
-        await _context.FontAsync("16px Arial");
-        await _context.FillTextAsync("🏁", scaledX - 4, scaledY - 10);
+        await context.FillStyleAsync("black");
+        await context.FontAsync("16px Arial");
+        await context.FillTextAsync("🏁", scaledX - 4, scaledY - 10);
     }
 
     private (double X, double Y) ScaleCoordinates(double x, double y)
     {
-        double scaleX = (double)_canvasWidth / ProblemData.MapWidth;
-        double scaleY = (double)_canvasHeight / ProblemData.MapHeight;
+        var scaleX = (double)_canvasWidth / ProblemData!.MapWidth;
+        var scaleY = (double)_canvasHeight / ProblemData.MapHeight;
 
-        double scaledX = x * scaleX;
-        double scaledY = y * scaleY;
+        var scaledX = x * scaleX;
+        var scaledY = y * scaleY;
 
         return (scaledX, scaledY);
     }
 
-    public class CanvasSize
-    {
-        public double Width { get; set; }
-        public double Height { get; set; }
-    }
 }
