@@ -2,7 +2,7 @@
 {
     public class Deck
     {
-        public List<Card> Cards { get; protected set; }
+        public IReadOnlyList<Card> Cards { get; protected set; }
 
         public Deck()
         {
@@ -10,7 +10,7 @@
         }
 
         public Deck(IEnumerable<Card> cards)
-        { 
+        {
             Cards = cards.ToList();
         }
     }
