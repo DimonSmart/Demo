@@ -11,7 +11,7 @@ namespace Demo.Demos.TSM
             _randomProvider = randomProvider;
         }
 
-        public TsmProblemData Create (int citiesCount, int mapWidth, int mapHeight)
+        public TsmProblemData Create(int citiesCount, int mapWidth, int mapHeight)
         {
             var cities = new City[citiesCount];
             for (var i = 0; i < citiesCount; i++)

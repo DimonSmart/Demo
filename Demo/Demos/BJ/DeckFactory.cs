@@ -35,9 +35,7 @@ namespace Demo.Demos.BJ
             {
                 n--;
                 var k = randomProvider.Next(n + 1);
-                var value = cards[k];
-                cards[k] = cards[n];
-                cards[n] = value;
+                (cards[n], cards[k]) = (cards[k], cards[n]);
             }
         }
     }
