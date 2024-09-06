@@ -1,7 +1,6 @@
 ﻿.hand-container {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
     padding: 5px;
     background-color: #f3f3f3;
     border-radius: 8px;
@@ -9,19 +8,31 @@
 }
 
 .hand-info {
-    font-size: 0.5em;
-    margin-bottom: 5px;
+    font-size: 0.75em;
+    margin-bottom: 10px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
+    gap: 10px;
+    align-items: center;
 }
 
-.badge {
-    background-color: #007bff;
-    color: white;
+.total-score, .badge {
     padding: 2px 6px;
     border-radius: 4px;
-    font-size: 0.75em;
+    font-weight: bold;
+}
+
+.total-score {
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+}
+
+.badge-active {
+    background-color: #007bff;
+}
+
+.badge-inactive {
+    background-color: lightgray;
 }
 
 .hand-cards {
@@ -29,4 +40,3 @@
     flex-wrap: wrap;
     gap: 5px;
 }
-

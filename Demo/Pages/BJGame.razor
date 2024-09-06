@@ -5,31 +5,32 @@
 @using Demo.Demos.TSM.GeneralGenetic
 <link rel="stylesheet" href="css/demos.css"/>
 
-<PageTitle>Black jack</PageTitle>
+<PageTitle>Blackjack</PageTitle>
 
-<div class="page-container">
-
+<div class="page-container casino-style">
     <div class="parameters-container">
-        <h3>Black jack</h3>
+        <h3>Blackjack</h3>
     </div>
-  
-    <PlayingCard Card="@_cardVm" />
-    <PlayingCard Card="@_cardVm1" />
-    <PlayingHand Hand = "@_dealerHand"  />
+
+    <PlayingHand Hand = "@_dealerHand" />
+    <PlayingHand Hand = "@_playerHand" />
 
 </div>
 
 @code {
-    private Card _cardVm { get; set; }
-    private Card _cardVm1 { get; set; }
-    private Hand _dealerHand { get; set; }
+    private Hand? _dealerHand { get; set; }
+    private Hand? _playerHand { get; set; }
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        _cardVm = new Card(Suit.Diamonds, Rank.Jack);
-        _cardVm1 = new Card(Suit.Diamonds, Rank.Five, false);
-        _dealerHand = new Hand(new[] { _cardVm, _cardVm1 });
+        _dealerHand = new Hand(new[] {
+            new Card(Suit.Diamonds, Rank.Jack),
+            new Card(Suit.Diamonds, Rank.Five, false) });
+
+        _playerHand = new Hand(new[] {
+            new Card(Suit.Diamonds, Rank.Three),
+            new Card(Suit.Diamonds, Rank.Three)});
     }
 }
 
@@ -38,23 +39,47 @@
         --gap-size: 10px;
     }
 
+    /* Overall casino-style page layout */
     .page-container {
         display: flex;
         flex-direction: column;
+        align-items: center;
+        justify-content: center;
         height: calc(100vh - 56px - var(--gap-size));
+        padding: 20px;
+        background-image: radial-gradient(circle, #0d521d, #096a2b, #046d31);
+        background-size: cover;
     }
 
+    /* Styled header */
+    h3 {
+        font-family: 'Carter One', cursive;
+        color: #ffd700;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        letter-spacing: 1px;
+    }
+
+    /* Card display container */
+    .card-display {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    /* Style the card elements */
+    .card {
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);
+        border-radius: 8px;
+    }
+
+    /* Parameters styling */
     .parameters-container {
         margin-bottom: var(--gap-size);
     }
 
-    .map-component {
-        flex-grow: 1;
-        min-height: 100px;
-        min-width: 100px;
-    }
-
-    canvas {
-        border: 1px solid black;
+    /* General text styling for a more luxurious feel */
+    body {
+        font-family: 'Roboto', sans-serif;
+        color: white;
     }
 </style>

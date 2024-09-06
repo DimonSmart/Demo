@@ -2,15 +2,9 @@
 
 <div class="hand-container">
     <div class="hand-info">
-        <span>Total: @Hand.HandValue</span>
-        @if (Hand.IsPair)
-        {
-            <span class="badge">Pair</span>
-        }
-        @if (Hand.IsSoft)
-        {
-            <span class="badge">Soft</span>
-        }
+        <span class="total-score">Total: @Hand.HandValue</span>
+        <span class="badge @(Hand.IsPair ? "badge-active" : "badge-inactive")">Pair</span>
+        <span class="badge @(Hand.IsSoft ? "badge-active" : "badge-inactive")">Soft</span>
     </div>
     <div class="hand-cards">
         @foreach (var card in Hand.Cards)
