@@ -1,0 +1,25 @@
+﻿@using Demo.Demos.BJ
+
+<div class="hand-container">
+    <div class="hand-info">
+        <span>Total: @Hand.HandValue</span>
+        @if (Hand.IsPair)
+        {
+            <span class="badge">Pair</span>
+        }
+        @if (Hand.IsSoft)
+        {
+            <span class="badge">Soft</span>
+        }
+    </div>
+    <div class="hand-cards">
+        @foreach (var card in Hand.Cards)
+        {
+            <PlayingCard Card="@card" />
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public Hand Hand { get; set; }
+}

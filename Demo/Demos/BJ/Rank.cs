@@ -1,5 +1,6 @@
 ﻿namespace Demo.Demos.BJ
 {
+    [Flags]
     public enum Rank
     {
         Two = 2,
@@ -11,9 +12,9 @@
         Eight = 8,
         Nine = 9,
         Ten = 10,
-        Jack = 10,
-        Queen = 10,
-        King = 10,
+        Jack = 10 | (1 << 4),
+        Queen = 10 | (1 << 5),
+        King = 10 | (1 << 6),
         Ace = 11
     }
 }

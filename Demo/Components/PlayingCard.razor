@@ -1,0 +1,56 @@
+﻿@using Demo.Demos.BJ
+
+@inherits OwningComponentBase
+
+<div class="card @(Card.IsFaceUp ? "face-up" : "face-down")">
+    @if (Card.IsFaceUp)
+    {
+        <div class="card-content">
+            <div class="card-rank top-left" style="color:@(IsRedSuit(Card.Suit) ? "red" : "black")">
+                @RankToString(Card.Rank)
+            </div>
+            <div class="card-rank bottom-right" style="color:@(IsRedSuit(Card.Suit) ? "red" : "black")">
+                @RankToString(Card.Rank)
+            </div>
+            <div class="card-suit">@SuitToSymbol(Card.Suit)</div>
+        </div>
+    }
+    else
+    {
+        <div class="card-back"></div>
+    }
+</div>
+
+@code {
+    [Parameter] public Card Card { get; set; }
+
+    private string RankToString(Rank rank)
+    {
+        return rank switch
+        {
+            Rank.Ace => "A",
+            Rank.Jack => "J",
+            Rank.Queen => "Q",
+            Rank.King => "K",
+            _ => ((int)rank).ToString()
+        };
+    }
+
+    private string SuitToSymbol(Suit suit)
+    {
+        return suit switch
+        {
+            Suit.Hearts => "♥",
+            Suit.Diamonds => "♦",
+            Suit.Clubs => "♣",
+            Suit.Spades => "♠",
+            _ => ""
+        };
+    }
+
+    private bool IsRedSuit(Suit suit)
+    {
+        return suit == Suit.Hearts || suit == Suit.Diamonds;
+    }
+}
+

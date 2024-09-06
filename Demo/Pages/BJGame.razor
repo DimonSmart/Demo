@@ -1,0 +1,60 @@
+﻿@page "/bjgame"
+@using Demo.Components
+@using Demo.Demos.BJ
+@using Demo.Demos.TSM
+@using Demo.Demos.TSM.GeneralGenetic
+<link rel="stylesheet" href="css/demos.css"/>
+
+<PageTitle>Black jack</PageTitle>
+
+<div class="page-container">
+
+    <div class="parameters-container">
+        <h3>Black jack</h3>
+    </div>
+  
+    <PlayingCard Card="@_cardVm" />
+    <PlayingCard Card="@_cardVm1" />
+    <PlayingHand Hand = "@_dealerHand"  />
+
+</div>
+
+@code {
+    private Card _cardVm { get; set; }
+    private Card _cardVm1 { get; set; }
+    private Hand _dealerHand { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _cardVm = new Card(Suit.Diamonds, Rank.Jack);
+        _cardVm1 = new Card(Suit.Diamonds, Rank.Five, false);
+        _dealerHand = new Hand(new[] { _cardVm, _cardVm1 });
+    }
+}
+
+<style>
+    :root {
+        --gap-size: 10px;
+    }
+
+    .page-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 56px - var(--gap-size));
+    }
+
+    .parameters-container {
+        margin-bottom: var(--gap-size);
+    }
+
+    .map-component {
+        flex-grow: 1;
+        min-height: 100px;
+        min-width: 100px;
+    }
+
+    canvas {
+        border: 1px solid black;
+    }
+</style>
