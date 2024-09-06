@@ -21,9 +21,17 @@
     private Hand? _dealerHand { get; set; }
     private Hand? _playerHand { get; set; }
 
+
+    private BlackjackGame? _blackjackGame { get; set; }
+
     protected override void OnInitialized()
     {
         base.OnInitialized();
+
+
+
+
+
         _dealerHand = new Hand(new[] {
             new Card(Suit.Diamonds, Rank.Jack),
             new Card(Suit.Diamonds, Rank.Five, false) });
