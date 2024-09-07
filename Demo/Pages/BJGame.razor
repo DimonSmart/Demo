@@ -1,8 +1,6 @@
 ﻿@page "/bjgame"
 @using Demo.Components
 @using Demo.Demos.BJ
-@using Demo.Demos.TSM
-@using Demo.Demos.TSM.GeneralGenetic
 <link rel="stylesheet" href="css/demos.css"/>
 
 <PageTitle>Blackjack</PageTitle>
@@ -13,13 +11,13 @@
     </div>
 
     <PlayingHand Hand = "@_dealerHand" />
-    <PlayingHand Hand = "@_playerHand" />
+    <PlayerHands Hands = "@_playerHands"/>
 
 </div>
 
 @code {
     private Hand? _dealerHand { get; set; }
-    private Hand? _playerHand { get; set; }
+    private IEnumerable<Hand>? _playerHands { get; set; }
 
 
     private BlackjackGame? _blackjackGame { get; set; }
@@ -28,17 +26,18 @@
     {
         base.OnInitialized();
 
-
-
-
-
         _dealerHand = new Hand(new[] {
             new Card(Suit.Diamonds, Rank.Jack),
             new Card(Suit.Diamonds, Rank.Five, false) });
 
-        _playerHand = new Hand(new[] {
+        _playerHands = new[]{new Hand(new[] {
             new Card(Suit.Diamonds, Rank.Three),
-            new Card(Suit.Diamonds, Rank.Three)});
+            new Card(Suit.Diamonds, Rank.Three)}),
+
+            new Hand(new[] {
+                new Card(Suit.Hearts, Rank.Ace),
+                new Card(Suit.Spades, Rank.King)})
+        };
     }
 }
 
@@ -52,7 +51,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        justify-content: normal;
         height: calc(100vh - 56px - var(--gap-size));
         padding: 20px;
         background-image: radial-gradient(circle, #0d521d, #096a2b, #046d31);
