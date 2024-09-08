@@ -11,7 +11,7 @@
 
         public void PlayGame()
         {
-            while (!_shoe.IsRedCardRaised && !_shoe.IsShoeEmpty)
+            while (!Shoe.IsRedCardRaised && !Shoe.IsShoeEmpty)
             {
                 PlayRound();
                 ResetGameVariables();
@@ -20,7 +20,7 @@
 
         private void PlayRound()
         {
-            while (CanTakeAction() && _gameFinished)
+            while (CanTakeAction() && GameFinished)
             {
                 var dealerCardValue = DealerHand.Cards.First(card => card.IsFaceUp).Value;
                 var action = _strategyTable.GetAction(CurrentPlayerHand, dealerCardValue);
@@ -28,7 +28,7 @@
                 ExecuteAction(action);
             }
 
-            if (!_gameFinished)
+            if (!GameFinished)
             {
                 EndHand();
             }

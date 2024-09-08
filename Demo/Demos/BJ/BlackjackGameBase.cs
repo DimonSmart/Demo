@@ -7,12 +7,18 @@ public class BlackjackGameBase
     public readonly List<PlayerHand> PlayerHands;
     public PlayerHand CurrentPlayerHand => PlayerHands[_currentPlayerHandIndex];
     public readonly Hand DealerHand;
+    public decimal PlayerMoney;
+    public readonly Shoe Shoe;
 
-    protected readonly Shoe _shoe;
     protected int _currentPlayerHandIndex;
+    public bool GameFinished;
 
-    protected bool _gameFinished;
-    private decimal _playerMoney;
+    // TODO Will be defined later
+    public int GamesPlayedInShoe;
+
+
+
+
     private const decimal InitialBet = 10m;
     private const decimal SurrenderPenalty = InitialBet / 2;
     private const int MaxSplits = 3;
@@ -22,10 +28,10 @@ public class BlackjackGameBase
     protected BlackjackGameBase(Shoe shoe, ILogger? logger)
     {
         _logger = logger;
-        _shoe = shoe;
+        Shoe = shoe;
 
         _currentPlayerHandIndex = 0;
-        _gameFinished = false;
+        GameFinished = false;
 
         PlayerHands = new List<PlayerHand> { new PlayerHand(DealPlayerInitialCards(), InitialBet) };
         DealerHand = new Hand(DealDealerInitialCards());
@@ -42,8 +48,8 @@ public class BlackjackGameBase
 
     private List<Card> DealDealerInitialCards()
     {
-        var firstCard = _shoe.TakeNextCard();
-        var secondCard = _shoe.TakeNextCard() with { IsFaceUp = false };
+        var firstCard = Shoe.TakeNextCard();
+        var secondCard = Shoe.TakeNextCard() with { IsFaceUp = false };
         var initialDealerCards = new List<Card> { firstCard, secondCard };
         _logger?.Info($"Initial dealer card dealt: {firstCard}");
         return initialDealerCards;
@@ -51,8 +57,8 @@ public class BlackjackGameBase
 
     private List<Card> DealPlayerInitialCards()
     {
-        var firstCard = _shoe.TakeNextCard();
-        var secondCard = _shoe.TakeNextCard();
+        var firstCard = Shoe.TakeNextCard();
+        var secondCard = Shoe.TakeNextCard();
         var initialPlayerCards = new List<Card> { firstCard, secondCard };
         _logger?.Info($"Initial player cards dealt: {firstCard}, {secondCard}");
         return initialPlayerCards;
@@ -61,7 +67,7 @@ public class BlackjackGameBase
     protected void ResetGameVariables()
     {
         _currentPlayerHandIndex = 0;
-        _gameFinished = false;
+        GameFinished = false;
 
         PlayerHands.Clear();
         PlayerHands.Add(new PlayerHand(DealPlayerInitialCards(), InitialBet));
@@ -93,16 +99,16 @@ public class BlackjackGameBase
     }
 
     // Can methods
-    public bool CanHit() => !_gameFinished && CurrentPlayerHand.HandValue < 21;
+    public bool CanHit() => !GameFinished && CurrentPlayerHand.HandValue < 21;
 
-    public bool CanStand() => !_gameFinished;
+    public bool CanStand() => !GameFinished;
 
-    public bool CanDoubleDown() => !_gameFinished && CurrentPlayerHand.Cards.Count == 2;
+    public bool CanDoubleDown() => !GameFinished && CurrentPlayerHand.Cards.Count == 2;
 
     public bool CanSplit() =>
-        !_gameFinished && CurrentPlayerHand.Cards.Count == 2 && CurrentPlayerHand.Cards[0].Rank == CurrentPlayerHand.Cards[1].Rank && PlayerHands.Count <= MaxSplits;
+        !GameFinished && CurrentPlayerHand.Cards.Count == 2 && CurrentPlayerHand.Cards[0].Rank == CurrentPlayerHand.Cards[1].Rank && PlayerHands.Count <= MaxSplits;
 
-    public bool CanSurrender() => !_gameFinished && CurrentPlayerHand.Cards.Count == 2;
+    public bool CanSurrender() => !GameFinished && CurrentPlayerHand.Cards.Count == 2;
 
     // Action methods
     public void Hit()
@@ -115,7 +121,7 @@ public class BlackjackGameBase
             throw new InvalidOperationException("Cannot hit at this time.");
         }
 
-        var card = _shoe.TakeNextCard();
+        var card = Shoe.TakeNextCard();
         CurrentPlayerHand.AddCard(card);
         _logger?.Info($"Player hits and receives card: {card}. Hand value: {CurrentPlayerHand.HandValue}");
 
@@ -150,11 +156,11 @@ public class BlackjackGameBase
             throw new InvalidOperationException("Cannot double down at this time.");
         }
 
-        _playerMoney -= InitialBet;
+        PlayerMoney -= InitialBet;
         CurrentPlayerHand.Bet *= 2;
         _logger?.Info("Player doubles down. Bet is doubled.");
 
-        var card = _shoe.TakeNextCard();
+        var card = Shoe.TakeNextCard();
         CurrentPlayerHand.AddCard(card);
         _logger?.Info($"Player receives one card: {card}. Hand value: {CurrentPlayerHand.HandValue}");
 
@@ -173,7 +179,7 @@ public class BlackjackGameBase
 
         var newHand = CurrentPlayerHand.Split();
         newHand.Bet = InitialBet;
-        _playerMoney -= InitialBet;
+        PlayerMoney -= InitialBet;
         PlayerHands.Add(newHand);
         _logger?.Info("Player splits the hand. Two new hands created.");
     }
@@ -188,9 +194,9 @@ public class BlackjackGameBase
             throw new InvalidOperationException("Cannot surrender at this time.");
         }
 
-        _playerMoney -= SurrenderPenalty;
-        _gameFinished = true;
-        _logger?.Info($"Player surrenders. Lost half of the bet: {SurrenderPenalty}. Remaining money: {_playerMoney}");
+        PlayerMoney -= SurrenderPenalty;
+        GameFinished = true;
+        _logger?.Info($"Player surrenders. Lost half of the bet: {SurrenderPenalty}. Remaining money: {PlayerMoney}");
     }
 
     protected void EndHand()
@@ -209,7 +215,7 @@ public class BlackjackGameBase
         }
         else
         {
-            _gameFinished = true;
+            GameFinished = true;
             _logger?.Info("All hands have been played. Dealer starts playing.");
             DealerPlay();
         }
@@ -217,7 +223,7 @@ public class BlackjackGameBase
 
     private void DealerPlay()
     {
-        if (_gameFinished)
+        if (GameFinished)
         {
             _logger?.Info("Game is already finished. Dealer does not play.");
             return;
@@ -225,7 +231,7 @@ public class BlackjackGameBase
 
         while (DealerHand.HandValue < 17)
         {
-            var card = _shoe.TakeNextCard();
+            var card = Shoe.TakeNextCard();
             DealerHand.AddCard(card);
             _logger?.Info($"Dealer takes card: {card}");
         }
@@ -243,24 +249,24 @@ public class BlackjackGameBase
             if (hand.IsBusted)
             {
                 _logger?.Info("Player loses this hand due to bust.");
-                _playerMoney -= hand.Bet;
+                PlayerMoney -= hand.Bet;
             }
             else if (DealerHand.IsBusted)
             {
                 _logger?.Info("Dealer busts. Player wins this hand.");
-                _playerMoney += hand.Bet;
+                PlayerMoney += hand.Bet;
             }
             else
             {
                 if (hand.HandValue > DealerHand.HandValue)
                 {
                     _logger?.Info("Player wins this hand.");
-                    _playerMoney += hand.Bet;
+                    PlayerMoney += hand.Bet;
                 }
                 else if (hand.HandValue < DealerHand.HandValue)
                 {
                     _logger?.Info("Dealer wins this hand.");
-                    _playerMoney -= hand.Bet;
+                    PlayerMoney -= hand.Bet;
                 }
                 else
                 {
@@ -269,6 +275,6 @@ public class BlackjackGameBase
             }
         }
 
-        _logger?.Info($"Game over. Player money: {_playerMoney}");
+        _logger?.Info($"Game over. Player money: {PlayerMoney}");
     }
 }

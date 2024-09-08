@@ -11,10 +11,10 @@
         <h3>Blackjack</h3>
     </div>
 
-    <PlayingHand Hand="@DealerHand" />
+    <GameInfo Game="GameInstance" />
+    <PlayingHand Hand="DealerHand" />
     <PlayerHands Game="GameInstance" />
     <BlackJackGameControls Game="GameInstance" OnGameStateChanged="UpdateGameState" />
-
 </div>
 
 @code {
