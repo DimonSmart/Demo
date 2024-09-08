@@ -1,7 +1,7 @@
 ﻿.game-info-container {
     display: flex;
-    flex-direction: column;
-    padding: 10px;
+    flex-direction: row; /* Change to row to layout elements in one row */
+    padding: 5px; /* Reduce padding for a more compact layout */
     background-color: #f3f3f3;
     border-radius: 8px;
     box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
@@ -11,15 +11,21 @@
 
 .info-item {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
+    flex-direction: column; /* Change to column to stack label and value */
+    justify-content: center; /* Center items vertically */
+    margin-right: 10px; /* Add space between items */
     padding: 5px;
-    border-bottom: 1px solid #ddd;
+    border-right: 1px solid #ddd; /* Add right border for separation */
+}
+
+.info-item:last-child {
+    border-right: none; /* Remove right border for the last item */
 }
 
 .info-label {
     font-weight: bold;
     color: #007bff;
+    margin-bottom: 2px; /* Reduce margin for a more compact layout */
 }
 
 .info-value {
