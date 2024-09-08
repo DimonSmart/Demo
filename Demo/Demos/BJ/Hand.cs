@@ -6,7 +6,7 @@
         public IReadOnlyList<Card> Cards => _cards.AsReadOnly();
         public int HandValue { get; private set; }
         private int _acesCount;
-      
+
 
         public Hand(IEnumerable<Card> initialCards)
         {

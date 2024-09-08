@@ -1,0 +1,14 @@
+﻿@using Demo.Demos.BJ
+
+<div class="controls-container">
+    <button @onclick="async () => { Game.Hit(); await OnGameStateChanged.InvokeAsync(); }" class="casino-button" disabled="@(!Game.CanHit())">Hit</button>
+    <button @onclick="async () => { Game.Stand(); await OnGameStateChanged.InvokeAsync(); }" class="casino-button" disabled="@(!Game.CanStand())">Stand</button>
+    <button @onclick="async () => { Game.DoubleDown(); await OnGameStateChanged.InvokeAsync(); }" class="casino-button" disabled="@(!Game.CanDoubleDown())">Double Down</button>
+    <button @onclick="async () => { Game.Split(); await OnGameStateChanged.InvokeAsync(); }" class="casino-button" disabled="@(!Game.CanSplit())">Split</button>
+    <button @onclick="async () => { Game.Surrender(); await OnGameStateChanged.InvokeAsync(); }" class="casino-button" disabled="@(!Game.CanSurrender())">Surrender</button>
+</div>
+
+@code {
+    [Parameter] public required BlackjackGameBase Game { get; set; }
+    [Parameter] public required EventCallback OnGameStateChanged { get; set; }
+}

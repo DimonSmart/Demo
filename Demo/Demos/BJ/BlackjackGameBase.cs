@@ -1,11 +1,15 @@
-﻿namespace Demo.Demos.BJ;
+﻿using Demo.Components;
+
+namespace Demo.Demos.BJ;
 
 public class BlackjackGameBase
 {
+    public readonly List<PlayerHand> PlayerHands;
+    public readonly Hand DealerHand;
+
     protected readonly Shoe _shoe;
-    protected readonly List<PlayerHand> _playerHands;
     protected int _currentPlayerHandIndex;
-    protected readonly Hand _dealerHand;
+
     protected bool _gameFinished;
     private decimal _playerMoney;
     private const decimal InitialBet = 10m;
@@ -22,18 +26,18 @@ public class BlackjackGameBase
         _currentPlayerHandIndex = 0;
         _gameFinished = false;
 
-        _playerHands = new List<PlayerHand> { new PlayerHand(DealPlayerInitialCards(), InitialBet) };
-        _dealerHand = new Hand(DealDealerInitialCards());
+        PlayerHands = new List<PlayerHand> { new PlayerHand(DealPlayerInitialCards(), InitialBet) };
+        DealerHand = new Hand(DealDealerInitialCards());
 
         // Check if the player has a Blackjack (21) from the initial deal
         if (CurrentPlayerHand.HandValue == 21)
         {
             _logger?.Info("Player has a Blackjack (21) from the initial deal.");
-            EndPlayerTurn();
+            EndHand();
         }
     }
 
-    protected PlayerHand CurrentPlayerHand => _playerHands[_currentPlayerHandIndex];
+    protected PlayerHand CurrentPlayerHand => PlayerHands[_currentPlayerHandIndex];
 
     private List<Card> DealDealerInitialCards()
     {
@@ -58,11 +62,11 @@ public class BlackjackGameBase
         _currentPlayerHandIndex = 0;
         _gameFinished = false;
 
-        _playerHands.Clear();
-        _playerHands.Add(new PlayerHand(DealPlayerInitialCards(), InitialBet));
+        PlayerHands.Clear();
+        PlayerHands.Add(new PlayerHand(DealPlayerInitialCards(), InitialBet));
 
-        _dealerHand._cards.Clear();
-        _dealerHand._cards.AddRange(DealDealerInitialCards());
+        DealerHand._cards.Clear();
+        DealerHand._cards.AddRange(DealDealerInitialCards());
     }
 
     private void LogGameState()
@@ -70,12 +74,12 @@ public class BlackjackGameBase
         _logger?.Info("Logging game state...");
 
         // Log dealer's hand
-        _logger?.Info($"Dealer's hand ({_dealerHand.HandValue}): {string.Join(", ", _dealerHand.Cards.Select(c => c.ToString()))}");
+        _logger?.Info($"Dealer's hand ({DealerHand.HandValue}): {string.Join(", ", DealerHand.Cards.Select(c => c.ToString()))}");
 
         // Log each player's hand
-        for (int i = 0; i < _playerHands.Count; i++)
+        for (int i = 0; i < PlayerHands.Count; i++)
         {
-            var hand = _playerHands[i];
+            var hand = PlayerHands[i];
             _logger?.Info($"Player hand {i}: ({hand.HandValue}) {string.Join(", ", hand.Cards.Select(c => c.ToString()))}");
         }
 
@@ -95,7 +99,7 @@ public class BlackjackGameBase
     public bool CanDoubleDown() => !_gameFinished && CurrentPlayerHand.Cards.Count == 2;
 
     public bool CanSplit() =>
-        !_gameFinished && CurrentPlayerHand.Cards.Count == 2 && CurrentPlayerHand.Cards[0].Rank == CurrentPlayerHand.Cards[1].Rank && _playerHands.Count <= MaxSplits;
+        !_gameFinished && CurrentPlayerHand.Cards.Count == 2 && CurrentPlayerHand.Cards[0].Rank == CurrentPlayerHand.Cards[1].Rank && PlayerHands.Count <= MaxSplits;
 
     public bool CanSurrender() => !_gameFinished && CurrentPlayerHand.Cards.Count == 2;
 
@@ -114,29 +118,10 @@ public class BlackjackGameBase
         CurrentPlayerHand.AddCard(card);
         _logger?.Info($"Player hits and receives card: {card}. Hand value: {CurrentPlayerHand.HandValue}");
 
-        if (CurrentPlayerHand.HandValue == 21)
+        if (CurrentPlayerHand.HandValue == 21 || CurrentPlayerHand.IsBusted)
         {
-            _logger?.Info($"Player hand {_currentPlayerHandIndex} reaches 21.");
-            if (_currentPlayerHandIndex < _playerHands.Count - 1)
-            {
-                _currentPlayerHandIndex++;
-            }
-            else
-            {
-                EndPlayerTurn();
-            }
-        }
-        else if (CurrentPlayerHand.IsBusted)
-        {
-            _logger?.Info($"Player hand {_currentPlayerHandIndex} busts.");
-            if (_currentPlayerHandIndex < _playerHands.Count - 1)
-            {
-                _currentPlayerHandIndex++;
-            }
-            else
-            {
-                EndPlayerTurn();
-            }
+            _logger?.Info($"Player hand {_currentPlayerHandIndex} is either 21 or busted.");
+            EndHand();
         }
     }
 
@@ -151,15 +136,7 @@ public class BlackjackGameBase
         }
 
         _logger?.Info($"Player stands with hand value: {CurrentPlayerHand.HandValue}");
-
-        if (_currentPlayerHandIndex < _playerHands.Count - 1)
-        {
-            _currentPlayerHandIndex++;
-        }
-        else
-        {
-            EndPlayerTurn();
-        }
+        EndHand();
     }
 
     public void DoubleDown()
@@ -196,7 +173,7 @@ public class BlackjackGameBase
         var newHand = CurrentPlayerHand.Split();
         newHand.Bet = InitialBet;
         _playerMoney -= InitialBet;
-        _playerHands.Add(newHand);
+        PlayerHands.Add(newHand);
         _logger?.Info("Player splits the hand. Two new hands created.");
     }
 
@@ -215,48 +192,71 @@ public class BlackjackGameBase
         _logger?.Info($"Player surrenders. Lost half of the bet: {SurrenderPenalty}. Remaining money: {_playerMoney}");
     }
 
-    protected void EndPlayerTurn()
+    protected void EndHand()
     {
-        _gameFinished = true;
-        _logger?.Info("Player's turn ends. Dealer starts playing.");
-        DealerPlay();
+        _logger?.Info("Player's turn ends for hand index: " + _currentPlayerHandIndex);
+
+        if (CurrentPlayerHand.IsBusted)
+        {
+            _logger?.Info("Hand is busted.");
+        }
+
+        if (_currentPlayerHandIndex < PlayerHands.Count - 1)
+        {
+            _currentPlayerHandIndex++;
+            _logger?.Info($"Moving to next hand. Current hand index: {_currentPlayerHandIndex}");
+        }
+        else
+        {
+            _gameFinished = true;
+            _logger?.Info("All hands have been played. Dealer starts playing.");
+            DealerPlay();
+        }
     }
 
     private void DealerPlay()
     {
-        while (_dealerHand.HandValue < 17)
+        if (_gameFinished)
         {
-            _dealerHand.AddCard(_shoe.TakeNextCard());
+            _logger?.Info("Game is already finished. Dealer does not play.");
+            return;
         }
 
-        _logger?.Info($"Dealer finishes playing with hand value: {_dealerHand.HandValue}");
+        while (DealerHand.HandValue < 17)
+        {
+            var card = _shoe.TakeNextCard();
+            DealerHand.AddCard(card);
+            _logger?.Info($"Dealer takes card: {card}");
+        }
+
+        _logger?.Info("Dealer finishes playing.");
         CheckWinConditions();
     }
 
     private void CheckWinConditions()
     {
-        for (int i = 0; i < _playerHands.Count; i++)
+        for (int i = 0; i < PlayerHands.Count; i++)
         {
-            var hand = _playerHands[i];
+            var hand = PlayerHands[i];
 
             if (hand.IsBusted)
             {
                 _logger?.Info("Player loses this hand due to bust.");
                 _playerMoney -= hand.Bet;
             }
-            else if (_dealerHand.IsBusted)
+            else if (DealerHand.IsBusted)
             {
                 _logger?.Info("Dealer busts. Player wins this hand.");
                 _playerMoney += hand.Bet;
             }
             else
             {
-                if (hand.HandValue > _dealerHand.HandValue)
+                if (hand.HandValue > DealerHand.HandValue)
                 {
                     _logger?.Info("Player wins this hand.");
                     _playerMoney += hand.Bet;
                 }
-                else if (hand.HandValue < _dealerHand.HandValue)
+                else if (hand.HandValue < DealerHand.HandValue)
                 {
                     _logger?.Info("Dealer wins this hand.");
                     _playerMoney -= hand.Bet;

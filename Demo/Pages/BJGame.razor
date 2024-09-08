@@ -1,6 +1,7 @@
 ﻿@page "/bjgame"
 @using Demo.Components
 @using Demo.Demos.BJ
+@using Demo.Demos.TSM.GeneralGenetic
 <link rel="stylesheet" href="css/demos.css"/>
 
 <PageTitle>Blackjack</PageTitle>
@@ -10,31 +11,31 @@
         <h3>Blackjack</h3>
     </div>
 
-    <PlayingHand Hand = "@_dealerHand" />
-    <PlayerHands Hands = "@_playerHands"/>
+    <PlayingHand Hand = "@DealerHand" />
+    <PlayerHands Hands = "@PlayerHands"/>
+    <BlackJackGameControls Game="GameInstance" OnGameStateChanged="UpdateGameState" />
 
 </div>
 
 @code {
-    private Hand? _dealerHand { get; set; }
-    private IEnumerable<Hand>? _playerHands { get; set; }
+    private Hand DealerHand { get; set; } = null!;
+    private IEnumerable<Hand> PlayerHands { get; set; } = null!;
+    private BlackjackGameBase GameInstance { get; set; } = null!;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
 
-        _dealerHand = new Hand(new[] {
-            new Card(Suit.Diamonds, Rank.Jack),
-            new Card(Suit.Diamonds, Rank.Five, false) });
+        var shoe = new Shoe(DeckFactory.CreateShuffledDecks(6, RandomProvider.Shared).Cards, redCardPosition: 100);
+        GameInstance = new BlackjackGameWithPlayer(shoe);
+        DealerHand = GameInstance.DealerHand;
+        PlayerHands = GameInstance.PlayerHands;
+    }
 
-        _playerHands = new[]{new Hand(new[] {
-            new Card(Suit.Diamonds, Rank.Three),
-            new Card(Suit.Diamonds, Rank.Three)}),
-
-            new Hand(new[] {
-                new Card(Suit.Hearts, Rank.Ace),
-                new Card(Suit.Spades, Rank.King)})
-        };
+    private void UpdateGameState()
+    {
+        PlayerHands = GameInstance.PlayerHands;
+        StateHasChanged();
     }
 }
 

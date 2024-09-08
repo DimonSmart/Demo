@@ -10,8 +10,7 @@ namespace GeneticAlgorithmTests.BJTests
         {
             var shoe = new Shoe(DeckFactory.CreateShuffledDecks(6, RandomProvider.Shared).Cards, redCardPosition: 100);
             var game = new BlackjackGameAuto(shoe, GetStrategyTable(), logger: ConsoleLogger.Shared);
-         //   var game = new BlackjackGameOLD(shoe, GetStrategyTable(), logger: null);
-            game.PlayGame(); // .Play();
+            game.PlayGame();
         }
 
         private static StrategyTable GetStrategyTable() =>

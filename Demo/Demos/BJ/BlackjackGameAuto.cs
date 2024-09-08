@@ -22,7 +22,7 @@
         {
             while (CanTakeAction() && _gameFinished)
             {
-                var dealerCardValue = _dealerHand.Cards.First(card => card.IsFaceUp).Value;
+                var dealerCardValue = DealerHand.Cards.First(card => card.IsFaceUp).Value;
                 var action = _strategyTable.GetAction(CurrentPlayerHand, dealerCardValue);
 
                 ExecuteAction(action);
@@ -30,7 +30,7 @@
 
             if (!_gameFinished)
             {
-                EndPlayerTurn();
+                EndHand();
             }
         }
 
