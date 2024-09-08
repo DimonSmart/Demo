@@ -14,7 +14,7 @@
     <GameInfo Game="GameInstance" />
     <PlayingHand Hand="DealerHand" />
     <PlayerHands Game="GameInstance" />
-    <BlackJackGameControls Game="GameInstance" OnGameStateChanged="UpdateGameState" />
+    <BlackJackGameControls Game="GameInstance" />
 </div>
 
 @code {
@@ -27,12 +27,20 @@
 
         var shoe = new Shoe(DeckFactory.CreateShuffledDecks(6, RandomProvider.Shared).Cards, redCardPosition: 100);
         GameInstance = new BlackjackGameWithPlayer(shoe);
+        GameInstance.GameStateChanged += async (isDealerAction) =>
+        {
+            await HandleGameStateChanged(isDealerAction);
+        };
+
         DealerHand = GameInstance.DealerHand;
     }
 
-    private void UpdateGameState()
+    private async Task HandleGameStateChanged(bool isDealerAction)
     {
         StateHasChanged();
+        if (!isDealerAction) return;
+        await Task.Delay(1000);
+        await Task.Yield();
     }
 }
 

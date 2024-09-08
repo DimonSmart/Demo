@@ -77,4 +77,12 @@
             return new PlayerHand(new List<Card> { cardToRemove }, Bet);
         }
     }
+
+    public class DealerHand(IEnumerable<Card> initialCards) : Hand(initialCards)
+    {
+        public void FlipSecondCard()
+        {
+            _cards[1] = _cards[1] with { IsFaceUp = true };
+        }
+    }
 }

@@ -4,9 +4,11 @@ namespace Demo.Demos.BJ;
 
 public class BlackjackGameBase
 {
+    public event Action<bool>? GameStateChanged;
+
     public readonly List<PlayerHand> PlayerHands;
     public PlayerHand CurrentPlayerHand => PlayerHands[_currentPlayerHandIndex];
-    public readonly Hand DealerHand;
+    public readonly DealerHand DealerHand;
     public decimal PlayerBalance;
     public readonly Shoe Shoe;
 
@@ -30,8 +32,8 @@ public class BlackjackGameBase
         _currentPlayerHandIndex = 0;
         GameFinished = false;
 
-        PlayerHands = [new PlayerHand(DealPlayerInitialCards(), InitialBet)];
-        DealerHand = new Hand(DealDealerInitialCards());
+        PlayerHands = new List<PlayerHand> { new PlayerHand(DealPlayerInitialCards(), InitialBet) };
+        DealerHand = new DealerHand(DealDealerInitialCards());
 
         if (CurrentPlayerHand.HandValue != 21) return;
 
@@ -123,6 +125,7 @@ public class BlackjackGameBase
             _logger?.Info($"Player hand {_currentPlayerHandIndex} is either 21 or busted.");
             EndHand();
         }
+        OnGameStateChanged(false);
     }
 
     public void Stand()
@@ -137,6 +140,7 @@ public class BlackjackGameBase
 
         _logger?.Info($"Player stands with hand value: {CurrentPlayerHand.HandValue}");
         EndHand();
+        OnGameStateChanged(false);
     }
 
     public void DoubleDown()
@@ -158,7 +162,8 @@ public class BlackjackGameBase
         _logger?.Info($"Player receives one card: {card}. Hand value: {CurrentPlayerHand.HandValue}");
 
         // Ends the turn automatically after Double Down
-        Stand(); 
+        Stand();
+        OnGameStateChanged(false);
     }
 
     public void Split()
@@ -176,6 +181,7 @@ public class BlackjackGameBase
         PlayerBalance -= InitialBet;
         PlayerHands.Add(newHand);
         _logger?.Info("Player splits the hand. Two new hands created.");
+        OnGameStateChanged(false);
     }
 
     public void Surrender()
@@ -191,6 +197,7 @@ public class BlackjackGameBase
         PlayerBalance -= SurrenderPenalty;
         GameFinished = true;
         _logger?.Info($"Player surrenders. Lost half of the bet: {SurrenderPenalty}. Remaining money: {PlayerBalance}");
+        OnGameStateChanged(false);
     }
 
     protected void EndHand()
@@ -209,9 +216,9 @@ public class BlackjackGameBase
         }
         else
         {
-            GameFinished = true;
             _logger?.Info("All hands have been played. Dealer starts playing.");
             DealerPlay();
+            GameFinished = true;
         }
     }
 
@@ -223,11 +230,16 @@ public class BlackjackGameBase
             return;
         }
 
+        // Dealer reveal second card
+        DealerHand.FlipSecondCard();
+        OnGameStateChanged(true);
+
         while (DealerHand.HandValue < 17)
         {
             var card = Shoe.TakeNextCard();
             DealerHand.AddCard(card);
             _logger?.Info($"Dealer takes card: {card}");
+            OnGameStateChanged(true);
         }
 
         _logger?.Info("Dealer finishes playing.");
@@ -270,5 +282,10 @@ public class BlackjackGameBase
         }
 
         _logger?.Info($"Game over. Player money: {PlayerBalance}");
+    }
+
+    private void OnGameStateChanged(bool isDealerAction = false)
+    {
+        GameStateChanged?.Invoke(isDealerAction);
     }
 }
