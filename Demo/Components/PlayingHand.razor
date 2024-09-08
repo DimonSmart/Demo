@@ -5,6 +5,7 @@
         <span class="total-score">Total: @Hand.HandValue</span>
         <span class="badge @(Hand.IsPair ? "badge-active" : "badge-inactive")">Pair</span>
         <span class="badge @(Hand.IsSoft ? "badge-active" : "badge-inactive")">Soft</span>
+        <span class="badge @(Hand.IsBusted ? "badge-busted" : "badge-inactive")">Busted</span>
     </div>
     <div class="hand-cards">
         @foreach (var card in Hand.Cards)

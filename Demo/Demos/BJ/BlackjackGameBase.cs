@@ -5,6 +5,7 @@ namespace Demo.Demos.BJ;
 public class BlackjackGameBase
 {
     public readonly List<PlayerHand> PlayerHands;
+    public PlayerHand CurrentPlayerHand => PlayerHands[_currentPlayerHandIndex];
     public readonly Hand DealerHand;
 
     protected readonly Shoe _shoe;
@@ -37,7 +38,7 @@ public class BlackjackGameBase
         }
     }
 
-    protected PlayerHand CurrentPlayerHand => PlayerHands[_currentPlayerHandIndex];
+    
 
     private List<Card> DealDealerInitialCards()
     {

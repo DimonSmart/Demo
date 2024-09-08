@@ -1,17 +1,16 @@
 ﻿@using Demo.Demos.BJ
 
 <div class="player-hands-container">
-    @foreach (var hand in Hands)
+    @foreach (var hand in Game.PlayerHands)
     {
-        <div class="hand-wrapper">
+        <div class="hand-wrapper @(hand == Game.CurrentPlayerHand ? "current-hand" : "")">
             <PlayingHand Hand="@hand" />
         </div>
     }
 </div>
 
 @code {
-    [Parameter] public required IEnumerable<Hand> Hands { get; set; }
-    [Parameter] public required string Title { get; set; }
+    [Parameter] public required BlackjackGameBase Game { get; set; }
 }
 
 <style>
@@ -24,5 +23,11 @@
 
     .hand-wrapper {
         flex: 1 1 100px; /* Adjust the minimum width of each hand as needed */
+    }
+
+    .current-hand {
+        border: 2px solid #ffd700; /* Highlight color */
+        padding: 5px;
+        border-radius: 8px;
     }
 </style>

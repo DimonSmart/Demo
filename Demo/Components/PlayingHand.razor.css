@@ -35,6 +35,10 @@
     background-color: lightgray;
 }
 
+.badge-busted {
+    background-color: #f44336; /* Red */
+}
+
 .hand-cards {
     display: flex;
     flex-wrap: wrap;

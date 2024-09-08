@@ -11,15 +11,14 @@
         <h3>Blackjack</h3>
     </div>
 
-    <PlayingHand Hand = "@DealerHand" />
-    <PlayerHands Hands = "@PlayerHands"/>
+    <PlayingHand Hand="@DealerHand" />
+    <PlayerHands Game="GameInstance" />
     <BlackJackGameControls Game="GameInstance" OnGameStateChanged="UpdateGameState" />
 
 </div>
 
 @code {
     private Hand DealerHand { get; set; } = null!;
-    private IEnumerable<Hand> PlayerHands { get; set; } = null!;
     private BlackjackGameBase GameInstance { get; set; } = null!;
 
     protected override void OnInitialized()
@@ -29,12 +28,10 @@
         var shoe = new Shoe(DeckFactory.CreateShuffledDecks(6, RandomProvider.Shared).Cards, redCardPosition: 100);
         GameInstance = new BlackjackGameWithPlayer(shoe);
         DealerHand = GameInstance.DealerHand;
-        PlayerHands = GameInstance.PlayerHands;
     }
 
     private void UpdateGameState()
     {
-        PlayerHands = GameInstance.PlayerHands;
         StateHasChanged();
     }
 }
