@@ -12,6 +12,7 @@
         {
             _cards = initialCards.ToList();
             CalculateHandValue();
+            AdjustForAces();
         }
 
         public void AddCard(Card card)
