@@ -38,6 +38,14 @@ namespace GeneticAlgorithmTests.BJTests
         [InlineData(new[] { Rank.Ten, Rank.Ten }, new[] { Rank.Ten, Rank.Ace }, 31)]
         [InlineData(new[] { Rank.Ten, Rank.Ten }, new[] { Rank.Ten, Rank.Ten }, 40)]
         [InlineData(new[] { Rank.Ten, Rank.Ten }, new[] { Rank.Ten, Rank.Ten, Rank.Ace }, 41)]
+        [InlineData(new Rank[] { Rank.Three, Rank.Three, Rank.Ace, Rank.Jack, Rank.Five }, new Rank[] { }, 22)]
+        [InlineData(new Rank[] { Rank.Three }, new Rank[] { Rank.Three, Rank.Ace, Rank.Jack, Rank.Five }, 22)]
+        [InlineData(new Rank[] { Rank.Three, Rank.Three }, new Rank[] { Rank.Ace, Rank.Jack, Rank.Five }, 22)]
+        [InlineData(new Rank[] { Rank.Three, Rank.Three, Rank.Ace }, new Rank[] { Rank.Jack, Rank.Five }, 22)]
+        [InlineData(new Rank[] { Rank.Three, Rank.Three, Rank.Ace, Rank.Jack }, new Rank[] { Rank.Five }, 22)]
+
+
+
         public void Hand_DataDrivenTests(Rank[] initialRanks, Rank[] newRanks, int expectedValue)
         {
             var cards = initialRanks.Select(rank => new Card(Suit.Hearts, rank)).ToList();
