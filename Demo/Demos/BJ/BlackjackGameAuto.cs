@@ -1,93 +1,94 @@
-﻿namespace Demo.Demos.BJ
+﻿namespace Demo.Demos.BJ;
+
+public class BlackjackGameAuto : BlackjackGameBase
 {
-    public class BlackjackGameAuto : BlackjackGameBase
+    private readonly StrategyTable _strategyTable;
+
+    public BlackjackGameAuto(Shoe shoe, StrategyTable strategyTable, ILogger? logger = null) : base(shoe, logger)
     {
-        private readonly StrategyTable _strategyTable;
+        _strategyTable = strategyTable;
+    }
 
-        public BlackjackGameAuto(Shoe shoe, StrategyTable strategyTable, ILogger? logger = null) : base(shoe, logger)
+    public async Task PlayGameAsync()
+    {
+        await StartNewRoundAsync();
+
+        while (!Shoe.IsRedCardRaised && !Shoe.IsShoeEmpty)
         {
-            _strategyTable = strategyTable;
+            await PlayRoundAsync();
+            ResetGameVariables();
+        }
+    }
+
+    private async Task PlayRoundAsync()
+    {
+        if (CurrentGameState != GameState.GameStarted)
+        {
+            throw new InvalidOperationException("The game is not in a valid state to start a new round.");
         }
 
-        public async Task PlayGameAsync()
+        while (CanTakeAction() && GameFinished)
         {
-            await StartNewRoundAsync();
+            var dealerCardValue = DealerHand.Cards.First(card => card.IsFaceUp).Value;
+            var action = _strategyTable.GetAction(CurrentPlayerHand, dealerCardValue);
 
-            while (!Shoe.IsRedCardRaised && !Shoe.IsShoeEmpty)
-            {
-                await PlayRoundAsync();
-                ResetGameVariables();
-            }
+            await ExecuteActionAsync(action);
         }
 
-        private async Task PlayRoundAsync()
+        if (!GameFinished)
         {
-            if (CurrentGameState != GameState.GameStarted)
-                throw new InvalidOperationException("The game is not in a valid state to start a new round.");
-
-            while (CanTakeAction() && GameFinished)
-            {
-                var dealerCardValue = DealerHand.Cards.First(card => card.IsFaceUp).Value;
-                var action = _strategyTable.GetAction(CurrentPlayerHand, dealerCardValue);
-
-                await ExecuteActionAsync(action);
-            }
-
-            if (!GameFinished)
-            {
-                await EndHandAsync();
-            }
+            await EndHandAsync();
         }
+    }
 
-        private bool CanTakeAction()
-        {
-            return CanHit() || CanStand() || CanDoubleDown() || CanSplit() || CanSurrender();
-        }
+    private bool CanTakeAction()
+    {
+        return CanHit() || CanStand() || CanDoubleDown() || CanSplit() || CanSurrender();
+    }
 
-        private async Task ExecuteActionAsync(BlackjackAction action)
+    private async Task ExecuteActionAsync(BlackjackAction action)
+    {
+        switch (action)
         {
-            switch (action)
-            {
-                case BlackjackAction.Hit:
+            case BlackjackAction.Hit:
+                await HitAsync();
+                break;
+            case BlackjackAction.Stand:
+                await StandAsync();
+                break;
+            case BlackjackAction.Double:
+                if (CanDoubleDown())
+                {
+                    await DoubleDownAsync();
+                }
+                else
+                {
                     await HitAsync();
-                    break;
-                case BlackjackAction.Stand:
-                    await StandAsync();
-                    break;
-                case BlackjackAction.Double:
-                    if (CanDoubleDown())
-                    {
-                        await DoubleDownAsync();
-                    }
-                    else
-                    {
-                        await HitAsync();
-                    }
+                }
 
-                    break;
-                case BlackjackAction.Split:
-                    if (CanSplit())
-                    {
-                        await SplitAsync();
-                    }
-                    else
-                    {
-                        await HitAsync();
-                    }
+                break;
+            case BlackjackAction.Split:
+                if (CanSplit())
+                {
+                    await SplitAsync();
+                }
+                else
+                {
+                    await HitAsync();
+                }
 
-                    break;
-                case BlackjackAction.Surrender:
-                    if (CanSurrender())
-                    {
-                        await SurrenderAsync();
-                    }
-                    else
-                    {
-                        await HitAsync();
-                    }
+                break;
+            case BlackjackAction.Surrender:
+                if (CanSurrender())
+                {
+                    await SurrenderAsync();
+                }
+                else
+                {
+                    await HitAsync();
+                }
 
-                    break;
-            }
+                break;
         }
     }
 }
