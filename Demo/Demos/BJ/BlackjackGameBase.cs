@@ -136,7 +136,7 @@ public class BlackjackGameBase
 
         if (!CanHit()) throw new InvalidOperationException("Cannot hit at this time.");
 
-        var card = Shoe.TakeNextCard();
+        var card = Shoe.TakeNextCard() with{IsFaceUp = false} ;
         CurrentPlayerHand!.AddCard(card);
         _logger?.Info($"Player hits and receives card: {card}. Hand value: {CurrentPlayerHand.HandValue}");
 
@@ -233,10 +233,12 @@ public class BlackjackGameBase
 
         while (DealerHand.HandValue < 17)
         {
-            var card = Shoe.TakeNextCard();
+            var card = Shoe.TakeNextCard() with{ IsFaceUp = false };
             DealerHand.AddCard(card);
-            _logger?.Info($"Dealer takes card: {card}");
             await OnGameStateChangedAsync(true);
+            DealerHand.FlipCard(card);
+            await OnGameStateChangedAsync(true);
+            _logger?.Info($"Dealer takes card: {card}");
         }
 
         _logger?.Info("Dealer finishes playing.");
