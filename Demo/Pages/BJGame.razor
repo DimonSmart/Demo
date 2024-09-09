@@ -6,15 +6,25 @@
 
 <PageTitle>Blackjack</PageTitle>
 
-<div class="page-container casino-style">
-    <div class="game-info-container">
-        <GameInfo Game="GameInstance" />
-    </div>
+<div class="page-container casino-style @(GameInstance.CurrentGameState == BlackjackGameBase.GameState.GameNotStarted ? "background-image" : "")">
 
-    <div class="game-area">
-        <PlayingHand Hand="GameInstance.DealerHand" class="dealer-hand" />
-        <PlayerHands Game="GameInstance" />
-    </div>
+    @if (GameInstance.CurrentGameState == BlackjackGameBase.GameState.GameNotStarted)
+    {
+        <div class="game-area">
+            <h1 class="start-game-label">Let's start the game.</h1>
+        </div>
+    }
+    else
+    {
+        <div class="game-info-container">
+            <GameInfo Game="GameInstance" />
+        </div>
+
+        <div class="game-area">
+            <PlayingHand Hand="GameInstance.DealerHand" class="dealer-hand" />
+            <PlayerHands Game="GameInstance" />
+        </div>
+    }
 
     <div class="controls-container">
         <BlackJackGameControls Game="GameInstance" />
@@ -45,7 +55,6 @@
     }
 }
 
-
 <style>
     :root {
         --gap-size: 10px;
@@ -59,8 +68,12 @@
         justify-content: space-between;
         height: calc(100vh - 56px - var(--gap-size));
         padding: 20px;
-        background-image: radial-gradient(circle, #0d521d, #096a2b, #046d31);
-        background-size: cover;
+        background-color: #0d521d;
+    }
+
+    /* Reusable text-shadow class */
+    .text-shadow {
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     }
 
     /* Game info container at the top right corner */
@@ -92,29 +105,10 @@
     h3 {
         font-family: 'Carter One', cursive;
         color: #ffd700;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         letter-spacing: 1px;
     }
 
-    /* Card display container */
-    .card-display {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-
-    /* Style the card elements */
-    .card {
-        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);
-        border-radius: 8px;
-    }
-
-    /* Parameters styling */
-    .parameters-container {
-        margin-bottom: var(--gap-size);
-    }
-
-    /* General text styling for a more luxurious feel */
+    /* General text styling */
     body {
         font-family: 'Roboto', sans-serif;
         color: white;
@@ -123,5 +117,19 @@
     /* Add vertical space between dealer hand and player hands */
     .dealer-hand {
         margin-bottom: var(--gap-size);
+    }
+
+    /* Style for the start game label */
+    .start-game-label {
+        font-size: 2em;
+        color: #ffd700;
+    }
+
+    /* Background image for when the game hasn't started */
+    .background-image {
+        background-image: url('images/bj/bj-before-start.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
     }
 </style>
