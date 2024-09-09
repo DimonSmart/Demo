@@ -190,15 +190,12 @@ public class BlackjackGameBase
         await OnGameStateChangedAsync(false);
     }
 
-    public async Task Split()
+    public async Task SplitAsync()
     {
         LogGameState();
         _logger?.Info("Action selected: Split");
 
-        if (!CanSplit())
-        {
-            throw new InvalidOperationException("Cannot split at this time.");
-        }
+        if (!CanSplit() || CurrentPlayerHand == null) throw new InvalidOperationException("Cannot split at this time.");
 
         var newHand = CurrentPlayerHand.Split();
         newHand.Bet = InitialBet;

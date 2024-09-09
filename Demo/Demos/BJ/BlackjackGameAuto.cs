@@ -63,7 +63,7 @@
                 case BlackjackAction.Split:
                     if (CanSplit())
                     {
-                        await Split();
+                        await SplitAsync();
                     }
                     else
                     {
