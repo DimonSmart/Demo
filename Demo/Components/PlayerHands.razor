@@ -1,11 +1,18 @@
 ﻿@using Demo.Demos.BJ
 
 <div class="player-hands-container">
-    @foreach (var hand in Game.PlayerHands)
+    @if (Game.CurrentGameState == BlackjackGameBase.GameState.GameNotStarted)
     {
-        <div class="hand-wrapper @(hand == Game.CurrentPlayerHand ? "current-hand" : "")">
-            <PlayingHand Hand="@hand" />
-        </div>
+        <div>Deal cards</div>
+    }
+    else
+    {
+        @foreach (var hand in Game.PlayerHands)
+        {
+            <div class="hand-wrapper @(hand == Game.CurrentPlayerHand ? "current-hand" : "")">
+                <PlayingHand Hand="@hand"/>
+            </div>
+        }
     }
 </div>
 

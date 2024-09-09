@@ -6,11 +6,11 @@ namespace GeneticAlgorithmTests.BJTests
     public class BlackjackGameTests
     {
         [Fact]
-        public void RunSingleGame_NoExceptionsThrown()
+        public async Task RunSingleGame_NoExceptionsThrown()
         {
             var shoe = new Shoe(DeckFactory.CreateShuffledDecks(6, RandomProvider.Shared).Cards, redCardPosition: 100);
             var game = new BlackjackGameAuto(shoe, GetStrategyTable(), logger: ConsoleLogger.Shared);
-            game.PlayGame();
+            await game.PlayGameAsync();
         }
 
         private static StrategyTable GetStrategyTable() =>

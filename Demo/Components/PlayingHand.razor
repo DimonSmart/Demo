@@ -1,20 +1,28 @@
 ﻿@using Demo.Demos.BJ
-
 <div class="hand-container">
-    <div class="hand-info">
-        <span class="total-score">Total: @Hand.HandValue</span>
-        <span class="badge @(Hand.IsPair ? "badge-active" : "badge-inactive")">Pair</span>
-        <span class="badge @(Hand.IsSoft ? "badge-active" : "badge-inactive")">Soft</span>
-        <span class="badge @(Hand.IsBusted ? "badge-busted" : "badge-inactive")">Busted</span>
-    </div>
-    <div class="hand-cards">
-        @foreach (var card in Hand.Cards)
-        {
-            <PlayingCard Card="@card" />
-        }
-    </div>
+    @if (Hand == null)
+    {
+        <div>No cards</div>
+    }
+    else
+    {
+        <div class="hand-info">
+            <span class="total-score">Total: @Hand.HandValue</span>
+            <span class="badge @(Hand.IsPair ? "badge-active" : "badge-inactive")">Pair</span>
+            <span class="badge @(Hand.IsSoft ? "badge-active" : "badge-inactive")">Soft</span>
+            <span class="badge @(Hand.IsBusted ? "badge-busted" : "badge-inactive")">Busted</span>
+        </div>
+        <div class="hand-cards">
+            @foreach (var card in Hand.Cards)
+            {
+                <PlayingCard Card="@card"/>
+            }
+        </div>
+    }
+
 </div>
 
 @code {
-    [Parameter] public required Hand Hand { get; set; }
+
+    [Parameter] public required Hand? Hand { get; set; }
 }

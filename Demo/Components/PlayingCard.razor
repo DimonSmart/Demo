@@ -3,8 +3,8 @@
 @inherits OwningComponentBase
 
 <div class="card @(Card.IsFaceUp ? "face-up" : "face-down")">
-    @if (Card.IsFaceUp)
-    {
+    <div class="card-inner">
+        <!-- Front of the card -->
         <div class="card-content">
             <div class="card-rank top-left" style="color:@(IsRedSuit(Card.Suit) ? "red" : "black")">
                 @RankToString(Card.Rank)
@@ -14,11 +14,10 @@
             </div>
             <div class="card-suit">@SuitToSymbol(Card.Suit)</div>
         </div>
-    }
-    else
-    {
+
+        <!-- Back of the card -->
         <div class="card-back"></div>
-    }
+    </div>
 </div>
 
 @code {
@@ -53,4 +52,3 @@
         return suit == Suit.Hearts || suit == Suit.Diamonds;
     }
 }
-

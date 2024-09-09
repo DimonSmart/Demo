@@ -9,28 +9,28 @@
             _strategyTable = strategyTable;
         }
 
-        public void PlayGame()
+        public async Task PlayGameAsync()
         {
             while (!Shoe.IsRedCardRaised && !Shoe.IsShoeEmpty)
             {
-                PlayRound();
+                await PlayRoundAsync();
                 ResetGameVariables();
             }
         }
 
-        private void PlayRound()
+        private async Task PlayRoundAsync()
         {
             while (CanTakeAction() && GameFinished)
             {
                 var dealerCardValue = DealerHand.Cards.First(card => card.IsFaceUp).Value;
                 var action = _strategyTable.GetAction(CurrentPlayerHand, dealerCardValue);
 
-                ExecuteAction(action);
+                await ExecuteActionAsync(action);
             }
 
             if (!GameFinished)
             {
-                EndHand();
+                await EndHandAsync();
             }
         }
 
@@ -39,46 +39,46 @@
             return CanHit() || CanStand() || CanDoubleDown() || CanSplit() || CanSurrender();
         }
 
-        private void ExecuteAction(BlackjackAction action)
+        private async Task ExecuteActionAsync(BlackjackAction action)
         {
             switch (action)
             {
                 case BlackjackAction.Hit:
-                    Hit();
+                    await HitAsync();
                     break;
                 case BlackjackAction.Stand:
-                    Stand();
+                    await StandAsync();
                     break;
                 case BlackjackAction.Double:
                     if (CanDoubleDown())
                     {
-                        DoubleDown();
+                        await DoubleDownAsync();
                     }
                     else
                     {
-                        Hit();
+                        await HitAsync();
                     }
 
                     break;
                 case BlackjackAction.Split:
                     if (CanSplit())
                     {
-                        Split();
+                        await Split();
                     }
                     else
                     {
-                        Hit();
+                        await HitAsync();
                     }
 
                     break;
                 case BlackjackAction.Surrender:
                     if (CanSurrender())
                     {
-                        Surrender();
+                        await SurrenderAsync();
                     }
                     else
                     {
-                        Hit();
+                        await HitAsync();
                     }
 
                     break;

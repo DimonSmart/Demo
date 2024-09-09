@@ -1,19 +1,27 @@
-﻿using Demo.Components;
-
-namespace Demo.Demos.BJ;
+﻿namespace Demo.Demos.BJ;
 
 public class BlackjackGameBase
 {
-    public event Action<bool>? GameStateChanged;
+    public enum GameState
+    {
+        GameNotStarted,
+        GameStarted,
+        GameFinished,
+    }
 
-    public readonly List<PlayerHand> PlayerHands;
-    public PlayerHand CurrentPlayerHand => PlayerHands[_currentPlayerHandIndex];
-    public readonly DealerHand DealerHand;
-    public decimal PlayerBalance;
+    public event Func<bool, Task>? GameStateChanged;
+
+    public List<PlayerHand> PlayerHands { get; private set; }
+    public PlayerHand? CurrentPlayerHand => PlayerHands[_currentPlayerHandIndex];
+    public DealerHand DealerHand { get; private set; }
+    public decimal PlayerBalance { get; private set; }
     public readonly Shoe Shoe;
 
     private int _currentPlayerHandIndex;
-    public bool GameFinished;
+    public GameState CurrentGameState { get; private set; }
+
+    public bool GameFinished => CurrentGameState == GameState.GameFinished;
+
 
     // TODO Will be defined later
     public int GamesPlayedInShoe;
@@ -30,15 +38,7 @@ public class BlackjackGameBase
         Shoe = shoe;
 
         _currentPlayerHandIndex = 0;
-        GameFinished = false;
-
-        PlayerHands = new List<PlayerHand> { new PlayerHand(DealPlayerInitialCards(), InitialBet) };
-        DealerHand = new DealerHand(DealDealerInitialCards());
-
-        if (CurrentPlayerHand.HandValue != 21) return;
-
-        _logger?.Info("Player has a Blackjack (21) from the initial deal.");
-        EndHand();
+        CurrentGameState = GameState.GameNotStarted;
     }
 
     private List<Card> DealDealerInitialCards()
@@ -62,7 +62,7 @@ public class BlackjackGameBase
     protected void ResetGameVariables()
     {
         _currentPlayerHandIndex = 0;
-        GameFinished = false;
+        CurrentGameState = GameState.GameNotStarted;
 
         PlayerHands.Clear();
         PlayerHands.Add(new PlayerHand(DealPlayerInitialCards(), InitialBet));
@@ -88,25 +88,49 @@ public class BlackjackGameBase
         _logger?.Info($"CanDoubleDown: {CanDoubleDown()}");
         _logger?.Info($"CanSplit: {CanSplit()}");
         _logger?.Info($"CanSurrender: {CanSurrender()}");
+        _logger?.Info($"CanStartNewRound: {CanStartNewRound()}");
     }
 
     // Can methods
-    public bool CanHit() => !GameFinished && CurrentPlayerHand.HandValue < 21;
+    public bool CanStartNewRound() => CurrentGameState != GameState.GameStarted;
 
-    public bool CanStand() => !GameFinished;
+    public bool CanHit() => CurrentGameState == GameState.GameStarted && CurrentPlayerHand?.HandValue < 21;
 
-    public bool CanDoubleDown() => !GameFinished && CurrentPlayerHand.Cards.Count == 2;
+    public bool CanStand() => CurrentGameState == GameState.GameStarted;
+
+    public bool CanDoubleDown() => CurrentGameState == GameState.GameStarted && CurrentPlayerHand?.Cards.Count == 2;
 
     public bool CanSplit() =>
-        !GameFinished &&
-        CurrentPlayerHand.Cards.Count == 2 &&
+        CurrentGameState == GameState.GameStarted &&
+        CurrentPlayerHand?.Cards.Count == 2 &&
         CurrentPlayerHand.Cards[0].Rank == CurrentPlayerHand.Cards[1].Rank &&
         PlayerHands.Count <= MaxSplits;
 
-    public bool CanSurrender() => !GameFinished && CurrentPlayerHand.Cards.Count == 2;
+    public bool CanSurrender() => CurrentGameState == GameState.GameStarted && CurrentPlayerHand?.Cards.Count == 2;
 
     // Action methods
-    public void Hit()
+    public async Task StartNewRoundAsync()
+    {
+        if (!CanStartNewRound())
+        {
+            throw new InvalidOperationException("Cannot start a new round at this time.");
+        }
+
+        PlayerHands = [new PlayerHand(DealPlayerInitialCards(), InitialBet)];
+        DealerHand = new DealerHand(DealDealerInitialCards());
+
+        CurrentGameState = GameState.GameStarted;
+
+        if (CurrentPlayerHand.HandValue == 21)
+        {
+            _logger?.Info("Player has a Blackjack (21) from the initial deal.");
+            await EndHandAsync();
+        }
+
+        await OnGameStateChangedAsync(false);
+    }
+
+    public async Task HitAsync()
     {
         LogGameState();
         _logger?.Info("Action selected: Hit");
@@ -123,12 +147,12 @@ public class BlackjackGameBase
         if (CurrentPlayerHand.HandValue == 21 || CurrentPlayerHand.IsBusted)
         {
             _logger?.Info($"Player hand {_currentPlayerHandIndex} is either 21 or busted.");
-            EndHand();
+            await EndHandAsync();
         }
-        OnGameStateChanged(false);
+        await OnGameStateChangedAsync(false);
     }
 
-    public void Stand()
+    public async Task StandAsync()
     {
         LogGameState();
         _logger?.Info("Action selected: Stand");
@@ -139,11 +163,11 @@ public class BlackjackGameBase
         }
 
         _logger?.Info($"Player stands with hand value: {CurrentPlayerHand.HandValue}");
-        EndHand();
-        OnGameStateChanged(false);
+        await EndHandAsync();
+        await OnGameStateChangedAsync(false);
     }
 
-    public void DoubleDown()
+    public async Task DoubleDownAsync()
     {
         LogGameState();
         _logger?.Info("Action selected: Double Down");
@@ -162,11 +186,11 @@ public class BlackjackGameBase
         _logger?.Info($"Player receives one card: {card}. Hand value: {CurrentPlayerHand.HandValue}");
 
         // Ends the turn automatically after Double Down
-        Stand();
-        OnGameStateChanged(false);
+        await StandAsync();
+        await OnGameStateChangedAsync(false);
     }
 
-    public void Split()
+    public async Task Split()
     {
         LogGameState();
         _logger?.Info("Action selected: Split");
@@ -181,10 +205,10 @@ public class BlackjackGameBase
         PlayerBalance -= InitialBet;
         PlayerHands.Add(newHand);
         _logger?.Info("Player splits the hand. Two new hands created.");
-        OnGameStateChanged(false);
+        await OnGameStateChangedAsync(false);
     }
 
-    public void Surrender()
+    public async Task SurrenderAsync()
     {
         LogGameState();
         _logger?.Info("Action selected: Surrender");
@@ -195,12 +219,12 @@ public class BlackjackGameBase
         }
 
         PlayerBalance -= SurrenderPenalty;
-        GameFinished = true;
+        CurrentGameState = GameState.GameFinished;
         _logger?.Info($"Player surrenders. Lost half of the bet: {SurrenderPenalty}. Remaining money: {PlayerBalance}");
-        OnGameStateChanged(false);
+        await OnGameStateChangedAsync(false);
     }
 
-    protected void EndHand()
+    protected async Task EndHandAsync()
     {
         _logger?.Info("Player's turn ends for hand index: " + _currentPlayerHandIndex);
 
@@ -217,14 +241,14 @@ public class BlackjackGameBase
         else
         {
             _logger?.Info("All hands have been played. Dealer starts playing.");
-            DealerPlay();
-            GameFinished = true;
+            await DealerPlayAsync();
+            CurrentGameState = GameState.GameFinished;
         }
     }
 
-    private void DealerPlay()
+    private async Task DealerPlayAsync()
     {
-        if (GameFinished)
+        if (CurrentGameState == GameState.GameFinished)
         {
             _logger?.Info("Game is already finished. Dealer does not play.");
             return;
@@ -232,14 +256,14 @@ public class BlackjackGameBase
 
         // Dealer reveal second card
         DealerHand.FlipSecondCard();
-        OnGameStateChanged(true);
+        await OnGameStateChangedAsync(true);
 
         while (DealerHand.HandValue < 17)
         {
             var card = Shoe.TakeNextCard();
             DealerHand.AddCard(card);
             _logger?.Info($"Dealer takes card: {card}");
-            OnGameStateChanged(true);
+            await OnGameStateChangedAsync(true);
         }
 
         _logger?.Info("Dealer finishes playing.");
@@ -284,8 +308,9 @@ public class BlackjackGameBase
         _logger?.Info($"Game over. Player money: {PlayerBalance}");
     }
 
-    private void OnGameStateChanged(bool isDealerAction = false)
+    private async Task OnGameStateChangedAsync(bool isDealerAction)
     {
-        GameStateChanged?.Invoke(isDealerAction);
+        if (GameStateChanged != null) await GameStateChanged(isDealerAction);
     }
+
 }

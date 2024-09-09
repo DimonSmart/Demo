@@ -12,13 +12,12 @@
     </div>
 
     <GameInfo Game="GameInstance" />
-    <PlayingHand Hand="DealerHand" />
+    <PlayingHand Hand="GameInstance.DealerHand" />
     <PlayerHands Game="GameInstance" />
     <BlackJackGameControls Game="GameInstance" />
 </div>
 
 @code {
-    private Hand DealerHand { get; set; } = null!;
     private BlackjackGameBase GameInstance { get; set; } = null!;
 
     protected override void OnInitialized()
@@ -31,8 +30,6 @@
         {
             await HandleGameStateChanged(isDealerAction);
         };
-
-        DealerHand = GameInstance.DealerHand;
     }
 
     private async Task HandleGameStateChanged(bool isDealerAction)
