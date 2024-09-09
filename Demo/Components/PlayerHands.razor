@@ -1,6 +1,6 @@
 ﻿@using Demo.Demos.BJ
 
-<div class="player-hands-container">
+<div class="player-hands-container @Class">
     @if (Game.CurrentGameState == BlackjackGameBase.GameState.GameNotStarted)
     {
         <div>Deal cards</div>
@@ -18,6 +18,7 @@
 
 @code {
     [Parameter] public required BlackjackGameBase Game { get; set; }
+    [Parameter] public string? Class { get; set; }
 }
 
 <style>

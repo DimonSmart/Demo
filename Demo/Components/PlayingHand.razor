@@ -1,5 +1,5 @@
 ﻿@using Demo.Demos.BJ
-<div class="hand-container">
+<div class="hand-container @Class">
     @if (Hand == null)
     {
         <div>No cards</div>
@@ -19,10 +19,9 @@
             }
         </div>
     }
-
 </div>
 
 @code {
-
     [Parameter] public required Hand? Hand { get; set; }
+    [Parameter] public string? Class { get; set; }
 }

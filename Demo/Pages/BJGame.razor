@@ -2,19 +2,23 @@
 @using Demo.Components
 @using Demo.Demos.BJ
 @using Demo.Demos.TSM.GeneralGenetic
-<link rel="stylesheet" href="css/demos.css"/>
+<link rel="stylesheet" href="css/demos.css" />
 
 <PageTitle>Blackjack</PageTitle>
 
 <div class="page-container casino-style">
-    <div class="parameters-container">
-        <h3>Blackjack</h3>
+    <div class="game-info-container">
+        <GameInfo Game="GameInstance" />
     </div>
 
-    <GameInfo Game="GameInstance" />
-    <PlayingHand Hand="GameInstance.DealerHand" />
-    <PlayerHands Game="GameInstance" />
-    <BlackJackGameControls Game="GameInstance" />
+    <div class="game-area">
+        <PlayingHand Hand="GameInstance.DealerHand" class="dealer-hand" />
+        <PlayerHands Game="GameInstance" />
+    </div>
+
+    <div class="controls-container">
+        <BlackJackGameControls Game="GameInstance" />
+    </div>
 </div>
 
 @code {
@@ -41,6 +45,7 @@
     }
 }
 
+
 <style>
     :root {
         --gap-size: 10px;
@@ -51,11 +56,36 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: normal;
+        justify-content: space-between;
         height: calc(100vh - 56px - var(--gap-size));
         padding: 20px;
         background-image: radial-gradient(circle, #0d521d, #096a2b, #046d31);
         background-size: cover;
+    }
+
+    /* Game info container at the top right corner */
+    .game-info-container {
+        position: absolute;
+        top: 30px;
+        right: 20px;
+    }
+
+    /* Game area in the center */
+    .game-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-grow: 1;
+    }
+
+    /* Controls container at the bottom */
+    .controls-container {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        padding: 10px;
+        background-color: rgba(0, 0, 0, 0.5);
     }
 
     /* Styled header */
@@ -88,5 +118,10 @@
     body {
         font-family: 'Roboto', sans-serif;
         color: white;
+    }
+
+    /* Add vertical space between dealer hand and player hands */
+    .dealer-hand {
+        margin-bottom: var(--gap-size);
     }
 </style>
