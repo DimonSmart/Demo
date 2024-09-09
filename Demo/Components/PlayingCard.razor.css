@@ -10,37 +10,48 @@
     position: relative;
     background-size: cover;
     background-position: center;
-    perspective: 1000px; /* Important for 3D flipping effect */
+    perspective: 1000px;
     box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.5);
 }
 
-/* Card inner wrapper that will be flipped */
+/* Card inner wrapper */
 .card-inner {
     width: 100%;
     height: 100%;
     position: relative;
-    transform-style: preserve-3d; /* Allows 3D transforms */
-    transition: transform 0.6s; /* Controls the duration of the flip */
+    transform-style: preserve-3d;
+    transition: transform 0.6s ease;
 }
 
-/* Flip the card when the card is face-up */
 .card.face-up .card-inner {
-    transform: rotateY(180deg); /* Rotate to show front */
+    transform: rotateY(180deg);
 }
 
-/* Back of the card */
-.card-back,
-.card-content {
+
+.card.face-down .card-inner {
+    transform: rotateY(0deg);
+}
+
+
+.card-content,
+.card-back {
     width: 100%;
     height: 100%;
-    border-radius: 10px;
     position: absolute;
     top: 0;
     left: 0;
-    backface-visibility: hidden; /* Hides the reverse side when flipped */
+    backface-visibility: hidden;
+    border-radius: 10px;
 }
 
-/* Card front */
+
+.card-back {
+    background-size: cover;
+    background-position: center;
+    z-index: 1;
+}
+
+/* Front of the card (face-up) */
 .card-content {
     display: flex;
     flex-direction: column;
@@ -50,17 +61,11 @@
     padding: 5px;
     background-size: cover;
     background-position: center;
-    z-index: 2; /* Ensures front is on top when flipped */
-    transform: rotateY(180deg); /* Initially rotated to be hidden */
+    transform: rotateY(180deg); /* Rotate front side initially */
+    z-index: 2;
 }
 
-/* Card back */
-.card-back {
-    background-size: cover;
-    background-position: center;
-}
-
-/* Styling for card face */
+/* Ranks and suits */
 .card-rank {
     font-size: 1.5em;
     position: absolute;
@@ -74,7 +79,7 @@
     .card-rank.bottom-right {
         bottom: 5px;
         right: 5px;
-        transform: rotate(180deg);
+        transform: rotate(180deg); /* Flip bottom rank */
     }
 
 .card-suit {
@@ -86,7 +91,7 @@
     transform: translate(-50%, -50%);
 }
 
-/* Specific background images */
+/* Background images */
 .card.face-down .card-back {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350"><rect width="250" height="350" rx="15" ry="15" fill="%23ffffff" stroke="%23000000" stroke-width="2"/><rect width="240" height="340" x="5" y="5" rx="10" ry="10" fill="url(%23crisscross-pattern)" /><defs><pattern id="crisscross-pattern" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M0 0 L20 20 M20 0 L0 20" stroke="%23000000" stroke-width="1" /></pattern></defs></svg>');
 }
