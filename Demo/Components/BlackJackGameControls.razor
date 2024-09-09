@@ -5,6 +5,7 @@
     <button @onclick="async () => await Game.HitAsync()" class="casino-button" disabled="@(!Game.CanHit())">Hit</button>
     <button @onclick="async () => await Game.StandAsync()" class="casino-button" disabled="@(!Game.CanStand())">Stand</button>
     <button @onclick="async () => await Game.DoubleDownAsync()" class="casino-button" disabled="@(!Game.CanDoubleDown())">Double Down</button>
+    <button @onclick="async () => await Game.SplitAsync()" class="casino-button" disabled="@(!Game.CanSplit())">Split</button>
     <button @onclick="async () => await Game.SurrenderAsync()" class="casino-button" disabled="@(!Game.CanSurrender())">Surrender</button>
 </div>
 
