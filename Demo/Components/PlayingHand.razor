@@ -7,7 +7,7 @@
     else
     {
         <div class="hand-info">
-            <span class="total-score">Total: @Hand.HandValue</span>
+            <span class="total-score">Total: @(Hand.AllCardFacedUp ? Hand.HandValue.ToString() : "Secret")</span>
             <span class="badge @(Hand.IsPair ? "badge-active" : "badge-inactive")">Pair</span>
             <span class="badge @(Hand.IsSoft ? "badge-active" : "badge-inactive")">Soft</span>
             <span class="badge @(Hand.IsBusted ? "badge-busted" : "badge-inactive")">Busted</span>
