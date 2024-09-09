@@ -11,6 +11,8 @@
 
         public async Task PlayGameAsync()
         {
+            await StartNewRoundAsync();
+
             while (!Shoe.IsRedCardRaised && !Shoe.IsShoeEmpty)
             {
                 await PlayRoundAsync();
@@ -20,6 +22,9 @@
 
         private async Task PlayRoundAsync()
         {
+            if (CurrentGameState != GameState.GameStarted)
+                throw new InvalidOperationException("The game is not in a valid state to start a new round.");
+
             while (CanTakeAction() && GameFinished)
             {
                 var dealerCardValue = DealerHand.Cards.First(card => card.IsFaceUp).Value;
