@@ -4,9 +4,9 @@
     {
         protected internal List<Card> _cards;
         public IReadOnlyList<Card> Cards => _cards.AsReadOnly();
-        public int HandValue { get; private set; }
+        public bool AllCardFacedUp => _cards[1].IsFaceUp; // By the game rules, the dealer could have one card faced down
+        public virtual int HandValue { get; private set; }
         private int _acesCount;
-
 
         public Hand(IEnumerable<Card> initialCards)
         {
