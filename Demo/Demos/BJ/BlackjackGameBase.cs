@@ -71,10 +71,10 @@ public class BlackjackGameBase
         DealerHand._cards.AddRange(DealDealerInitialCards());
     }
 
-    private void LogGameState()
+    private void LogGameState(string message)
     {
+        _logger?.Info(message);
         _logger?.Info("Logging game state...");
-
         _logger?.Info(
             $"Dealer's hand ({DealerHand.HandValue}): {string.Join(", ", DealerHand.Cards.Select(c => c.ToString()))}");
 
@@ -114,9 +114,7 @@ public class BlackjackGameBase
     public async Task StartNewRoundAsync()
     {
         if (!CanStartNewRound())
-        {
             throw new InvalidOperationException("Cannot start a new round at this time.");
-        }
 
         PlayerHands = [new PlayerHand(DealPlayerInitialCards(), InitialBet)];
         DealerHand = new DealerHand(DealDealerInitialCards());
@@ -131,15 +129,12 @@ public class BlackjackGameBase
         await OnGameStateChangedAsync(false);
     }
 
+    // Updated method calls
     public async Task HitAsync()
     {
-        LogGameState();
-        _logger?.Info("Action selected: Hit");
+        LogGameState("Action selected: Hit");
 
-        if (!CanHit())
-        {
-            throw new InvalidOperationException("Cannot hit at this time.");
-        }
+        if (!CanHit()) throw new InvalidOperationException("Cannot hit at this time.");
 
         var card = Shoe.TakeNextCard();
         CurrentPlayerHand!.AddCard(card);
@@ -156,28 +151,17 @@ public class BlackjackGameBase
 
     public async Task StandAsync()
     {
-        LogGameState();
-        _logger?.Info("Action selected: Stand");
+        LogGameState($"Action selected: Stand with hand value: {CurrentPlayerHand!.HandValue}");
+        if (!CanStand()) throw new InvalidOperationException("Cannot stand at this time.");
 
-        if (!CanStand())
-        {
-            throw new InvalidOperationException("Cannot stand at this time.");
-        }
-
-        _logger?.Info($"Player stands with hand value: {CurrentPlayerHand!.HandValue}");
         await EndHandAsync();
         await OnGameStateChangedAsync(false);
     }
 
     public async Task DoubleDownAsync()
     {
-        LogGameState();
-        _logger?.Info("Action selected: Double Down");
-
-        if (!CanDoubleDown())
-        {
-            throw new InvalidOperationException("Cannot double down at this time.");
-        }
+        LogGameState("Action selected: Double Down");
+        if (!CanDoubleDown()) throw new InvalidOperationException("Cannot double down at this time.");
 
         PlayerBalance -= InitialBet;
         CurrentPlayerHand!.Bet *= 2;
@@ -194,13 +178,8 @@ public class BlackjackGameBase
 
     public async Task SplitAsync()
     {
-        LogGameState();
-        _logger?.Info("Action selected: Split");
-
-        if (!CanSplit() || CurrentPlayerHand == null)
-        {
-            throw new InvalidOperationException("Cannot split at this time.");
-        }
+        LogGameState("Action selected: Split");
+        if (!CanSplit() || CurrentPlayerHand == null) throw new InvalidOperationException("Cannot split at this time.");
 
         var newHand = CurrentPlayerHand.Split();
         newHand.Bet = InitialBet;
@@ -212,13 +191,8 @@ public class BlackjackGameBase
 
     public async Task SurrenderAsync()
     {
-        LogGameState();
-        _logger?.Info("Action selected: Surrender");
-
-        if (!CanSurrender())
-        {
-            throw new InvalidOperationException("Cannot surrender at this time.");
-        }
+        LogGameState("Action selected: Surrender");
+        if (!CanSurrender()) throw new InvalidOperationException("Cannot surrender at this time.");
 
         PlayerBalance -= SurrenderPenalty;
         CurrentGameState = GameState.GameFinished;
@@ -231,10 +205,7 @@ public class BlackjackGameBase
     {
         _logger?.Info("Player's turn ends for hand index: " + _currentPlayerHandIndex);
 
-        if (CurrentPlayerHand!.IsBusted)
-        {
-            _logger?.Info("Hand is busted.");
-        }
+        if (CurrentPlayerHand!.IsBusted) _logger?.Info("Hand is busted.");
 
         if (_currentPlayerHandIndex < PlayerHands.Count - 1)
         {
@@ -257,7 +228,6 @@ public class BlackjackGameBase
             return;
         }
 
-        // Dealer reveal second card
         DealerHand.FlipSecondCard();
         await OnGameStateChangedAsync(true);
 
