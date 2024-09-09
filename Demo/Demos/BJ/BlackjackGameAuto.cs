@@ -22,15 +22,10 @@ public class BlackjackGameAuto : BlackjackGameBase
 
     private async Task PlayRoundAsync()
     {
-        if (CurrentGameState != GameState.GameStarted)
-        {
-            throw new InvalidOperationException("The game is not in a valid state to start a new round.");
-        }
-
         while (CanTakeAction() && GameFinished)
         {
             var dealerCardValue = DealerHand.Cards.First(card => card.IsFaceUp).Value;
-            var action = _strategyTable.GetAction(CurrentPlayerHand, dealerCardValue);
+            var action = _strategyTable.GetAction(CurrentPlayerHand!, dealerCardValue);
 
             await ExecuteActionAsync(action);
         }

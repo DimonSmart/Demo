@@ -6,31 +6,21 @@ public class BlackjackGameBase
     {
         GameNotStarted,
         GameStarted,
-        GameFinished,
+        GameFinished
     }
-
-    public event Func<bool, Task>? GameStateChanged;
-
-    public List<PlayerHand> PlayerHands { get; private set; }
-    public PlayerHand? CurrentPlayerHand => PlayerHands[_currentPlayerHandIndex];
-    public DealerHand DealerHand { get; private set; }
-    public decimal PlayerBalance { get; private set; }
-    public readonly Shoe Shoe;
-
-    private int _currentPlayerHandIndex;
-    public GameState CurrentGameState { get; private set; }
-
-    public bool GameFinished => CurrentGameState == GameState.GameFinished;
-
-
-    // TODO Will be defined later
-    public int GamesPlayedInShoe;
 
     private const decimal InitialBet = 10m;
     private const decimal SurrenderPenalty = InitialBet / 2;
     private const int MaxSplits = 3;
 
     private readonly ILogger? _logger;
+    public readonly Shoe Shoe;
+
+    private int _currentPlayerHandIndex;
+
+
+    // TODO Will be defined later
+    public int GamesPlayedInShoe;
 
     protected BlackjackGameBase(Shoe shoe, ILogger? logger)
     {
@@ -40,6 +30,16 @@ public class BlackjackGameBase
         _currentPlayerHandIndex = 0;
         CurrentGameState = GameState.GameNotStarted;
     }
+
+    public List<PlayerHand> PlayerHands { get; private set; }
+    public PlayerHand? CurrentPlayerHand => PlayerHands[_currentPlayerHandIndex];
+    public DealerHand DealerHand { get; private set; }
+    public decimal PlayerBalance { get; private set; }
+    public GameState CurrentGameState { get; private set; }
+
+    public bool GameFinished => CurrentGameState == GameState.GameFinished;
+
+    public event Func<bool, Task>? GameStateChanged;
 
     private List<Card> DealDealerInitialCards()
     {
@@ -75,12 +75,14 @@ public class BlackjackGameBase
     {
         _logger?.Info("Logging game state...");
 
-        _logger?.Info($"Dealer's hand ({DealerHand.HandValue}): {string.Join(", ", DealerHand.Cards.Select(c => c.ToString()))}");
+        _logger?.Info(
+            $"Dealer's hand ({DealerHand.HandValue}): {string.Join(", ", DealerHand.Cards.Select(c => c.ToString()))}");
 
         for (var i = 0; i < PlayerHands.Count; i++)
         {
             var hand = PlayerHands[i];
-            _logger?.Info($"Player hand {i}: ({hand.HandValue}) {string.Join(", ", hand.Cards.Select(c => c.ToString()))}");
+            _logger?.Info(
+                $"Player hand {i}: ({hand.HandValue}) {string.Join(", ", hand.Cards.Select(c => c.ToString()))}");
         }
 
         _logger?.Info($"CanHit: {CanHit()}");
@@ -92,21 +94,38 @@ public class BlackjackGameBase
     }
 
     // Can methods
-    public bool CanStartNewRound() => CurrentGameState != GameState.GameStarted;
+    public bool CanStartNewRound()
+    {
+        return CurrentGameState != GameState.GameStarted;
+    }
 
-    public bool CanHit() => CurrentGameState == GameState.GameStarted && CurrentPlayerHand?.HandValue < 21;
+    public bool CanHit()
+    {
+        return CurrentGameState == GameState.GameStarted && CurrentPlayerHand?.HandValue < 21;
+    }
 
-    public bool CanStand() => CurrentGameState == GameState.GameStarted;
+    public bool CanStand()
+    {
+        return CurrentGameState == GameState.GameStarted;
+    }
 
-    public bool CanDoubleDown() => CurrentGameState == GameState.GameStarted && CurrentPlayerHand?.Cards.Count == 2;
+    public bool CanDoubleDown()
+    {
+        return CurrentGameState == GameState.GameStarted && CurrentPlayerHand?.Cards.Count == 2;
+    }
 
-    public bool CanSplit() =>
-        CurrentGameState == GameState.GameStarted &&
-        CurrentPlayerHand?.Cards.Count == 2 &&
-        CurrentPlayerHand.Cards[0].Rank == CurrentPlayerHand.Cards[1].Rank &&
-        PlayerHands.Count <= MaxSplits;
+    public bool CanSplit()
+    {
+        return CurrentGameState == GameState.GameStarted &&
+               CurrentPlayerHand?.Cards.Count == 2 &&
+               CurrentPlayerHand.Cards[0].Rank == CurrentPlayerHand.Cards[1].Rank &&
+               PlayerHands.Count <= MaxSplits;
+    }
 
-    public bool CanSurrender() => CurrentGameState == GameState.GameStarted && CurrentPlayerHand?.Cards.Count == 2;
+    public bool CanSurrender()
+    {
+        return CurrentGameState == GameState.GameStarted && CurrentPlayerHand?.Cards.Count == 2;
+    }
 
     // Action methods
     public async Task StartNewRoundAsync()
@@ -118,10 +137,9 @@ public class BlackjackGameBase
 
         PlayerHands = [new PlayerHand(DealPlayerInitialCards(), InitialBet)];
         DealerHand = new DealerHand(DealDealerInitialCards());
-
         CurrentGameState = GameState.GameStarted;
 
-        if (CurrentPlayerHand.HandValue == 21)
+        if (CurrentPlayerHand!.HandValue == 21)
         {
             _logger?.Info("Player has a Blackjack (21) from the initial deal.");
             await EndHandAsync();
@@ -149,6 +167,7 @@ public class BlackjackGameBase
             _logger?.Info($"Player hand {_currentPlayerHandIndex} is either 21 or busted.");
             await EndHandAsync();
         }
+
         await OnGameStateChangedAsync(false);
     }
 
@@ -195,7 +214,10 @@ public class BlackjackGameBase
         LogGameState();
         _logger?.Info("Action selected: Split");
 
-        if (!CanSplit() || CurrentPlayerHand == null) throw new InvalidOperationException("Cannot split at this time.");
+        if (!CanSplit() || CurrentPlayerHand == null)
+        {
+            throw new InvalidOperationException("Cannot split at this time.");
+        }
 
         var newHand = CurrentPlayerHand.Split();
         newHand.Bet = InitialBet;
@@ -307,7 +329,9 @@ public class BlackjackGameBase
 
     private async Task OnGameStateChangedAsync(bool isDealerAction)
     {
-        if (GameStateChanged != null) await GameStateChanged(isDealerAction);
+        if (GameStateChanged != null)
+        {
+            await GameStateChanged(isDealerAction);
+        }
     }
-
 }
