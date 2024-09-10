@@ -5,7 +5,6 @@
     background-color: #f3f3f3;
     border-radius: 8px;
     box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
-    width: auto;
 }
 
 .hand-info {
@@ -25,7 +24,6 @@
 .total-score {
     background-color: #007bff;
     color: white;
-    font-weight: bold;
 }
 
 .badge-active {
@@ -51,41 +49,25 @@
     display: flex;
     gap: 10px;
     margin-top: 10px;
-    align-items: center;
-    display: flex;
-    justify-content: space-between; /* Spread content */
+    justify-content: space-between;
 }
 
-.game-result-badge, .game-result-text {
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 1em;
-}
-
-.game-result-badge {
-    background-color: #28a745; /* Green background for positive result */
-    color: white;
-}
-
-/* Positive and Negative Result Badges for Outcome */
 .game-result-badge-positive {
-    background-color: #28a745; /* Green for positive outcome */
+    background-color: #28a745;
     color: white;
 }
 
 .game-result-badge-negative {
-    background-color: #dc3545; /* Red for negative outcome */
+    background-color: #dc3545;
     color: white;
 }
 
-/* Ensure proper contrast for negative and positive descriptions */
 .game-result-text-positive {
-    background-color: #28a745; /* Green for positive result description */
+    background-color: #28a745;
     color: white !important;
 }
 
 .game-result-text-negative {
-    background-color: #ffc107; /* Yellow for negative result description */
+    background-color: #ffc107;
     color: black !important;
 }
