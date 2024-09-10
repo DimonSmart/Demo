@@ -21,9 +21,12 @@
         @if (Hand is PlayerHand { Outcome: not null } playerHand)
         {
             <div class="game-result-container">
-                <span class="badge @(playerHand.Outcome?.Outcome > 0 ? "game-result-badge-positive" : "game-result-badge-negative")">
-                    @($"${Math.Abs(playerHand.Outcome!.Outcome)}")
-                </span>
+                @if (playerHand.Outcome?.Outcome != 0)
+                {
+                    <span class="badge @(playerHand.Outcome?.Outcome > 0 ? "game-result-badge-positive" : "game-result-badge-negative")">
+                        @($"${Math.Abs(playerHand.Outcome!.Outcome)}")
+                    </span>
+                }
                 <span class="badge @(playerHand.Outcome!.Outcome > 0 ? "game-result-text-positive" : "game-result-text-negative")">
                     @playerHand.Outcome?.OutcomeDescription
                 </span>
