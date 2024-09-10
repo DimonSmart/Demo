@@ -1,7 +1,4 @@
-﻿using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
-using System.Collections.Generic;
-
-namespace Demo.Demos.BJ;
+﻿namespace Demo.Demos.BJ;
 
 public class BlackjackGameBase
 {
@@ -37,7 +34,7 @@ public class BlackjackGameBase
     public List<PlayerHand> PlayerHands { get; private set; }
     public PlayerHand? CurrentPlayerHand => PlayerHands[_currentPlayerHandIndex];
     public DealerHand DealerHand { get; private set; }
-    public decimal PlayerBalance { get; private set; }
+    public decimal PlayerBalance { get; private set; } = 1000;
     public GameState CurrentGameState { get; private set; }
 
     public bool GameFinished => CurrentGameState == GameState.GameFinished;
@@ -119,6 +116,7 @@ public class BlackjackGameBase
         if (!CanStartNewRound())
             throw new InvalidOperationException("Cannot start a new round at this time.");
 
+        PlayerBalance -= InitialBet;
         PlayerHands = [new PlayerHand(DealPlayerInitialCards(), InitialBet)];
         DealerHand = new DealerHand(DealDealerInitialCards());
         CurrentGameState = GameState.GameStarted;
@@ -260,7 +258,7 @@ public class BlackjackGameBase
             if (DealerHand.IsBusted)
             {
                 SetOutcomeAndLog(hand, hand.Bet, "Dealer busts. Player wins this hand.");
-                PlayerBalance += hand.Bet;
+                PlayerBalance += hand.Bet * 2;
                 continue;
             }
 
