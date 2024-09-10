@@ -45,3 +45,47 @@
     flex-wrap: wrap;
     gap: 5px;
 }
+
+.game-result-container {
+    font-size: 0.75em;
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    align-items: center;
+    display: flex;
+    justify-content: space-between; /* Spread content */
+}
+
+.game-result-badge, .game-result-text {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 1em;
+}
+
+.game-result-badge {
+    background-color: #28a745; /* Green background for positive result */
+    color: white;
+}
+
+/* Positive and Negative Result Badges for Outcome */
+.game-result-badge-positive {
+    background-color: #28a745; /* Green for positive outcome */
+    color: white;
+}
+
+.game-result-badge-negative {
+    background-color: #dc3545; /* Red for negative outcome */
+    color: white;
+}
+
+/* Ensure proper contrast for negative and positive descriptions */
+.game-result-text-positive {
+    background-color: #28a745; /* Green for positive result description */
+    color: white !important;
+}
+
+.game-result-text-negative {
+    background-color: #ffc107; /* Yellow for negative result description */
+    color: black !important;
+}

@@ -1,4 +1,7 @@
-﻿namespace Demo.Demos.BJ;
+﻿using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
+using System.Collections.Generic;
+
+namespace Demo.Demos.BJ;
 
 public class BlackjackGameBase
 {
@@ -136,7 +139,7 @@ public class BlackjackGameBase
 
         if (!CanHit()) throw new InvalidOperationException("Cannot hit at this time.");
 
-        var card = Shoe.TakeNextCard() with{IsFaceUp = false} ;
+        var card = Shoe.TakeNextCard();
         CurrentPlayerHand!.AddCard(card);
         _logger?.Info($"Player hits and receives card: {card}. Hand value: {CurrentPlayerHand.HandValue}");
 
@@ -164,7 +167,7 @@ public class BlackjackGameBase
         if (!CanDoubleDown()) throw new InvalidOperationException("Cannot double down at this time.");
 
         PlayerBalance -= InitialBet;
-        CurrentPlayerHand!.Bet *= 2;
+        CurrentPlayerHand!.DoubleBet();
         _logger?.Info("Player doubles down. Bet is doubled.");
 
         var card = Shoe.TakeNextCard();
@@ -182,7 +185,6 @@ public class BlackjackGameBase
         if (!CanSplit() || CurrentPlayerHand == null) throw new InvalidOperationException("Cannot split at this time.");
 
         var newHand = CurrentPlayerHand.Split();
-        newHand.Bet = InitialBet;
         PlayerBalance -= InitialBet;
         PlayerHands.Add(newHand);
         _logger?.Info("Player splits the hand. Two new hands created.");
@@ -247,41 +249,48 @@ public class BlackjackGameBase
 
     private void CheckWinConditions()
     {
-        for (var i = 0; i < PlayerHands.Count; i++)
+        foreach (var hand in PlayerHands)
         {
-            var hand = PlayerHands[i];
-
             if (hand.IsBusted)
             {
-                _logger?.Info("Player loses this hand due to bust.");
-                PlayerBalance -= hand.Bet;
+                SetOutcomeAndLog(hand, -hand.Bet, "Player loses this hand due to bust.");
+                continue;
             }
-            else if (DealerHand.IsBusted)
+
+            if (DealerHand.IsBusted)
             {
-                _logger?.Info("Dealer busts. Player wins this hand.");
+                SetOutcomeAndLog(hand, hand.Bet, "Dealer busts. Player wins this hand.");
                 PlayerBalance += hand.Bet;
+                continue;
             }
-            else
+
+            if (hand.HandValue > DealerHand.HandValue)
             {
-                if (hand.HandValue > DealerHand.HandValue)
-                {
-                    _logger?.Info("Player wins this hand.");
-                    PlayerBalance += hand.Bet;
-                }
-                else if (hand.HandValue < DealerHand.HandValue)
-                {
-                    _logger?.Info("Dealer wins this hand.");
-                    PlayerBalance -= hand.Bet;
-                }
-                else
-                {
-                    _logger?.Info("Push. No money lost or gained.");
-                }
+                SetOutcomeAndLog(hand, hand.Bet, "Player wins this hand.");
+                PlayerBalance += hand.Bet * 2;
+                continue;
             }
+
+            if (hand.HandValue < DealerHand.HandValue)
+            {
+                SetOutcomeAndLog(hand, -hand.Bet,"Dealer wins this hand.");
+                continue;
+            }
+
+            // Push case
+            SetOutcomeAndLog(hand, 0,"Push. No money lost or gained.");
+            PlayerBalance += hand.Bet;
         }
 
         _logger?.Info($"Game over. Player money: {PlayerBalance}");
     }
+
+    private void SetOutcomeAndLog(PlayerHand hand, decimal money, string message)
+    {
+        hand.SetOutcome(new HandOutcome(money, message));
+        _logger?.Info($"{hand.Outcome}");
+    }
+
 
     private async Task OnGameStateChangedAsync(bool isDealerAction)
     {

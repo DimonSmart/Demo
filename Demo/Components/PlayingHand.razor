@@ -7,7 +7,7 @@
     else
     {
         <div class="hand-info">
-            <span class="total-score">Total: @(Hand.AllCardFacedUp ? Hand.HandValue.ToString() : "Secret")</span>
+            <span class="total-score">Total: @(Hand.AllCardFacedUp ? $"${Hand.HandValue}" : "Secret")</span>
             <span class="badge @(Hand.IsPair ? "badge-active" : "badge-inactive")">Pair</span>
             <span class="badge @(Hand.IsSoft ? "badge-active" : "badge-inactive")">Soft</span>
             <span class="badge @(Hand.IsBusted ? "badge-busted" : "badge-inactive")">Busted</span>
@@ -18,6 +18,17 @@
                 <PlayingCard Card="@card"/>
             }
         </div>
+        @if (Hand is PlayerHand { Outcome: not null } playerHand)
+        {
+            <div class="game-result-container">
+                <span class="badge @(playerHand.Outcome?.Outcome > 0 ? "game-result-badge-positive" : "game-result-badge-negative")">
+                    @($"${Math.Abs(playerHand.Outcome!.Outcome)}")
+                </span>
+                <span class="badge @(playerHand.Outcome!.Outcome > 0 ? "game-result-text-positive" : "game-result-text-negative")">
+                    @playerHand.Outcome?.OutcomeDescription
+                </span>
+            </div>
+        }
     }
 </div>
 

@@ -8,3 +8,7 @@ public interface IHandValues
     bool IsSoft { get; }
     bool IsPair { get; }
 }
+
+
+public record HandOutcome(decimal Outcome, string OutcomeDescription);
+

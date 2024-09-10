@@ -4,7 +4,7 @@
     {
         protected internal List<Card> _cards;
         public IReadOnlyList<Card> Cards => _cards.AsReadOnly();
-        public bool AllCardFacedUp => _cards[1].IsFaceUp; // By the game rules, the dealer could have one card faced down
+        public bool AllCardFacedUp => _cards.Count > 1 && _cards[1].IsFaceUp; // By the game rules, the dealer could have one card faced down
         public virtual int HandValue { get; private set; }
         private int _acesCount;
 
@@ -63,9 +63,13 @@
         public bool IsPair => _cards.Count == 2 && _cards[0].Rank == _cards[1].Rank;
     }
 
-    public class PlayerHand(IEnumerable<Card> initialCards, decimal initialBet) : Hand(initialCards)
+    public class PlayerHand(IEnumerable<Card> initialCards, decimal bet, HandOutcome? outcome = null) : Hand(initialCards)
     {
-        public decimal Bet { get; set; } = initialBet;
+        public decimal Bet { get; private set;  } = bet;
+        public HandOutcome? Outcome { get; private set; } = outcome;
+
+        public void DoubleBet() => Bet *= 2;
+
         public PlayerHand Split()
         {
             if (!IsPair) throw new InvalidOperationException("Cannot split a hand that is not a pair.");
@@ -76,6 +80,8 @@
 
             return new PlayerHand(new List<Card> { cardToRemove }, Bet);
         }
+
+        public void SetOutcome(HandOutcome outcome) => Outcome = outcome;
     }
 
     public class DealerHand(IEnumerable<Card> initialCards) : Hand(initialCards)
