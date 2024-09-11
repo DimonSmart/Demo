@@ -11,8 +11,13 @@
     font-size: 0.75em;
     margin-bottom: 10px;
     display: flex;
+    justify-content: space-between;
     gap: 10px;
     align-items: center;
+}
+
+.bet-label {
+    margin-left: auto;
 }
 
 .total-score, .badge {

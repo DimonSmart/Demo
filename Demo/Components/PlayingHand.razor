@@ -6,11 +6,24 @@
     }
     else
     {
+        PlayerHand? playerHand = null;
+        @if (Hand is PlayerHand ph)
+        {
+            playerHand = ph;
+        }
+
         <div class="hand-info">
             <span class="total-score">Total: @(Hand.AllCardFacedUp ? $"{Hand.HandValue}" : "Secret")</span>
             <span class="badge @(Hand.IsPair ? "badge-active" : "badge-inactive")">Pair</span>
             <span class="badge @(Hand.IsSoft ? "badge-active" : "badge-inactive")">Soft</span>
-            <span class="badge @(Hand.IsBusted ? "badge-busted" : "badge-inactive")">Busted</span>
+
+            <div class="bet-label">
+                @if (playerHand != null)
+                {
+                    <span class="total-score">Bet: @($"${playerHand.Bet}")</span>
+                }
+            </div>
+
         </div>
         <div class="hand-cards">
             @foreach (var card in Hand.Cards)
@@ -18,7 +31,7 @@
                 <PlayingCard Card="@card"/>
             }
         </div>
-        @if (Hand is PlayerHand { Outcome: not null } playerHand)
+        @if (playerHand != null && playerHand.Outcome != null)
         {
             <div class="game-result-container">
                 @if (playerHand.Outcome?.Outcome != 0)
