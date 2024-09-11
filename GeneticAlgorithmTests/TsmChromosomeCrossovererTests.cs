@@ -11,7 +11,7 @@ namespace GeneticAlgorithmTests
         {
             // Arrange
             var recipientCities = new[] { 0, 1, 2, 3, 4, 5 };
-            var donorCities =     new[] { 5, 4, 3, 2, 1, 0 };
+            var donorCities = new[] { 5, 4, 3, 2, 1, 0 };
             var recipient = TsmChromosome.CreateTsmChromosome(recipientCities);
             var donor = TsmChromosome.CreateTsmChromosome(donorCities);
             var crossoverer = new TsmChromosomeCrossoverer();
@@ -30,7 +30,7 @@ namespace GeneticAlgorithmTests
             var mockRandomProvider = new Mock<IRandomProvider>();
             mockRandomProvider.Setup(r => r.Next(It.IsAny<int>())).Returns<int>((max) => 2);
             var recipientCities = new[] { 2, 4, 1, 3, 0, 5 };
-            var donorCities =     new[] { 5, 4, 3, 2, 1, 0 };
+            var donorCities = new[] { 5, 4, 3, 2, 1, 0 };
             var recipient = TsmChromosome.CreateTsmChromosome(recipientCities.ToArray());
             var donor = TsmChromosome.CreateTsmChromosome(donorCities.ToArray());
             var crossoverer = new TsmChromosomeCrossoverer(mockRandomProvider.Object);

@@ -1,0 +1,27 @@
+﻿@using Demo.Demos.BJ
+<div class="game-info-container">
+    <div class="info-item">
+        <span class="info-label">Balance:</span>
+        <span class="info-value">@($"{Game.PlayerBalance:C}")</span>
+    </div>
+    <div class="info-item">
+        <span class="info-label">Games:</span>
+        <span class="info-value">@Game.GamesPlayedInShoe</span>
+    </div>
+    <div class="info-item">
+        <span class="info-label">Game:</span>
+        <span class="badge @(Game.CurrentGameState == BlackjackGameBase.GameState.GameFinished)">
+            @(Game.GameFinished  ? "Game Finished" : "In Progress")
+        </span>
+    </div>
+    <div class="info-item">
+        <span class="info-label">Shoe:</span>
+        <span class="badge @(Game.Shoe.IsRedCardRaised ? "badge-raised" : "badge-inactive")">
+            @(Game.Shoe.IsRedCardRaised ? "Red Card Raised" : "Normal")
+        </span>
+    </div>
+</div>
+
+@code {
+    [Parameter] public required BlackjackGameBase Game { get; set; }
+}

@@ -1,0 +1,156 @@
+﻿@page "/bjgame"
+@using Demo.Components
+@using Demo.Demos.BJ
+@using Demo.Demos.TSM.GeneralGenetic
+<link rel="stylesheet" href="css/demos.css" />
+
+<PageTitle>Blackjack</PageTitle>
+
+<div class="page-container casino-style">
+    @if (GameInstance.CurrentGameState == BlackjackGameBase.GameState.GameNotStarted)
+    {
+            <div class="game-area start-game-label-container">
+                <h1 class="start-game-label">Let's start the game.</h1>
+            </div>
+    }
+    else
+    {
+            <div class="game-info-container">
+                <GameInfo Game="GameInstance" />
+            </div>
+
+            <div class="game-area">
+                <PlayingHand Hand="GameInstance.DealerHand" class="dealer-hand" />
+                <PlayerHands Game="GameInstance" />
+            </div>
+    }
+
+    <div class="controls-container">
+        <BlackJackGameControls Game="GameInstance" />
+    </div>
+</div>
+
+
+
+@code {
+    private BlackjackGameBase GameInstance { get; set; } = null!;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        var shoe = new Shoe(DeckFactory.CreateShuffledDecks(6, RandomProvider.Shared).Cards, redCardPosition: 100);
+        GameInstance = new BlackjackGameWithPlayer(shoe);
+        GameInstance.GameStateChanged += async (isDealerAction) =>
+        {
+            await HandleGameStateChanged(isDealerAction);
+        };
+    }
+
+    private async Task HandleGameStateChanged(bool isDealerAction)
+    {
+        StateHasChanged();
+        if (!isDealerAction) return;
+        await Task.Delay(250);
+        await Task.Yield();
+    }
+}
+
+<style>
+    :root {
+        --gap-size: 10px;
+    }
+
+    /* Overall casino-style page layout */
+    .page-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        height: calc(100vh - 56px - var(--gap-size));
+        padding: 20px;
+        background-color: #0d521d;
+    }
+
+    /* Reusable text-shadow class */
+    .text-shadow {
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Game info container at the top right corner */
+    .game-info-container {
+        position: absolute;
+        top: 30px;
+        right: 20px;
+    }
+
+    /* Game area in the center */
+    .game-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-grow: 1;
+    }
+
+    /* Controls container at the bottom */
+    .controls-container {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        padding: 10px;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    /* Styled header */
+    h3 {
+        font-family: 'Carter One', cursive;
+        color: #ffd700;
+        letter-spacing: 1px;
+    }
+
+    /* General text styling */
+    body {
+        font-family: 'Roboto', sans-serif;
+        color: white;
+    }
+
+    /* Add vertical space between dealer hand and player hands */
+    .dealer-hand {
+        margin-bottom: var(--gap-size);
+    }
+
+    /* Style for the start game label */
+    .start-game-label {
+        font-size: 2em;
+        color: #ffd700;
+    }
+
+    /* Background image for when the game hasn't started */
+    .background-image {
+        background-image: url('images/bj/bj-before-start.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+
+   .start-game-label-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    background-image: url('images/bj/bj-before-start.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.start-game-label {
+    position: relative;
+    top: 25%;
+    font-size: 3em;
+    color: #ffd700;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
+}
+</style>

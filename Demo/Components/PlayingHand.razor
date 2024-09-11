@@ -1,0 +1,54 @@
+﻿@using Demo.Demos.BJ
+<div class="hand-container @Class">
+    @if (Hand == null)
+    {
+        <div>No cards</div>
+    }
+    else
+    {
+        PlayerHand? playerHand = null;
+        @if (Hand is PlayerHand ph)
+        {
+            playerHand = ph;
+        }
+
+        <div class="hand-info">
+            <span class="total-score">Total: @(Hand.AllCardFacedUp ? $"{Hand.HandValue}" : "Secret")</span>
+            <span class="badge @(Hand.IsPair ? "badge-active" : "badge-inactive")">Pair</span>
+            <span class="badge @(Hand.IsSoft ? "badge-active" : "badge-inactive")">Soft</span>
+
+            <div class="bet-label">
+                @if (playerHand != null)
+                {
+                    <span class="total-score">Bet: @($"${playerHand.Bet}")</span>
+                }
+            </div>
+
+        </div>
+        <div class="hand-cards">
+            @foreach (var card in Hand.Cards)
+            {
+                <PlayingCard Card="@card"/>
+            }
+        </div>
+        @if (playerHand != null && playerHand.Outcome != null)
+        {
+            <div class="game-result-container">
+                @if (playerHand.Outcome?.Outcome != 0)
+                {
+                    <span class="badge @(playerHand.Outcome?.Outcome > 0 ? "game-result-badge-positive" : "game-result-badge-negative")">
+                        @($"${Math.Abs(playerHand.Outcome!.Outcome)}")
+                    </span>
+                }
+                <span class="badge @(playerHand.Outcome!.Outcome > 0 ? "game-result-text-positive" : "game-result-text-negative")">
+                    @playerHand.Outcome?.OutcomeDescription
+                </span>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public required Hand? Hand { get; set; }
+    [Parameter] public string? Class { get; set; }
+}

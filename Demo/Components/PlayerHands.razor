@@ -1,0 +1,41 @@
+﻿@using Demo.Demos.BJ
+
+<div class="player-hands-container @Class">
+    @if (Game.CurrentGameState == BlackjackGameBase.GameState.GameNotStarted)
+    {
+        <div>Deal cards</div>
+    }
+    else
+    {
+        @foreach (var hand in Game.PlayerHands)
+        {
+            <div class="hand-wrapper @(hand == Game.CurrentPlayerHand ? "current-hand" : "")">
+                <PlayingHand Hand="@hand"/>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public required BlackjackGameBase Game { get; set; }
+    [Parameter] public string? Class { get; set; }
+}
+
+<style>
+    .player-hands-container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px; /* Adjust the gap between hands as needed */
+    }
+
+    .hand-wrapper {
+        flex: 1 1 100px; /* Adjust the minimum width of each hand as needed */
+    }
+
+    .current-hand {
+        border: 2px solid #ffd700; /* Highlight color */
+        padding: 5px;
+        border-radius: 8px;
+    }
+</style>

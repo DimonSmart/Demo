@@ -1,0 +1,78 @@
+﻿.hand-container {
+    display: flex;
+    flex-direction: column;
+    padding: 5px;
+    background-color: #f3f3f3;
+    border-radius: 8px;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.hand-info {
+    font-size: 0.75em;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+}
+
+.bet-label {
+    margin-left: auto;
+}
+
+.total-score, .badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.total-score {
+    background-color: #007bff;
+    color: white;
+}
+
+.badge-active {
+    background-color: #007bff;
+}
+
+.badge-inactive {
+    background-color: lightgray;
+}
+
+.badge-busted {
+    background-color: #f44336;
+}
+
+.hand-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.game-result-container {
+    font-size: 0.75em;
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    justify-content: space-between;
+}
+
+.game-result-badge-positive {
+    background-color: #28a745;
+    color: white;
+}
+
+.game-result-badge-negative {
+    background-color: #dc3545;
+    color: white;
+}
+
+.game-result-text-positive {
+    background-color: #28a745;
+    color: white !important;
+}
+
+.game-result-text-negative {
+    background-color: #ffc107;
+    color: black !important;
+}

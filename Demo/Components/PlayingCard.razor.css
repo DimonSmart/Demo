@@ -1,0 +1,101 @@
+﻿/* Card container styling */
+.card {
+    width: 100px;
+    height: 150px;
+    border: 1px solid #000;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    perspective: 1000px;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* Card inner wrapper */
+.card-inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.25s ease;
+}
+
+.card.face-up .card-inner {
+    transform: rotateY(180deg);
+}
+
+
+.card.face-down .card-inner {
+    transform: rotateY(0deg);
+}
+
+
+.card-content,
+.card-back {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    backface-visibility: hidden;
+    border-radius: 10px;
+}
+
+
+.card-back {
+    background-size: cover;
+    background-position: center;
+    z-index: 1;
+}
+
+/* Front of the card (face-up) */
+.card-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+    font-family: 'DejaVu Sans', sans-serif;
+    padding: 5px;
+    background-size: cover;
+    background-position: center;
+    transform: rotateY(180deg); /* Rotate front side initially */
+    z-index: 2;
+}
+
+/* Ranks and suits */
+.card-rank {
+    font-size: 1.5em;
+    position: absolute;
+}
+
+    .card-rank.top-left {
+        top: 5px;
+        left: 5px;
+    }
+
+    .card-rank.bottom-right {
+        bottom: 5px;
+        right: 5px;
+        transform: rotate(180deg); /* Flip bottom rank */
+    }
+
+.card-suit {
+    font-size: 2em;
+    color: red;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Background images */
+.card.face-down .card-back {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350"><rect width="250" height="350" rx="15" ry="15" fill="%23ffffff" stroke="%23000000" stroke-width="2"/><rect width="240" height="340" x="5" y="5" rx="10" ry="10" fill="url(%23crisscross-pattern)" /><defs><pattern id="crisscross-pattern" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M0 0 L20 20 M20 0 L0 20" stroke="%23000000" stroke-width="1" /></pattern></defs></svg>');
+}
+
+.card.face-up .card-content {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350"><rect width="250" height="350" rx="15" ry="15" fill="%23ffffff" stroke="%23000000" stroke-width="2"/></svg>');
+}
