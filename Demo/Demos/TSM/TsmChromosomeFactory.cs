@@ -21,5 +21,10 @@ namespace Demo.Demos.TSM
 
             return TsmChromosome.CreateTsmChromosome(cities);
         }
+
+        public TsmChromosome CreateCopy(TsmChromosome tsmChromosome)
+        {
+            return TsmChromosome.CreateTsmChromosome(tsmChromosome.Cities);
+        }
     }
 }
