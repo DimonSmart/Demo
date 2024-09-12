@@ -50,14 +50,11 @@ namespace Demo.Demos.TSM
             var to = _ranges.CrossoverChromosomesStartIndex + _ranges.CrossoverChromosomesCount;
             for (var i = from; i < to; i++)
             {
-                var a = _chromosomes[Random.Shared.Next(_ranges.BestChromosomesStartIndex, _ranges.MutationChromosomesStartIndex)];
-                var b = _chromosomes[Random.Shared.Next(_ranges.BestChromosomesStartIndex, _ranges.MutationChromosomesStartIndex)];
-                if (a == b)
-                {
-                    continue;
-                }
+                var recipientIndex = Random.Shared.Next(_ranges.BestChromosomesStartIndex, _ranges.BestChromosomesEndIndex);
+                var b = _chromosomes[recipientIndex];
+                if (i == recipientIndex) continue;
 
-                _crossoverer.ApplyCrossover(_chromosomes[i].Chromosome, b.Chromosome);
+                _crossoverer.ApplyCrossover(_chromosomes[i].Chromosome, _chromosomes[recipientIndex].Chromosome);
             }
         }
 
@@ -78,10 +75,17 @@ namespace Demo.Demos.TSM
         private void Mutate()
         {
             if (_settings.MutationChromosomes == 0) return;
-            for (var i = _ranges.MutationChromosomesStartIndex; i < _ranges.MutationChromosomesStartIndex + _ranges.MutationChromosomesCount; i++)
+            for (var i = 0; i < _ranges.MutationChromosomesCount; i++)
             {
-                _mutator.Mutate(_chromosomes[i].Chromosome);
-                _chromosomes[i].Score = InitialScore;
+
+                var underMutationIndex = i + _ranges.MutationChromosomesStartIndex;
+                _chromosomes[underMutationIndex] = new ChromosomeWithScore<T>
+                {
+                    Chromosome = _factory.CreateCopy(_chromosomes[i].Chromosome),
+                    Score = InitialScore
+                };
+
+                _mutator.Mutate(_chromosomes[underMutationIndex].Chromosome);
             }
         }
 
