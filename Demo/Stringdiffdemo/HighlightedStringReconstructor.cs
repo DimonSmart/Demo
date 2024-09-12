@@ -1,6 +1,7 @@
+using DimonSmart.StringDiff;
 using System.Net;
 
-namespace DimonSmart.StringDiff
+namespace Demo.Stringdiffdemo
 {
     public class HighlightedStringReconstructor : StringReconstructor
     {
