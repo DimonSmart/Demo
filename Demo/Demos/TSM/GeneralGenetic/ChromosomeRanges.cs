@@ -13,6 +13,7 @@ namespace Demo.Demos.TSM.GeneralGenetic
 
             BestChromosomesStartIndex = 0;
             BestChromosomesCount = _settings.BestChromosomes;
+            BestChromosomesEndIndex = BestChromosomesStartIndex + BestChromosomesCount;
 
             CrossoverChromosomesStartIndex = BestChromosomesStartIndex + BestChromosomesCount;
             CrossoverChromosomesCount = _settings.CrossoverChromosomes;
@@ -26,6 +27,7 @@ namespace Demo.Demos.TSM.GeneralGenetic
 
         public int BestChromosomesStartIndex { get; private set; }
         public int BestChromosomesCount { get; private set; }
+        public int BestChromosomesEndIndex { get; private set; }
 
         public int CrossoverChromosomesStartIndex { get; private set; }
         public int CrossoverChromosomesCount { get; private set; }
