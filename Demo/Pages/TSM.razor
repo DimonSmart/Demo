@@ -2,61 +2,63 @@
 @using Demo.Components
 @using Demo.Demos.TSM
 @using Demo.Demos.TSM.GeneralGenetic
-<link rel="stylesheet" href="css/demos.css"/>
 
 <PageTitle>Travelling Salesman</PageTitle>
 
 <div class="page-container">
-
     <div class="parameters-container">
         <h3>Travelling Salesman</h3>
 
         <div class="settings-container">
-            <div class="margin-right">
-                <label>Population Size:</label>
-                <input type="number" @bind="PopulationSize" min="@PopulationSizeMin" max="@PopulationSizeMax" title="The number of individuals in the population. Higher values may increase computation time but can lead to better solutions."/>
+            <div class="setting-item">
+                <label>Population:</label>
+                <input type="number" @bind="PopulationSize" min="@PopulationSizeMin" max="@PopulationSizeMax" title="The number of individuals in the population."/>
             </div>
 
-            <div class="margin-right">
-                <label>Best Chromosomes:</label>
+            <div class="setting-item">
+                <label>Best:</label>
                 <input type="number" @bind="BestChromosomes" min="@BestChromosomesMin" max="@BestChromosomesMax" title="The number of top-performing chromosomes to retain for the next generation."/>
             </div>
 
-            <div class="margin-right">
-                <label>Crossover Chromosomes:</label>
+            <div class="setting-item">
+                <label>Crossover:</label>
                 <input type="number" @bind="CrossoverChromosomes" min="@CrossoverChromosomesMin" max="@CrossoverChromosomesMax" title="The number of chromosomes to be created through crossover operations."/>
             </div>
 
-            <div class="margin-right">
-                <label>Mutation Chromosomes:</label>
+            <div class="setting-item">
+                <label>Mutation:</label>
                 <input type="number" @bind="MutationChromosomes" min="@MutationChromosomesMin" max="@MutationChromosomesMax" title="The number of chromosomes to be mutated in each generation."/>
             </div>
 
-            <div class="margin-right">
-                <label>Number of Cities:</label>
+            <div class="setting-item">
+                <label>Cities:</label>
                 <input type="number" @bind="NumberOfCities" min="@NumberOfCitiesMin" max="@NumberOfCitiesMax" title="The number of cities in the traveling salesman problem."/>
             </div>
 
-        </div>
-        @if (Genetic == null)
-        {
-            <button @onclick="InitializeGenetic">Run Algorithm</button>
-        }
-        else
-        {
-            <div class="settings-container">
-                <div class="margin-right">
-                    <label>Auto step:</label>
-                    <input type="checkbox" class="margin-right" @bind="IsAuto" title="Automatically iterate through generations until the stopping condition is met."/>
+            @if (Genetic == null)
+            {
+                <div class="setting-item">
+                    <button @onclick="InitializeGenetic">Run Algorithm</button>
                 </div>
-                <div class="margin-right">
-                    <label>Max Iterations Without Change:</label>
+            }
+            else
+            {
+                <div class="setting-item">
+                    <label>Auto step:</label>
+                    <input type="checkbox" id="isAuto" @bind="IsAuto" title="Automatically iterate through generations until the stopping condition is met."/>
+                </div>
+                <div class="setting-item">
+                    <label>Iterations:</label>
                     <input type="number" @bind="MaxIterationsWithoutChange" min="@MaxIterationsWithoutChangeMin" max="@MaxIterationsWithoutChangeMax" title="The maximum number of iterations to run without any improvement in the best solution before stopping."/>
                 </div>
-            </div>
-            <button @onclick="IterationAsync">Make iteration</button>
-            <button @onclick="InitializeGenetic">Restart</button>
-        }
+                <div class="setting-item">
+                    <button @onclick="IterationAsync">Make iteration</button>
+                </div>
+                <div class="setting-item">
+                    <button @onclick="InitializeGenetic">Restart</button>
+                </div>
+            }
+        </div>
     </div>
     <TspMapComponent ProblemData="TsmProblemData"
                      BestSolution="Genetic?.GetBestResult()"
@@ -64,9 +66,9 @@
 </div>
 
 @code {
-    private int PopulationSizeValue { get; set; } = 100;
-    private const int PopulationSizeMin = 1;
-    private const int PopulationSizeMax = 1000;
+    private int PopulationSizeValue { get; set; } = 1000;
+    private const int PopulationSizeMin = 10;
+    private const int PopulationSizeMax = 10000;
 
     private int PopulationSize
     {
@@ -155,7 +157,6 @@
 
     private void InitializeGenetic()
     {
-        // TODO: apply UI parameters
         var geneticAlgorithmSettings = new GeneticAlgorithmSettings
         {
             Population = PopulationSize,
@@ -193,7 +194,8 @@
 
 <style>
     :root {
-        --gap-size: 10px;
+        --gap-size: 5px;
+        --height-size: 2em;
     }
 
     .page-container {
@@ -206,13 +208,47 @@
         margin-bottom: var(--gap-size);
     }
 
+    .settings-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--gap-size);
+    }
+
+    .setting-item {
+        display: flex;
+        align-items: baseline;
+        flex: 1 1 auto;
+    }
+
+        .setting-item label {
+            margin-right: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* Limit to 2 lines */
+            -webkit-box-orient: vertical;
+            white-space: normal;
+        }
+
+        .setting-item input[type="number"],
+        .setting-item input[type="text"] {
+            min-width: 5em;
+            max-width: 8em;
+            height: var(--height-size);
+        }
+
+        .setting-item button {
+            height: var(--height-size);
+            flex: 0 0 auto;
+        }
+
     .map-component {
         flex-grow: 1;
         min-height: 100px;
-        min-width: 100px;
     }
 
     canvas {
         border: 1px solid black;
     }
+
 </style>
