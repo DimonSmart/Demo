@@ -1,0 +1,133 @@
+﻿@using System.Globalization
+
+<div style="position: relative; width:@(Width)px; height:@(Height)px;">
+    <!-- SVG Histogram -->
+    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <!-- Draw grid with dotted lines -->
+        @for (int x = 0; x <= Width; x += GridStepX)
+        {
+            <line x1="@x" y1="0" x2="@x" y2="@Height" stroke="green" stroke-dasharray="1,4"
+                  stroke-linecap="round" stroke-width="1" />
+        }
+        @for (int y = 0; y <= Height; y += GridStepY)
+        {
+            <line x1="0" y1="@y" x2="@Width" y2="@y" stroke="green" stroke-dasharray="1,4"
+                  stroke-linecap="round" stroke-width="1" />
+        }
+
+        <!-- Display data -->
+        @if (Data != null && Data.Count > 0)
+        {
+            var sampledData = GetSampledData();
+            var maxDataPoints = sampledData.Count;
+            var xStep = (double)Width / (maxDataPoints - 1);
+            var firstValue = Data[0];
+            var maxY = firstValue;
+            var points = new List<string>();
+
+            for (int i = 0; i < sampledData.Count; i++)
+            {
+                var x = i * xStep;
+                var yValue = sampledData[i];
+                var y = Height - (yValue / maxY) * Height; // Invert Y-axis
+                points.Add($"{x},{y}");
+            }
+
+            var pointsAttr = string.Join(" ", points);
+
+            <polyline points="@pointsAttr" fill="none" stroke="black" stroke-width="2" />
+        }
+    </svg>
+
+    <!-- Labels -->
+    <div class="label" style="top: 10px; left: 10px;">
+        @FirstValueDisplay
+    </div>
+    <div class="label" style="top: 10px; right: 10px;">
+        @LastValueDisplay
+    </div>
+    <div class="label" style="top: 10px; left: 50%; transform: translateX(-50%);">
+        @PercentageDisplay
+    </div>
+</div>
+
+<style>
+    .label {
+        position: absolute;
+        background-color: white;
+        border: 1px solid black;
+        border-radius: 5px;
+        padding: 3px;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        font-size: smaller;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public int Width { get; set; } = 500;
+
+    [Parameter]
+    public int Height { get; set; } = 200;
+
+    [Parameter]
+    public int GridStepX { get; set; } = 50;
+
+    [Parameter]
+    public int GridStepY { get; set; } = 50;
+
+    [Parameter]
+    public List<double> Data { get; set; } = new List<double>();
+
+    private List<double> GetSampledData()
+    {
+        if (Data == null || Data.Count == 0)
+        {
+            return new List<double>();
+        }
+
+        int maxPoints = Width;
+        int totalPoints = Data.Count;
+        int step = totalPoints / maxPoints;
+
+        if (step == 0) step = 1;
+
+        var sampledData = new List<double>();
+
+        for (int i = 0; i < totalPoints; i += step)
+        {
+            sampledData.Add(Data[i]);
+        }
+
+        // Ensure the last data point is included
+        if (sampledData[sampledData.Count - 1] != Data[Data.Count - 1])
+        {
+            sampledData.Add(Data[Data.Count - 1]);
+        }
+
+        return sampledData;
+    }
+
+    private string FirstValueDisplay => Data != null && Data.Count > 0
+        ? Data[0].ToString(CultureInfo.InvariantCulture)
+        : string.Empty;
+
+    private string LastValueDisplay => Data != null && Data.Count > 0
+        ? Data[Data.Count - 1].ToString(CultureInfo.InvariantCulture)
+        : string.Empty;
+
+    private string PercentageDisplay
+    {
+        get
+        {
+            if (Data == null || Data.Count == 0)
+            {
+                return string.Empty;
+            }
+            var firstValue = Data[0];
+            var lastValue = Data[Data.Count - 1];
+            var percentage = (lastValue / firstValue) * 100;
+            return $"{percentage:F0}%";
+        }
+    }
+}

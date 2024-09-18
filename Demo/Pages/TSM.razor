@@ -60,12 +60,18 @@
             }
         </div>
     </div>
+    @if (Genetic != null)
+    {
+        <Histogram Width="200" Height="100" GridStepX="10" GridStepY="10" Data="@bestResultsHistory" />
+    }
+
     <TspMapComponent ProblemData="TsmProblemData"
                      BestSolution="Genetic?.GetBestResult()"
                      Width="100%" Height="100%" class="map-component"/>
 </div>
 
 @code {
+    private List<double> bestResultsHistory = new List<double>(10000);
     private int PopulationSizeValue { get; set; } = 1000;
     private const int PopulationSizeMin = 10;
     private const int PopulationSizeMax = 10000;
@@ -179,10 +185,16 @@
 
     private async Task IterationAsync()
     {
+        if (Genetic == null) throw new InvalidOperationException();
         Iteration = 0;
         do
         {
-            Genetic?.NextIteration();
+            Genetic.NextIteration();
+            if (bestResultsHistory.Count == 0 || Genetic.GetBestResult().Score < bestResultsHistory[^1])
+            {
+                bestResultsHistory.Add(Genetic.GetBestResult().Score);
+            }
+
             Iteration++;
             StateHasChanged();
             await Task.Yield();
