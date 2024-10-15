@@ -1,0 +1,295 @@
+﻿@page "/ImageWaterMark"
+@using Microsoft.AspNetCore.Components.Forms
+@using SkiaSharp
+@using SkiaSharp.Views.Blazor
+
+<link rel="stylesheet" href="css/demos.css" />
+<PageTitle>Image Watermark</PageTitle>
+
+<div class="watermark-dashboard-container">
+    <div class="watermark-dashboard-item watermark-dashboard-droparea">
+        <div class="dropzone @_dropClass rounded">
+            <InputFile id="fileInput" multiple="false" accept="image/*" title=""
+                       OnChange="HandleFileSelected"
+                       @ondragenter="HandleDragEnter"
+                       @ondragleave="HandleDragLeave" />
+            Drop an image here or click to upload.
+        </div>
+
+        <p class="info-text">
+            The uploaded image is stored only on your computer and is not uploaded anywhere else.
+        </p>
+
+        <!-- Image Preview -->
+        @if (_imageDataUrl != null)
+        {
+            <div class="image-preview">
+                <img src="@_imageDataUrl" alt="Image preview" />
+            </div>
+        }
+        else
+        {
+            <p>Please upload an image first.</p>
+        }
+    </div>
+    <div class="watermark-dashboard-item watermark-dashboard-textarea">
+        <div class="settings-container spaced-element">
+            <label for="captionText" class="margin-right">Caption Text:</label>
+            <textarea @bind="_captionText" style="width: 100%" id="captionText" rows="1" cols="25"></textarea>
+        </div>
+        <div class="settings-container spaced-element">
+            <label for="watermarkText" class="margin-right">Watermark Text:</label>
+            <textarea @bind="_watermarkText" style="width: 100%" id="watermarkText" rows="2" cols="25"></textarea>
+        </div>
+        <div class="settings-container spaced-element">
+            <label for="watermarkOpacity" class="margin-right">Watermark Opacity (%):</label>
+            <input type="number" @bind="_watermarkOpacity" id="watermarkOpacity" min="1" max="100" style="width: 6em;" />
+        </div>
+        <div class="settings-container spaced-element">
+            <label for="watermarkAngle" class="margin-right">Watermark Angle (°):</label>
+            <input type="number" @bind="_watermarkAngle" id="watermarkAngle" min="0" max="360" style="width: 6em;" />
+        </div>
+        <div class="settings-container spaced-element">
+            <label for="watermarkDensity" class="margin-right">Watermark Density (each ... line):</label>
+            <input type="number" @bind="_watermarkDensity" id="watermarkDensity" min="1" max="100" style="width: 6em;" />
+        </div>
+        <div class="settings-container spaced-element">
+            <label for="resizeOptions" class="margin-right">Resize Options:</label>
+            <select @bind="_selectedResizeOption" class="spaced-element" id="resizeOptions">
+                @foreach (var option in Enum.GetValues<ResizeOption>())
+                {
+                    <option value="@option">@option.ToString().TrimStart('_')</option>
+                }
+            </select>
+        </div>
+        <button @onclick="ApplyWatermark">Apply</button>
+    </div>
+</div>
+
+@code {
+    private string? _imageDataUrl;
+    private string _dropClass = "";
+    private byte[]? _imageBytes;
+    private byte[]? _initialImageBytes;
+    private string _watermarkText = "Confidential: For [Service Name] Use Only";
+    private string _captionText = DateTime.Now.ToString("dd MMMM yyyy");
+    private int _watermarkOpacity = 50;
+    private double _watermarkAngle = 30;
+    private int _watermarkDensity = 2;
+    private ResizeOption _selectedResizeOption = ResizeOption.Original;
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        _initialImageBytes = ms.ToArray();
+        _imageBytes = _initialImageBytes;
+        UpdateImagePreview();
+    }
+
+    private void UpdateImagePreview()
+    {
+        if (_imageBytes != null)
+        {
+            _imageDataUrl = $"data:image/png;base64,{Convert.ToBase64String(_imageBytes)}";
+        }
+    }
+
+    private void HandleDragEnter()
+    {
+        _dropClass = "dropzone-drag";
+    }
+
+    private void HandleDragLeave()
+    {
+        _dropClass = "";
+    }
+
+    private void ApplyWatermark()
+    {
+        if (_initialImageBytes == null) return;
+
+        using var inputStream = new MemoryStream(_initialImageBytes);
+        using var originalBitmap = SKBitmap.Decode(inputStream);
+        var (width, height) = GetResizedDimensions(originalBitmap.Width, originalBitmap.Height);
+
+        using var surface = SKSurface.Create(new SKImageInfo(width, height));
+        var canvas = surface.Canvas;
+
+        canvas.DrawBitmap(originalBitmap, new SKRect(0, 0, width, height));
+
+        var textSize = CalculateFontSize(_watermarkText, width);
+        using var watermarkPaint = new SKPaint
+            {
+                Color = SKColors.Red.WithAlpha((byte)(_watermarkOpacity * 255 / 100)),
+                TextSize = textSize,
+                IsAntialias = true,
+            };
+
+        canvas.RotateDegrees((float)_watermarkAngle);
+
+        // Draw the watermark text repeatedly across the image
+        var maxSide = Math.Max(width, height);
+        for (float y = -maxSide; y < maxSide * 2; y += (textSize * _watermarkDensity))
+            canvas.DrawText(_watermarkText, 0, y, watermarkPaint);
+
+        canvas.ResetMatrix();
+
+        // Draw the caption text at the bottom
+        using var captionPaint = new SKPaint
+            {
+                Color = SKColors.Black,
+                TextSize = Math.Min(height, width) / 10,
+                IsAntialias = true,
+            };
+
+        var captionX = 20;
+        var captionY = originalBitmap.Height - 50;
+        canvas.DrawText(_captionText, captionX, captionY, captionPaint);
+
+        // Get the image data and update the preview
+        using var image = surface.Snapshot();
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        _imageBytes = data.ToArray();
+        UpdateImagePreview();
+    }
+
+    float CalculateFontSize(string text, float imageWidth, float initialFontSize = 16)
+    {
+        using var paint = new SKPaint
+            {
+                IsAntialias = true,
+                Typeface = SKTypeface.FromFamilyName("Arial"),
+                TextSize = initialFontSize
+            };
+
+        var textWidth = paint.MeasureText(text);
+        var scaleFactor = imageWidth / textWidth;
+        var adjustedFontSize = initialFontSize * scaleFactor;
+
+        return adjustedFontSize;
+    }
+
+    private (int width, int height) GetResizedDimensions(int originalWidth, int originalHeight)
+    {
+        if (_selectedResizeOption == ResizeOption.Original)
+        {
+            return (originalWidth, originalHeight);
+        }
+
+        var dimensions = _selectedResizeOption.ToString().TrimStart('_').Split('x');
+        var targetWidth = int.Parse(dimensions[0]);
+        var targetHeight = int.Parse(dimensions[1]);
+
+        var aspectRatio = (float)originalWidth / originalHeight;
+        if (targetWidth / (float)targetHeight > aspectRatio)
+        {
+            targetWidth = (int)(targetHeight * aspectRatio);
+        }
+        else
+        {
+            targetHeight = (int)(targetWidth / aspectRatio);
+        }
+
+        return (targetWidth, targetHeight);
+    }
+
+    private enum ResizeOption
+    {
+        Original,
+        _1920x1080,
+        _1366x768,
+        _1280x720,
+        _1024x768,
+        _800x600
+    }
+
+
+}
+
+<style>
+    .watermark-dashboard-container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        gap: var(--gap-size);
+    }
+
+    .watermark-dashboard-item {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-sizing: border-box;
+        flex: 1;
+        margin: 1em;
+    }
+
+    .watermark-dashboard-droparea {
+        min-width: 150px;
+        max-width: 50%;
+    }
+
+    .watermark-dashboard-textarea {
+        min-width: 150px;
+        max-width: 50%;
+    }
+
+    .dropzone {
+        border: 3px dashed steelblue;
+        margin-bottom: 5px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
+        color: black;
+        font-size: 1.0rem;
+        cursor: pointer;
+        position: relative;
+    }
+
+        .dropzone:hover {
+            background-color: #f3f3f3;
+            color: #333;
+        }
+
+        .dropzone input[type=file] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+    .dropzone-drag {
+        background-color: palegreen;
+    }
+
+    .info-text {
+        margin-top: 5px;
+        font-style: italic;
+        color: grey;
+        font-size: 1.0rem;
+    }
+
+    .image-preview {
+        margin-top: 10px;
+        text-align: center;
+    }
+
+        .image-preview img {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.25);
+        }
+
+    .spaced-element {
+        margin-bottom: 1em;
+    }
+
+</style>
