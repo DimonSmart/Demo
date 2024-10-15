@@ -1,0 +1,68 @@
+﻿@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@using SkiaSharp
+
+<div id="@Id" class="color-picker-container">
+    @foreach (var color in AllowedColors)
+    {
+        var c = color;
+        <div class="color-square @(c == SelectedColor ? "selected" : string.Empty)"
+             @onclick="() => SelectColor(c)"
+             title="@c.ToString()"
+             style="background-color: @GetHexColor(c)">
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public IEnumerable<SKColor> AllowedColors { get; set; } = new List<SKColor> { SKColors.Red, SKColors.Green, SKColors.Blue };
+
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter]
+    [EditorRequired]
+    public SKColor SelectedColor { get; set; }
+
+    [Parameter]
+    public EventCallback<SKColor> SelectedColorChanged { get; set; }
+
+    private async Task SelectColor(SKColor color)
+    {
+        SelectedColor = color;
+        await SelectedColorChanged.InvokeAsync(color);
+        StateHasChanged();
+    }
+
+    private string GetHexColor(SKColor color)
+    {
+        return $"#{color.Red:X2}{color.Green:X2}{color.Blue:X2}{color.Alpha:X2}";
+    }
+}
+
+<style>
+    .color-picker-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .color-square {
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+        border: 1px solid #ccc;
+        transition: transform 0.2s ease;
+    }
+
+        .color-square:hover {
+            transform: scale(1.1);
+        }
+
+        .color-square.selected {
+            border: 3px solid #000;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            transform: scale(1.15);
+        }
+</style>
