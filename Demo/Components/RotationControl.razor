@@ -1,0 +1,42 @@
+﻿<div id="@Id" class="rotation-control">
+    <button @onclick="RotateLeft">&#x21BA; Left</button>
+    <span class="rotation-indicator">@Rotation°</span>
+    <button @onclick="RotateRight">Right &#x21BB;</button>
+</div>
+
+<style>
+    .rotation-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .rotation-indicator {
+        display: inline-block;
+        width: 3ch; /* Fixed width enough for 3 digits plus degree sign */
+        text-align: center;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string Id { get; set; }
+    [Parameter]
+    public int Rotation { get; set; } = 0;
+
+    [Parameter]
+    public EventCallback<int> RotationChanged { get; set; }
+
+    private void RotateLeft()
+    {
+        Rotation = (Rotation - 90 + 360) % 360;
+        RotationChanged.InvokeAsync(Rotation);
+    }
+
+    private void RotateRight()
+    {
+        Rotation = (Rotation + 90) % 360;
+        RotationChanged.InvokeAsync(Rotation);
+    }
+}
+
