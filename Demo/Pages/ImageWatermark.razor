@@ -1,4 +1,5 @@
 ﻿@page "/ImageWaterMark"
+@using Demo.Components
 @using Microsoft.AspNetCore.Components.Forms
 @using SkiaSharp
 @using SkiaSharp.Views.Blazor
@@ -33,6 +34,10 @@
         }
     </div>
     <div class="watermark-dashboard-item watermark-dashboard-textarea">
+        <div class="settings-container">
+            <label for="rotationId" class="margin-right">Rotate image:</label>
+            <RotationControl id="rotationId" Rotation="@_imageRotation" />
+        </div>
         <div class="settings-container">
             <label for="captionText" class="margin-right">Caption Text:</label>
             <textarea @bind="_captionText" style="width: 100%" id="captionText" rows="1" cols="25"></textarea>
@@ -77,6 +82,7 @@
     private double _watermarkAngle = 30;
     private int _watermarkDensity = 2;
     private ResizeOption _selectedResizeOption = ResizeOption.Original;
+    private int _imageRotation = 0;
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
