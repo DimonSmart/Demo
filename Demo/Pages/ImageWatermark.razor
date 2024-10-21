@@ -39,23 +39,25 @@
             <RotationControl id="rotationId" Rotation="@_imageRotation" RotationChanged="OnRotationChanged" />
         </div>
         <div class="settings-container">
-            <label for="captionText" class="margin-right">Caption Text:</label>
-            <textarea @bind="_captionText" style="width: 100%" id="captionText" rows="1" cols="25"></textarea>
-        </div>
-        <div class="settings-container">
             <label for="watermarkText" class="margin-right">Watermark Text:</label>
             <textarea @bind="_watermarkText" style="width: 100%" id="watermarkText" rows="2" cols="25"></textarea>
         </div>
+
         <div class="settings-container">
-            <label for="watermarkOpacity" class="margin-right">Watermark Opacity (%):</label>
+            <label for="watermarkTextColorPicker" class="margin-right">Color:</label>
+            <ColorPicker Id="watermarkTextColorPicker" @bind-SelectedColor="_watermarkTextColorPicker" AllowedColors="new SKColor[] { SKColors.Red, SKColors.Green, SKColors.Blue, SKColors.White, SKColors.Black }" />
+        </div>
+
+        <div class="settings-container">
+            <label for="watermarkOpacity" class="margin-right">Opacity (%):</label>
             <input type="number" @bind="_watermarkOpacity" id="watermarkOpacity" min="1" max="100" style="width: 6em;" />
         </div>
         <div class="settings-container">
-            <label for="watermarkAngle" class="margin-right">Watermark Angle (°):</label>
+            <label for="watermarkAngle" class="margin-right">Angle (°):</label>
             <input type="number" @bind="_watermarkAngle" id="watermarkAngle" min="0" max="360" style="width: 6em;" />
         </div>
         <div class="settings-container">
-            <label for="watermarkDensity" class="margin-right">Watermark Density (each ... line):</label>
+            <label for="watermarkDensity" class="margin-right">Density:</label>
             <input type="number" @bind="_watermarkDensity" id="watermarkDensity" min="1" max="100" style="width: 6em;" />
         </div>
         <div class="settings-container">
@@ -77,12 +79,13 @@
     private byte[]? _initialImageBytes;
     private byte[]? _rotatedImageBytes;
     private string _watermarkText = "Confidential: For [Service Name] Use Only";
-    private string _captionText = DateTime.Now.ToString("dd MMMM yyyy");
-    private int _watermarkOpacity = 50;
+    private int _watermarkOpacity = 25;
     private double _watermarkAngle = 30;
     private int _watermarkDensity = 2;
     private ResizeOption _selectedResizeOption = ResizeOption.Original;
     private int _imageRotation = 0;
+
+    private SKColor _watermarkTextColorPicker = SKColors.Red;
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
@@ -160,7 +163,7 @@
 
     private void ApplyWatermark()
     {
-        if (_initialImageBytes == null) return;
+        if (_rotatedImageBytes == null) return;
 
         using var inputStream = new MemoryStream(_rotatedImageBytes);
         using var originalBitmap = SKBitmap.Decode(inputStream);
@@ -174,7 +177,7 @@
         var textSize = CalculateFontSize(_watermarkText, width);
         using var watermarkPaint = new SKPaint
             {
-                Color = SKColors.Red.WithAlpha((byte)(_watermarkOpacity * 255 / 100)),
+                Color = _watermarkTextColorPicker.WithAlpha((byte)(_watermarkOpacity * 255 / 100)),
                 TextSize = textSize,
                 IsAntialias = true,
             };
@@ -187,18 +190,6 @@
             canvas.DrawText(_watermarkText, 0, y, watermarkPaint);
 
         canvas.ResetMatrix();
-
-        // Draw the caption text at the bottom
-        using var captionPaint = new SKPaint
-            {
-                Color = SKColors.Black,
-                TextSize = Math.Min(height, width) / 10,
-                IsAntialias = true,
-            };
-
-        var captionX = 20;
-        var captionY = originalBitmap.Height - 50;
-        canvas.DrawText(_captionText, captionX, captionY, captionPaint);
 
         // Get the image data and update the preview
         using var image = surface.Snapshot();
