@@ -17,20 +17,20 @@
             Drop an image here or click to upload.
         </div>
 
-        <p class="info-text">
-            The uploaded image is stored only on your computer and is not uploaded anywhere else.
-        </p>
-
         <!-- Image Preview -->
         @if (_imageDataUrl != null)
         {
             <div class="image-preview">
                 <img src="@_imageDataUrl" alt="Image preview" />
+                <p>Image Size: @(_waterMarkedImageBytes?.Length / 1024) KB</p>
             </div>
+
         }
         else
         {
-            <p>Please upload an image first.</p>
+            <p class="info-text">
+                The uploaded image is stored only on your computer and is not uploaded anywhere else.
+            </p>
         }
     </div>
     <div class="watermark-dashboard-item watermark-dashboard-textarea">
@@ -69,7 +69,13 @@
                 }
             </select>
         </div>
-        <button @onclick="ApplyWatermark">Apply</button>
+        <button class="btn" @onclick="ApplyWatermark">Apply</button>
+        @if (_imageDataUrl != null)
+        {
+            <a href="@_imageDataUrl" download="doc.png" class="btn">Download</a>
+        }
+
+
     </div>
 </div>
 
@@ -78,6 +84,7 @@
     private string _dropClass = "";
     private byte[]? _initialImageBytes;
     private byte[]? _rotatedImageBytes;
+    private byte[]? _waterMarkedImageBytes;
     private string _watermarkText = "Confidential: For [Service Name] Use Only";
     private int _watermarkOpacity = 25;
     private double _watermarkAngle = 30;
@@ -95,14 +102,15 @@
         await stream.CopyToAsync(ms);
         _initialImageBytes = ms.ToArray();
         _rotatedImageBytes = _initialImageBytes;
+        _waterMarkedImageBytes = _initialImageBytes;
         UpdateImagePreview();
     }
 
     private void UpdateImagePreview()
     {
-        if (_rotatedImageBytes != null)
+        if (_waterMarkedImageBytes != null)
         {
-            _imageDataUrl = $"data:image/png;base64,{Convert.ToBase64String(_rotatedImageBytes)}";
+            _imageDataUrl = $"data:image/png;base64,{Convert.ToBase64String(_waterMarkedImageBytes)}";
         }
     }
 
@@ -110,6 +118,7 @@
     {
         _imageRotation = newRotation;
         _rotatedImageBytes = RotateImage();
+        _waterMarkedImageBytes = _rotatedImageBytes;
         UpdateImagePreview();
     }
 
@@ -194,7 +203,7 @@
         // Get the image data and update the preview
         using var image = surface.Snapshot();
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        _rotatedImageBytes = data.ToArray();
+        _waterMarkedImageBytes = data.ToArray();
         UpdateImagePreview();
     }
 
@@ -326,5 +335,23 @@
             border: 2px solid #ccc;
             border-radius: 5px;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.25);
+        }
+
+    .btn {
+        display: inline-block;
+        margin: 1em;
+        width: fit-content;
+      
+        color: white;
+        background-color: #007bff;
+        border: none;
+        border-radius: 5px;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+        .btn:hover {
+            background-color: #0056b3;
         }
 </style>
