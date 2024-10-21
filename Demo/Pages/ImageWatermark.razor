@@ -2,8 +2,8 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using SkiaSharp
 @using SkiaSharp.Views.Blazor
-
 <link rel="stylesheet" href="css/demos.css" />
+
 <PageTitle>Image Watermark</PageTitle>
 
 <div class="watermark-dashboard-container">
@@ -33,27 +33,27 @@
         }
     </div>
     <div class="watermark-dashboard-item watermark-dashboard-textarea">
-        <div class="settings-container spaced-element">
+        <div class="settings-container">
             <label for="captionText" class="margin-right">Caption Text:</label>
             <textarea @bind="_captionText" style="width: 100%" id="captionText" rows="1" cols="25"></textarea>
         </div>
-        <div class="settings-container spaced-element">
+        <div class="settings-container">
             <label for="watermarkText" class="margin-right">Watermark Text:</label>
             <textarea @bind="_watermarkText" style="width: 100%" id="watermarkText" rows="2" cols="25"></textarea>
         </div>
-        <div class="settings-container spaced-element">
+        <div class="settings-container">
             <label for="watermarkOpacity" class="margin-right">Watermark Opacity (%):</label>
             <input type="number" @bind="_watermarkOpacity" id="watermarkOpacity" min="1" max="100" style="width: 6em;" />
         </div>
-        <div class="settings-container spaced-element">
+        <div class="settings-container">
             <label for="watermarkAngle" class="margin-right">Watermark Angle (°):</label>
             <input type="number" @bind="_watermarkAngle" id="watermarkAngle" min="0" max="360" style="width: 6em;" />
         </div>
-        <div class="settings-container spaced-element">
+        <div class="settings-container">
             <label for="watermarkDensity" class="margin-right">Watermark Density (each ... line):</label>
             <input type="number" @bind="_watermarkDensity" id="watermarkDensity" min="1" max="100" style="width: 6em;" />
         </div>
-        <div class="settings-container spaced-element">
+        <div class="settings-container">
             <label for="resizeOptions" class="margin-right">Resize Options:</label>
             <select @bind="_selectedResizeOption" class="spaced-element" id="resizeOptions">
                 @foreach (var option in Enum.GetValues<ResizeOption>())
@@ -286,10 +286,6 @@
             border: 2px solid #ccc;
             border-radius: 5px;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.25);
-        }
-
-    .spaced-element {
-        margin-bottom: 1em;
-    }
+        }   
 
 </style>
