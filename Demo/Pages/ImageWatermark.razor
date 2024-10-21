@@ -36,7 +36,7 @@
     <div class="watermark-dashboard-item watermark-dashboard-textarea">
         <div class="settings-container">
             <label for="rotationId" class="margin-right">Rotate image:</label>
-            <RotationControl id="rotationId" Rotation="@_imageRotation" />
+            <RotationControl id="rotationId" Rotation="@_imageRotation" RotationChanged="OnRotationChanged" />
         </div>
         <div class="settings-container">
             <label for="captionText" class="margin-right">Caption Text:</label>
@@ -74,8 +74,8 @@
 @code {
     private string? _imageDataUrl;
     private string _dropClass = "";
-    private byte[]? _imageBytes;
     private byte[]? _initialImageBytes;
+    private byte[]? _rotatedImageBytes;
     private string _watermarkText = "Confidential: For [Service Name] Use Only";
     private string _captionText = DateTime.Now.ToString("dd MMMM yyyy");
     private int _watermarkOpacity = 50;
@@ -91,17 +91,62 @@
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         _initialImageBytes = ms.ToArray();
-        _imageBytes = _initialImageBytes;
+        _rotatedImageBytes = _initialImageBytes;
         UpdateImagePreview();
     }
 
     private void UpdateImagePreview()
     {
-        if (_imageBytes != null)
+        if (_rotatedImageBytes != null)
         {
-            _imageDataUrl = $"data:image/png;base64,{Convert.ToBase64String(_imageBytes)}";
+            _imageDataUrl = $"data:image/png;base64,{Convert.ToBase64String(_rotatedImageBytes)}";
         }
     }
+
+    private void OnRotationChanged(int newRotation)
+    {
+        _imageRotation = newRotation;
+        _rotatedImageBytes = RotateImage();
+        UpdateImagePreview();
+    }
+
+    private byte[]? RotateImage()
+    {
+        if (_initialImageBytes == null) return null;
+
+        using var inputStream = new MemoryStream(_initialImageBytes);
+        using var originalBitmap = SKBitmap.Decode(inputStream);
+
+        SKBitmap rotatedBitmap;
+        int rotationDegrees = _imageRotation % 360;
+
+        if (rotationDegrees == 0)
+        {
+            rotatedBitmap = originalBitmap.Copy();
+        }
+        else
+        {
+            bool is90or270 = rotationDegrees == 90 || rotationDegrees == 270;
+            rotatedBitmap = new SKBitmap(
+                is90or270 ? originalBitmap.Height : originalBitmap.Width,
+                is90or270 ? originalBitmap.Width : originalBitmap.Height
+            );
+
+            using var canvas = new SKCanvas(rotatedBitmap);
+            canvas.Clear(SKColors.Transparent);
+
+            // Set up transformations for the given rotation
+            canvas.Translate(rotatedBitmap.Width / 2, rotatedBitmap.Height / 2);
+            canvas.RotateDegrees(rotationDegrees);
+            canvas.Translate(-originalBitmap.Width / 2, -originalBitmap.Height / 2);
+            canvas.DrawBitmap(originalBitmap, 0, 0);
+        }
+
+        using var image = SKImage.FromBitmap(rotatedBitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
+    }
+
 
     private void HandleDragEnter()
     {
@@ -117,7 +162,7 @@
     {
         if (_initialImageBytes == null) return;
 
-        using var inputStream = new MemoryStream(_initialImageBytes);
+        using var inputStream = new MemoryStream(_rotatedImageBytes);
         using var originalBitmap = SKBitmap.Decode(inputStream);
         var (width, height) = GetResizedDimensions(originalBitmap.Width, originalBitmap.Height);
 
@@ -158,7 +203,7 @@
         // Get the image data and update the preview
         using var image = surface.Snapshot();
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        _imageBytes = data.ToArray();
+        _rotatedImageBytes = data.ToArray();
         UpdateImagePreview();
     }
 
@@ -211,8 +256,6 @@
         _1024x768,
         _800x600
     }
-
-
 }
 
 <style>
@@ -292,6 +335,5 @@
             border: 2px solid #ccc;
             border-radius: 5px;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.25);
-        }   
-
+        }
 </style>
