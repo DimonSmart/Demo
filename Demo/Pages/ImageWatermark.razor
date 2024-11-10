@@ -33,35 +33,35 @@
             </p>
         }
     </div>
-    <div class="watermark-dashboard-item watermark-dashboard-textarea">
-        <div class="settings-container">
-            <label for="rotationId" class="margin-right">Rotate image:</label>
-            <RotationControl id="rotationId" Rotation="@_imageRotation" RotationChanged="OnRotationChanged" />
+    <div class="settings-container">
+        <div class="setting-container">
+            <label for="rotationId">Rotate image:</label>
+            <RotationControl Id="rotationId" ButtonClass="btn" Rotation="@_imageRotation" RotationChanged="OnRotationChanged" />
         </div>
-        <div class="settings-container">
-            <label for="watermarkText" class="margin-right">Watermark Text:</label>
+        <div class="setting-container">
+            <label for="watermarkText">Watermark Text:</label>
             <textarea @bind="_watermarkText" style="width: 100%" id="watermarkText" rows="2" cols="25"></textarea>
         </div>
 
-        <div class="settings-container">
-            <label for="watermarkTextColorPicker" class="margin-right">Color:</label>
+        <div class="setting-container">
+            <label for="watermarkTextColorPicker">Color:</label>
             <ColorPicker Id="watermarkTextColorPicker" @bind-SelectedColor="_watermarkTextColorPicker" AllowedColors="new SKColor[] { SKColors.Red, SKColors.Green, SKColors.Blue, SKColors.White, SKColors.Black }" />
         </div>
 
-        <div class="settings-container">
-            <label for="watermarkOpacity" class="margin-right">Opacity (%):</label>
+        <div class="setting-container">
+            <label for="watermarkOpacity">Opacity (%):</label>
             <input type="number" @bind="_watermarkOpacity" id="watermarkOpacity" min="1" max="100" style="width: 6em;" />
         </div>
-        <div class="settings-container">
-            <label for="watermarkAngle" class="margin-right">Angle (°):</label>
+        <div class="setting-container">
+            <label for="watermarkAngle">Angle (°):</label>
             <input type="number" @bind="_watermarkAngle" id="watermarkAngle" min="0" max="360" style="width: 6em;" />
         </div>
-        <div class="settings-container">
-            <label for="watermarkDensity" class="margin-right">Density:</label>
+        <div class="setting-container">
+            <label for="watermarkDensity">Density:</label>
             <input type="number" @bind="_watermarkDensity" id="watermarkDensity" min="1" max="100" style="width: 6em;" />
         </div>
-        <div class="settings-container">
-            <label for="resizeOptions" class="margin-right">Resize Options:</label>
+        <div class="setting-container">
+            <label for="resizeOptions">Resize Options:</label>
             <select @bind="_selectedResizeOption" class="spaced-element" id="resizeOptions">
                 @foreach (var option in Enum.GetValues<ResizeOption>())
                 {
@@ -261,32 +261,18 @@
 <style>
     .watermark-dashboard-container {
         display: flex;
-        flex-direction: row;
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         justify-content: space-between;
         gap: var(--gap-size);
     }
-
-    .watermark-dashboard-item {
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        box-sizing: border-box;
-        flex: 1;
-        margin: 1em;
-    }
+   
 
     .watermark-dashboard-droparea {
-        min-width: 150px;
-        max-width: 50%;
+       flex: 1 1 300px;
+       min-width: 300px;
     }
 
-    .watermark-dashboard-textarea {
-        min-width: 150px;
-        max-width: 50%;
-    }
-
-    .dropzone {
+     .dropzone {
         border: 3px dashed steelblue;
         margin-bottom: 5px;
         padding: 1rem;
@@ -339,7 +325,6 @@
 
     .btn {
         display: inline-block;
-        margin: 1em;
         width: fit-content;
       
         color: white;

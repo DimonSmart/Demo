@@ -1,7 +1,7 @@
 ﻿<div id="@Id" class="rotation-control">
-    <button @onclick="RotateLeft">&#x21BA; Left</button>
+    <button @onclick="RotateLeft" class="@ButtonClass">&#x21BA; Left</button>
     <span class="rotation-indicator">@Rotation°</span>
-    <button @onclick="RotateRight">Right &#x21BB;</button>
+    <button @onclick="RotateRight" class="@ButtonClass">Right &#x21BB;</button>
 </div>
 
 <style>
@@ -19,10 +19,12 @@
 </style>
 
 @code {
-    [Parameter]
+    [Parameter, EditorRequired]
     public string Id { get; set; }
     [Parameter]
     public int Rotation { get; set; } = 0;
+    [Parameter]
+    public string ButtonClass { get; set; } = string.Empty;
 
     [Parameter]
     public EventCallback<int> RotationChanged { get; set; }
@@ -39,4 +41,3 @@
         RotationChanged.InvokeAsync(Rotation);
     }
 }
-

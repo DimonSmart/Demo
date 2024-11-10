@@ -1,10 +1,38 @@
-﻿.settings-container {
+﻿
+.settings-container {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: var(--gap-size);
-    margin-bottom: 1em;
+    flex-flow: column;
+    overflow: hidden;
+    box-sizing: border-box;
+    flex: 1;
+    gap: 0.25Em;
 }
+
+.setting-container {
+    display: flex;
+    flex-wrap: wrap;
+    flex: 1 1 300px;
+    min-width: 300px;
+    justify-content: space-between;
+    gap: var(--gap-size);
+    align-items: stretch;
+}
+
+    .setting-container label {
+        flex: 0;
+        min-width: fit-content;
+        white-space: nowrap;
+        margin-right: 1rem;
+    }
+
+    .setting-container input,
+    .setting-container select,
+    .setting-container textarea,
+    .setting-container RotationControl,
+    .setting-container ColorPicker {
+        flex: 2;
+    }
 
 .slider-label {
     display: flex;
@@ -18,6 +46,4 @@
     text-align: right;
 }
 
-.margin-right {
-    margin-right: 20px;
-}
+
