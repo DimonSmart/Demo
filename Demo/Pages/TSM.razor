@@ -7,55 +7,55 @@
 <PageTitle>Travelling Salesman</PageTitle>
 
 <div class="page-container">
-    <div class="parameters-container">
+    <div class="settings-container">
         <h3>Travelling Salesman</h3>
 
         <div class="setting-container">
-            <div class="setting-item">
+            <div class="setting-container">
                 <label>Population:</label>
                 <input type="number" @bind="PopulationSize" min="@PopulationSizeMin" max="@PopulationSizeMax" title="The number of individuals in the population."/>
             </div>
 
-            <div class="setting-item">
+            <div class="setting-container">
                 <label>Best:</label>
                 <input type="number" @bind="BestChromosomes" min="@BestChromosomesMin" max="@BestChromosomesMax" title="The number of top-performing chromosomes to retain for the next generation."/>
             </div>
 
-            <div class="setting-item">
+            <div class="setting-container">
                 <label>Crossover:</label>
                 <input type="number" @bind="CrossoverChromosomes" min="@CrossoverChromosomesMin" max="@CrossoverChromosomesMax" title="The number of chromosomes to be created through crossover operations."/>
             </div>
 
-            <div class="setting-item">
+            <div class="setting-container">
                 <label>Mutation:</label>
                 <input type="number" @bind="MutationChromosomes" min="@MutationChromosomesMin" max="@MutationChromosomesMax" title="The number of chromosomes to be mutated in each generation."/>
             </div>
 
-            <div class="setting-item">
+            <div class="setting-container">
                 <label>Cities:</label>
                 <input type="number" @bind="NumberOfCities" min="@NumberOfCitiesMin" max="@NumberOfCitiesMax" title="The number of cities in the traveling salesman problem."/>
             </div>
 
             @if (Genetic == null)
             {
-                <div class="setting-item">
+                <div class="setting-container">
                     <button @onclick="InitializeGenetic">Run Algorithm</button>
                 </div>
             }
             else
             {
-                <div class="setting-item">
+                <div class="setting-container">
                     <label>Auto step:</label>
                     <input type="checkbox" id="isAuto" @bind="IsAuto" title="Automatically iterate through generations until the stopping condition is met."/>
                 </div>
-                <div class="setting-item">
+                <div class="setting-container">
                     <label>Iterations:</label>
                     <input type="number" @bind="MaxIterationsWithoutChange" min="@MaxIterationsWithoutChangeMin" max="@MaxIterationsWithoutChangeMax" title="The maximum number of iterations to run without any improvement in the best solution before stopping."/>
                 </div>
-                <div class="setting-item">
+                <div class="setting-container">
                     <button @onclick="IterationAsync">Make iteration</button>
                 </div>
-                <div class="setting-item">
+                <div class="setting-container">
                     <button @onclick="InitializeGenetic">Restart</button>
                 </div>
             }
@@ -199,47 +199,25 @@
         --height-size: 2em;
     }
 
+    .settings-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* адаптивное количество колонок */
+        gap: 0.5em;
+        align-items: center;
+        width: 100%;
+    }
+
     .page-container {
         display: flex;
         flex-direction: column;
+        gap: 1em;
         height: calc(100vh - 56px - var(--gap-size));
     }
 
-    .parameters-container {
-        margin-bottom: var(--gap-size);
-    }
-
-    .setting-item {
-        display: flex;
-        align-items: baseline;
-        flex: 1 1 auto;
-    }
-
-        .setting-item label {
-            margin-right: 5px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 2; /* Limit to 2 lines */
-            -webkit-box-orient: vertical;
-            white-space: normal;
-        }
-
-        .setting-item input[type="number"],
-        .setting-item input[type="text"] {
-            min-width: 5em;
-            max-width: 8em;
-            height: var(--height-size);
-        }
-
-        .setting-item button {
-            height: var(--height-size);
-            flex: 0 0 auto;
-        }
-
     .map-component {
         flex-grow: 1;
-        min-height: 100px;
+        min-height: 300px;
+        max-height: 70vh;
     }
 
     canvas {

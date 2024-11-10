@@ -1,22 +1,17 @@
 ﻿
 .settings-container {
-    display: flex;
-    flex-wrap: wrap;
-    flex-flow: column;
-    overflow: hidden;
-    box-sizing: border-box;
-    flex: 1;
-    gap: 0.25Em;
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 0.5em;
+   
 }
 
 .setting-container {
     display: flex;
-    flex-wrap: wrap;
-    flex: 1 1 300px;
-    min-width: 300px;
-    justify-content: space-between;
-    gap: var(--gap-size);
-    align-items: stretch;
+    align-items: center;
+    white-space: nowrap;
+    flex-basis: 120px;
+    gap: inherit;
 }
 
     .setting-container label {
@@ -24,6 +19,7 @@
         min-width: fit-content;
         white-space: nowrap;
         margin-right: 1rem;
+        justify-self: end;
     }
 
     .setting-container input,
@@ -31,7 +27,9 @@
     .setting-container textarea,
     .setting-container RotationControl,
     .setting-container ColorPicker {
-        flex: 2;
+        width: 100%; /* Set width to fill grid cell, instead of flexing */
+        max-width: 200px; /* Limit the width for compactness */
+        min-width: 80px; /* Sets a minimum width for input fields */
     }
 
 .slider-label {
