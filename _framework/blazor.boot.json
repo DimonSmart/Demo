@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "Demo",
   "resources": {
-    "hash": "sha256-tBMYIfPxESpLwckuV+5D7B8u9IgcgBaiu4n9veo+/0I=",
+    "hash": "sha256-C+xKIZppAJC+ysa8z0QMcZrOlzdrv3Y3D7PWC54LQr8=",
     "jsModuleNative": {
       "dotnet.native.8.0.11.2lncmhx7la.js": "sha256-lHr/QOxWSZkkY/tM0m7bjYknnOd29ROtxKezrYifdnA="
     },
@@ -9,7 +9,7 @@
       "dotnet.runtime.8.0.11.a3e1lehypq.js": "sha256-nam8JTYKjhMKOTg6+FlihYP6JpWPGe3jjM9fiUFWzhY="
     },
     "wasmNative": {
-      "dotnet.native.wasm": "sha256-jpPeB/Y0/mxicQAH4/ihwyEXemZOty3PU+CinaL1+ps="
+      "dotnet.native.wasm": "sha256-2hCB+aRQwcNu/gM3IlHPHbwT9y8XtbIffzFhP7TcF7E="
     },
     "icu": {
       "icudt_CJK.dat": "sha256-SZLtQnRc0JkwqHab0VUVP7T3uBPSeYzxzDnpxPpUnHk=",
@@ -19,7 +19,7 @@
     "assembly": {
       "Blazor.Canvas.wasm": "sha256-hT15ONTSWo3yHU0AZG6xrI6OHU1t8EWmdEcks24ARBM=",
       "BouncyCastle.Cryptography.wasm": "sha256-fNNkhoF1EtOBvzedd32l0piPt54gxoGNl/pAhfr3ze4=",
-      "Demo.wasm": "sha256-qTk744GeDP9t0CQAz4n2wLYWWDLJjYgoe2IhrxsnZeI=",
+      "Demo.wasm": "sha256-FCC5O+lu6Q6yl/1jK2LBq/mLjSqXqNPOdEq/SPS6KTw=",
       "DimonSmart.HashX.wasm": "sha256-GWbxNAvpJtxUlRfaqRw2Lgksx+9CYEfaRD5icDhoi8U=",
       "DimonSmart.MazeGenerator.wasm": "sha256-QaCdWK1IG/EG1kX6XUdpAuhdG124VTUja4zAAD5aZRs=",
       "DimonSmart.StringDiff.wasm": "sha256-ylnqITjBt/njOQb7blhQm53zDBM2Q6o6HHmLdTnbCFk=",
