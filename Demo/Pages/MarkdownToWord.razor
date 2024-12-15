@@ -1,0 +1,68 @@
+﻿@page "/markdown-to-word"
+@using System.IO
+@using System.Text
+
+<PageTitle>Markdown to Word</PageTitle>
+
+<h3>Markdown to Word Export</h3>
+
+<p>All processing is done entirely in your browser, and no data is transmitted to any server.</p>
+
+<div class="d-flex" style="height: calc(100vh - 200px);">
+    <div class="form-group" style="width: 50%; margin-right: 1rem; display: flex; flex-direction: column;">
+        <label for="markdownInput" class="form-label">Markdown Content</label>
+        <textarea id="markdownInput" class="form-control" @bind="MarkdownContent" style="flex-grow: 1; resize: none;"></textarea>
+    </div>
+
+    <div class="form-group" style="width: 50%; display: flex; flex-direction: column;">
+        <label class="form-label">Preview</label>
+        <div id="preview" class="form-control" style="flex-grow: 1; overflow-y: auto; white-space: pre-wrap;">
+            @((MarkupString)MarkdownPreview)
+        </div>
+    </div>
+</div>
+
+<button class="btn btn-primary mt-2" @onclick="GenerateWordFile">Generate Word File</button>
+@if (!string.IsNullOrEmpty(WordFileUrl))
+{
+    <a href="@WordFileUrl" download="ExportedDocument.doc" class="btn btn-success mt-2">Download Word File</a>
+}
+
+@code {
+    private string _markdownContent = string.Empty;
+    private string MarkdownContent
+    {
+        get => _markdownContent;
+        set
+        {
+            if (_markdownContent == value) return;
+            _markdownContent = value;
+            UpdatePreview();
+        }
+    }
+
+    private string MarkdownPreview { get; set; } = string.Empty;
+    private string? WordFileUrl;
+
+    private void UpdatePreview()
+    {
+        MarkdownPreview = Markdig.Markdown.ToHtml(MarkdownContent);
+    }
+
+    private void GenerateWordFile()
+    {
+        string htmlContent = Markdig.Markdown.ToHtml(MarkdownContent); // Convert Markdown to HTML
+
+        // Wrap HTML content into a basic Word file structure
+        string wordContent = $@"<html xmlns:o='urn:schemas-microsoft-com:office:office'
+                            xmlns:w='urn:schemas-microsoft-com:office:word'
+                            xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset='utf-8'></head>
+<body>{htmlContent}</body>
+</html>";
+
+        // Convert the content to base64 string
+        var byteArray = Encoding.UTF8.GetBytes(wordContent);
+        WordFileUrl = "data:application/msword;base64," + Convert.ToBase64String(byteArray);
+    }
+}
