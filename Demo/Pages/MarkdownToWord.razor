@@ -2,6 +2,7 @@
 @using System.IO
 @using System.Text
 @using Demo.Demos.MarkdownToWord
+@using Markdig
 
 @inject IJSRuntime JSRuntime
 
@@ -11,8 +12,9 @@
 
 <div>
     <div class="mb-2">
-        <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("**")'>B</button>
-        <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("_")'>I</button>
+        <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("**")' style="font-weight: bold;">B</button>
+        <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("_")' style="font-style: italic;">I</button>
+        <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("~~")' style="text-decoration: line-through;">S</button>
     </div>
 </div>
 
@@ -40,6 +42,14 @@
     private string MarkdownContent { get; set; } = string.Empty;
     private string MarkdownPreview { get; set; } = string.Empty;
     private string DownloadUrl { get; set; } = string.Empty;
+    private Markdig.MarkdownPipeline MarkdownPipeline { get; set; }
+    
+    protected override void OnInitialized()
+    {
+        MarkdownPipeline = new Markdig.MarkdownPipelineBuilder()
+            .UseEmphasisExtras()
+            .Build();
+    }
 
     private async Task ToggleMarkdownAction(string markdownSymbol)
     {
@@ -54,7 +64,8 @@
             await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
 
             // Update preview
-            MarkdownPreview = Markdig.Markdown.ToHtml(MarkdownContent);
+            MarkdownPreview = Markdig.Markdown.ToHtml(MarkdownContent, MarkdownPipeline);
+
             GenerateDownloadUrl();
         }
     }
