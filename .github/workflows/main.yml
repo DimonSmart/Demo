@@ -27,11 +27,8 @@ jobs:
     - name: Update base href in index.html
       run: sed -i 's|<base href="/" />|<base href="/Demo/" />|g' Demo/wwwroot/index.html
 
-    - name: Build
-      run: dotnet build Demo --configuration release --no-restore
-
     - name: Publish
-      run: dotnet publish Demo -c release -o release --no-build
+      run: dotnet publish Demo -c release -o release
 
     - name: copy index.html to 404.html
       run: cp ./release/wwwroot/index.html ./release/wwwroot/404.html
