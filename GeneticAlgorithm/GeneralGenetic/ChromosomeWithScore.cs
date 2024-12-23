@@ -1,4 +1,4 @@
-﻿namespace Demo.Demos.TSM.GeneralGenetic
+﻿namespace GeneticAlgorithm.GeneralGenetic
 {
     public class ChromosomeWithScore<T> where T : class, IChromosome<T>
     {

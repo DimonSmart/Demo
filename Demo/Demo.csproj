@@ -36,4 +36,8 @@
     <Folder Include="wwwroot\images\bj\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\GeneticAlgorithm\GeneticAlgorithm.csproj" />
+  </ItemGroup>
+
 </Project>

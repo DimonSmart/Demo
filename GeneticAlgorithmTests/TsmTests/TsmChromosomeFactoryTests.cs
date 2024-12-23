@@ -1,6 +1,6 @@
 ﻿using Demo.Demos.TSM;
 
-namespace GeneticAlgorithmTests
+namespace GeneticAlgorithmTests.TsmTests
 {
     public class TsmChromosomeFactoryTests
     {
@@ -23,7 +23,7 @@ namespace GeneticAlgorithmTests
         public void Create_ShouldReturnDifferentChromosomesWhenCalledMultipleTimes()
         {
             // Arrange
-            int citiesCount = 5;
+            var citiesCount = 5;
             var factory = new TsmChromosomeFactory(citiesCount);
 
             // Act

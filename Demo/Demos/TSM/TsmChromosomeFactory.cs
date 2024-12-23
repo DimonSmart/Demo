@@ -1,4 +1,4 @@
-﻿using Demo.Demos.TSM.GeneralGenetic;
+﻿using GeneticAlgorithm.GeneralGenetic;
 
 namespace Demo.Demos.TSM
 {

@@ -1,6 +1,6 @@
 using static Demo.Demos.TSM.TsmChromosome;
 
-namespace GeneticAlgorithmTests
+namespace GeneticAlgorithmTests.TsmTests
 {
     public class TsmChromosomeTests
     {

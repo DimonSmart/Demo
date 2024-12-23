@@ -1,48 +1,45 @@
-﻿using Demo.Demos.TSM;
-using Demo.Demos.TSM.GeneralGenetic;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using GeneticAlgorithm.GeneralGenetic;
 
-public class TsmChromosomeCrossoverer : IChromosomeCrossoverer<TsmChromosome>
+namespace Demo.Demos.TSM
 {
-    private readonly IRandomProvider _randomProvider;
-
-    public TsmChromosomeCrossoverer(IRandomProvider? randomProvider = null)
+    public class TsmChromosomeCrossoverer : IChromosomeCrossoverer<TsmChromosome>
     {
-        _randomProvider = randomProvider ?? RandomProvider.Shared;
-    }
+        private readonly IRandomProvider _randomProvider;
 
-    public void ApplyCrossover(TsmChromosome recipient, TsmChromosome donor)
-    {
-        var length = recipient.Cities.Length;
-        var crossingPosition = _randomProvider.Next(length - 1) + 1;
-
-        var recipientLeft = recipient.Cities.AsSpan(0, crossingPosition);
-        var donorRight = donor.Cities.AsSpan(crossingPosition);
-
-        var recipientLeftSet = new HashSet<int>(recipientLeft.ToArray());
-
-        var targetRightPart = new List<int>();
-
-        // Manual filtering: Add non-duplicate cities from donorRight to targetRightPart
-        foreach (var city in donorRight)
+        public TsmChromosomeCrossoverer(IRandomProvider? randomProvider = null)
         {
-            if (!recipientLeftSet.Contains(city))
-            {
-                targetRightPart.Add(city);
-            }
+            _randomProvider = randomProvider ?? RandomProvider.Shared;
         }
 
-        var combinedElements = new HashSet<int>(recipientLeftSet);
-        combinedElements.UnionWith(targetRightPart);
+        public void ApplyCrossover(TsmChromosome recipient, TsmChromosome donor)
+        {
+            var length = recipient.Cities.Length;
+            var crossingPosition = _randomProvider.Next(length - 1) + 1;
 
-        var allCitiesSet = new HashSet<int>(recipient.Cities);
-        allCitiesSet.ExceptWith(combinedElements);
+            var recipientLeft = recipient.Cities.AsSpan(0, crossingPosition);
+            var donorRight = donor.Cities.AsSpan(crossingPosition);
 
-        targetRightPart.AddRange(allCitiesSet);
+            var recipientLeftSet = new HashSet<int>(recipientLeft.ToArray());
 
-        var recipientRight = recipient.Cities.AsSpan(crossingPosition);
-        targetRightPart.CopyTo(recipientRight);
+            var targetRightPart = new List<int>();
+
+            // Manual filtering: Add non-duplicate cities from donorRight to targetRightPart
+            foreach (var city in donorRight)
+            {
+                if (!recipientLeftSet.Contains(city))
+                    targetRightPart.Add(city);
+            }
+
+            var combinedElements = new HashSet<int>(recipientLeftSet);
+            combinedElements.UnionWith(targetRightPart);
+
+            var allCitiesSet = new HashSet<int>(recipient.Cities);
+            allCitiesSet.ExceptWith(combinedElements);
+
+            targetRightPart.AddRange(allCitiesSet);
+
+            var recipientRight = recipient.Cities.AsSpan(crossingPosition);
+            targetRightPart.CopyTo(recipientRight);
+        }
     }
 }
