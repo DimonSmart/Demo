@@ -21,18 +21,18 @@ internal class Program
 
         }, new Argument<string>("rules.json"));
 
-     
+
         var continueCommand = new Command("continue-strategy-calculation", "Continue an existing strategy calculation")
         {
-          
+
             new Argument<string>("rules.json", "The name of the rules file")
         };
 
-      
+
         continueCommand.SetHandler((string rulesFile) =>
         {
             Console.WriteLine($"Command: continue-strategy-calculation | Rules file: {rulesFile}");
-            
+
         }, new Argument<string>("rules.json"));
 
 

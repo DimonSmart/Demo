@@ -1,6 +1,6 @@
-﻿using Moq;
-using Demo.Demos.TSM;
+﻿using Demo.Demos.TSM;
 using GeneticAlgorithm.GeneralGenetic;
+using Moq;
 
 namespace GeneticAlgorithmTests.TsmTests
 {

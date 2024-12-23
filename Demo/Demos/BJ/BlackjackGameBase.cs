@@ -233,7 +233,7 @@ public class BlackjackGameBase
 
         while (DealerHand.HandValue < 17)
         {
-            var card = Shoe.TakeNextCard() with{ IsFaceUp = false };
+            var card = Shoe.TakeNextCard() with { IsFaceUp = false };
             DealerHand.AddCard(card);
             await OnGameStateChangedAsync(true);
             DealerHand.FlipCard(card);
@@ -271,12 +271,12 @@ public class BlackjackGameBase
 
             if (hand.HandValue < DealerHand.HandValue)
             {
-                SetOutcomeAndLog(hand, -hand.Bet,"Dealer wins this hand.");
+                SetOutcomeAndLog(hand, -hand.Bet, "Dealer wins this hand.");
                 continue;
             }
 
             // Push case
-            SetOutcomeAndLog(hand, 0,"Push. No money lost or gained.");
+            SetOutcomeAndLog(hand, 0, "Push. No money lost or gained.");
             PlayerBalance += hand.Bet;
         }
 
