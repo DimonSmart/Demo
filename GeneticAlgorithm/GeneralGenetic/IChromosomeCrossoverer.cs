@@ -1,4 +1,4 @@
-﻿namespace Demo.Demos.TSM.GeneralGenetic
+﻿namespace GeneticAlgorithm.GeneralGenetic
 {
     public interface IChromosomeCrossoverer<T> where T : class, IChromosome<T>
     {

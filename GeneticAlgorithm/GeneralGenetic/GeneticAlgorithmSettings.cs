@@ -1,4 +1,4 @@
-﻿namespace Demo.Demos.TSM.GeneralGenetic
+﻿namespace GeneticAlgorithm.GeneralGenetic
 {
     public class GeneticAlgorithmSettings
     {
@@ -16,11 +16,9 @@
         /// </summary>
         public void Validate()
         {
-            int totalChromosomes = BestChromosomes + CrossoverChromosomes + MutationChromosomes;
+            var totalChromosomes = BestChromosomes + CrossoverChromosomes + MutationChromosomes;
             if (totalChromosomes > Population)
-            {
                 throw new InvalidOperationException("Total chromosome count exceeds the population size.");
-            }
         }
     }
 }

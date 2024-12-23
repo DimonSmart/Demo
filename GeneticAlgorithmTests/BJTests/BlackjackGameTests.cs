@@ -1,5 +1,5 @@
 ﻿using Demo.Demos.BJ;
-using Demo.Demos.TSM.GeneralGenetic;
+using GeneticAlgorithm.GeneralGenetic;
 
 namespace GeneticAlgorithmTests.BJTests
 {

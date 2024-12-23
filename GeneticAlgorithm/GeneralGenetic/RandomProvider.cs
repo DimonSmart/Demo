@@ -1,4 +1,4 @@
-﻿namespace Demo.Demos.TSM.GeneralGenetic
+﻿namespace GeneticAlgorithm.GeneralGenetic
 {
     public class RandomProvider(Random? random = null) : IRandomProvider
     {

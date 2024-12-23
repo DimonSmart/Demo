@@ -1,8 +1,8 @@
 ﻿using Moq;
 using Demo.Demos.TSM;
-using Demo.Demos.TSM.GeneralGenetic;
+using GeneticAlgorithm.GeneralGenetic;
 
-namespace GeneticAlgorithmTests
+namespace GeneticAlgorithmTests.TsmTests
 {
     public class TsmChromosomeCrossovererTests
     {

@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Demo.Demos.TSM.GeneralGenetic
+namespace GeneticAlgorithm.GeneralGenetic
 {
     public class ChromosomeRanges
     {
