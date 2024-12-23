@@ -1,15 +1,15 @@
 {
   "mainAssemblyName": "Demo",
   "resources": {
-    "hash": "sha256-a321NrZtzkkrRpppoAJVXuYD8G7SQEAg6T23Cr/W5iA=",
+    "hash": "sha256-odQC7aYTKwczbIVh6RNbu6oL1PX9x7zHca9i1rcMhdY=",
     "jsModuleNative": {
-      "dotnet.native.8.0.11.2lncmhx7la.js": "sha256-Oj29rnqVbL+9OBNz4shrr4xCTg6yUmdOdo6YUqPbBh8="
+      "dotnet.native.8.0.11.2lncmhx7la.js": "sha256-EGyAYOrS0eQE2XBwdlX51cx/22V336ex/B/KpLRhL8g="
     },
     "jsModuleRuntime": {
       "dotnet.runtime.8.0.11.a3e1lehypq.js": "sha256-nam8JTYKjhMKOTg6+FlihYP6JpWPGe3jjM9fiUFWzhY="
     },
     "wasmNative": {
-      "dotnet.native.wasm": "sha256-vWHS2v7WeCpSIN6U6ou28zqANOEZKWb5edBOJ3PGelo="
+      "dotnet.native.wasm": "sha256-rye+7cg0Ka6K+3jARC/sQ2agNZiTibCOtZx3ufkBrn0="
     },
     "icu": {
       "icudt_CJK.dat": "sha256-SZLtQnRc0JkwqHab0VUVP7T3uBPSeYzxzDnpxPpUnHk=",
@@ -19,11 +19,12 @@
     "assembly": {
       "Blazor.Canvas.wasm": "sha256-hT15ONTSWo3yHU0AZG6xrI6OHU1t8EWmdEcks24ARBM=",
       "BouncyCastle.Cryptography.wasm": "sha256-fNNkhoF1EtOBvzedd32l0piPt54gxoGNl/pAhfr3ze4=",
-      "Demo.wasm": "sha256-eDDwEt1RxG3SSOtrxjly/Hi8ymyCx7AVo7tc2PKYgOg=",
+      "Demo.wasm": "sha256-r09281jWiMtrmSCPY5dQ+6KC5+RPM1UwzMkzj6EXtJY=",
       "DimonSmart.HashX.wasm": "sha256-GWbxNAvpJtxUlRfaqRw2Lgksx+9CYEfaRD5icDhoi8U=",
       "DimonSmart.MazeGenerator.wasm": "sha256-QaCdWK1IG/EG1kX6XUdpAuhdG124VTUja4zAAD5aZRs=",
       "DimonSmart.StringDiff.wasm": "sha256-ylnqITjBt/njOQb7blhQm53zDBM2Q6o6HHmLdTnbCFk=",
       "Excubo.Generators.Blazor.Attributes.wasm": "sha256-bYSL38JhHoZDV3KavIzN8r95ODLoxhgZ8/fiTTaPQwI=",
+      "GeneticAlgorithm.wasm": "sha256-dfdBpJTonYeCoVudIAXJ7A1xdcZIZCmw+dvat+IE3mk=",
       "Markdig.wasm": "sha256-+0BicYzI+5ABC8GZr1ITU0gPsHD5CMBjOpk5297sa58=",
       "Microsoft.AspNetCore.Components.wasm": "sha256-mvWQ2WygIjqX0nRQW9LE4sIlpD56SkBWNyestzh2iQw=",
       "Microsoft.AspNetCore.Components.Web.wasm": "sha256-gbq/99hhyUCdV0BusFdPwDZpMOFjjj5uTJd/HEKpwAE=",
