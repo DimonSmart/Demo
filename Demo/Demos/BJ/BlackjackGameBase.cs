@@ -29,6 +29,9 @@ public class BlackjackGameBase
 
         _currentPlayerHandIndex = 0;
         CurrentGameState = GameState.GameNotStarted;
+
+        PlayerHands = new List<PlayerHand>();
+        DealerHand = new DealerHand(new List<Card>());
     }
 
     public List<PlayerHand> PlayerHands { get; private set; }

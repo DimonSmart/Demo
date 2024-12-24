@@ -7,7 +7,7 @@ namespace Demo.Pages;
 public abstract class MazeBaseComponent : ComponentBase
 {
     [Inject]
-    protected BrowserService? BrowserService { get; set; }
+    public required BrowserService BrowserService { get; set; }
 
     private int _xSize = 31;
     protected int XSize

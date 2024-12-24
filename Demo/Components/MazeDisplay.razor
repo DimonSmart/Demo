@@ -1,14 +1,22 @@
 ﻿@using DimonSmart.MazeGenerator
 
-<div style="display: grid; grid-template-columns: repeat(@Maze.Width, 20px); gap: 1px;">
-    @for (var y = 0; y < Maze.Height; y++)
-    {
-        for (var x = 0; x < Maze.Width; x++)
+@if (Maze != null)
+{
+    <div style="display: grid; grid-template-columns: repeat(@Maze.Width, 20px); gap: 1px;">
+        @for (var y = 0; y < Maze.Height; y++)
         {
-            <MazeCell X=x Y=y Cell=@Maze[x, y] OnCellClick="HandleCellClick" />
+            for (var x = 0; x < Maze.Width; x++)
+            {
+                <MazeCell X="x" Y="y" Cell="@Maze[x, y]" OnCellClick="HandleCellClick" />
+            }
         }
-    }
-</div>
+    </div>
+}
+else
+{
+    <p>Loading maze...</p>
+}
+
 
 @code {
     [Parameter]

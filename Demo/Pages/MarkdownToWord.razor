@@ -44,15 +44,11 @@
     private string MarkdownContent { get; set; } = string.Empty;
     private string MarkdownPreview { get; set; } = string.Empty;
     private string DownloadUrl { get; set; } = string.Empty;
-    private Markdig.MarkdownPipeline MarkdownPipeline { get; set; }
-    
-    protected override void OnInitialized()
-    {
-        MarkdownPipeline = new Markdig.MarkdownPipelineBuilder()
-            .UseEmphasisExtras()
-            .Build();
-    }
-
+    private Markdig.MarkdownPipeline MarkdownPipeline = 
+        new Markdig.MarkdownPipelineBuilder()
+        .UseEmphasisExtras()
+        .Build();
+   
     private async Task ToggleMarkdownAction(string markdownSymbol)
     {
         var selectionStart = await JSRuntime.InvokeAsync<int>("getSelectionStart", MarkdownTextArea);

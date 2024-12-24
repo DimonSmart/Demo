@@ -1,6 +1,4 @@
-﻿using GeneticAlgorithm.GeneralGenetic;
-
-namespace Demo.Demos.TSM
+﻿namespace GeneticAlgorithm.GeneralGenetic
 {
     public class Genetic<T> where T : class, IChromosome<T>
     {
