@@ -11,9 +11,9 @@
     <div class="watermark-dashboard-item watermark-dashboard-droparea">
         <div class="dropzone @_dropClass rounded">
             <InputFile id="fileInput" multiple="false" accept="image/*" title=""
-                       OnChange="HandleFileSelected"
-                       @ondragenter="HandleDragEnter"
-                       @ondragleave="HandleDragLeave" />
+            OnChange="HandleFileSelected"
+            @ondragenter="HandleDragEnter"
+            @ondragleave="HandleDragLeave" />
             Drop an image here or click to upload.
         </div>
 
@@ -184,23 +184,29 @@
         canvas.DrawBitmap(originalBitmap, new SKRect(0, 0, width, height));
 
         var textSize = CalculateFontSize(_watermarkText, width);
-        using var watermarkPaint = new SKPaint
+        using var typeface = SKTypeface.Default;
+        using var font = new SKFont(typeface, textSize)
+            {
+                Edging = SKFontEdging.Antialias
+            };
+
+        using var paint = new SKPaint
             {
                 Color = _watermarkTextColorPicker.WithAlpha((byte)(_watermarkOpacity * 255 / 100)),
-                TextSize = textSize,
                 IsAntialias = true,
             };
 
+        canvas.Save();
         canvas.RotateDegrees((float)_watermarkAngle);
 
-        // Draw the watermark text repeatedly across the image
         var maxSide = Math.Max(width, height);
         for (float y = -maxSide; y < maxSide * 2; y += (textSize * _watermarkDensity))
-            canvas.DrawText(_watermarkText, 0, y, watermarkPaint);
+        {
+            canvas.DrawText(_watermarkText, new SKPoint(0, y), font, paint);
+        }
 
-        canvas.ResetMatrix();
+        canvas.Restore();
 
-        // Get the image data and update the preview
         using var image = surface.Snapshot();
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         _waterMarkedImageBytes = data.ToArray();
@@ -209,14 +215,10 @@
 
     float CalculateFontSize(string text, float imageWidth, float initialFontSize = 16)
     {
-        using var paint = new SKPaint
-            {
-                IsAntialias = true,
-                Typeface = SKTypeface.FromFamilyName("Arial"),
-                TextSize = initialFontSize
-            };
+        using var typeface = SKTypeface.FromFamilyName("Arial");
+        using var font = new SKFont(typeface, initialFontSize);
 
-        var textWidth = paint.MeasureText(text);
+        var textWidth = font.MeasureText(text);
         var scaleFactor = imageWidth / textWidth;
         var adjustedFontSize = initialFontSize * scaleFactor;
 
