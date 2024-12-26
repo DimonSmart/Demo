@@ -2,7 +2,7 @@
 
 namespace Demo.Demos.BJ
 {
-    public sealed class BJChromosome : IChromosome<BJChromosome>
+    public sealed class BlackjackChromosome : IChromosome<BlackjackChromosome>
     {
         
     }
