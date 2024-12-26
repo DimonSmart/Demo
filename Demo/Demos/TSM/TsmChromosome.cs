@@ -2,7 +2,7 @@
 
 namespace Demo.Demos.TSM
 {
-    public sealed class TsmChromosome : IChromosome<TsmChromosome>, IComparable<TsmChromosome>
+    public sealed class TsmChromosome : IChromosome<TsmChromosome>
     {
         public int[] Cities { get; private set; }
 
