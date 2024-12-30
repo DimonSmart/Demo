@@ -1,7 +1,9 @@
 ﻿@page "/tsm"
 @using Demo.Components
 @using Demo.Demos.TSM
+@using Demo.Services
 @using GeneticAlgorithm.GeneralGenetic
+@inject PageTitleService PageTitleService
 
 <link rel="stylesheet" href="css/demos.css" />
 
@@ -9,8 +11,6 @@
 
 <div class="page-container">
     <div class="parameters-container">
-        <h3>Travelling Salesman</h3>
-
         <div class="settings-container">
             <div class="setting-item">
                 <label>Population:</label>
@@ -68,6 +68,12 @@
 </div>
 
 @code {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        PageTitleService.SetTitle("Travelling Salesman");
+    }
+
     private int PopulationSizeValue { get; set; } = 1000;
     private const int PopulationSizeMin = 10;
     private const int PopulationSizeMax = 10000;

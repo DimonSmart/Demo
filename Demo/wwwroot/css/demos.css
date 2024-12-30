@@ -1,4 +1,9 @@
-﻿.settings-container {
+﻿:root {
+    --gap-size: 20px;
+    --global-margin-top: 20px;
+}
+
+.settings-container {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -20,4 +25,8 @@
 
 .margin-right {
     margin-right: 20px;
+}
+
+.page-container {
+    margin-top: var(--global-margin-top);
 }

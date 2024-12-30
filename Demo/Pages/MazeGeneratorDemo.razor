@@ -4,6 +4,7 @@
 @using Demo.Demos.TSM
 @using Demo.Services
 @using DimonSmart.MazeGenerator
+@inject PageTitleService PageTitleService
 
 @inherits MazeBaseComponent
 
@@ -12,56 +13,61 @@
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze Generator Demo</PageTitle>
 
-<h1>Maze Generator</h1>
+<div class="page-container">
+    <section id="mazegeneratordemoid">
+        <div style="margin-bottom: 20px;">
+            <div class="settings-container">
+                <label class="margin-right">
+                    Width:
+                    <input type="number" min="1" max="101" step="2" @bind="XSize" />
+                </label>
+                <label class="margin-right">
+                    Height:
+                    <input type="number" min="1" max="101" step="2" @bind="YSize" />
+                </label>
+            </div>
+            <div class="settings-container">
+                <label class="slider-label">
+                    Emptiness: <span class="value-display">@Emptiness%</span>
+                    <input type="range" min="0" max="100" @bind-value="Emptiness" @bind-value:event="oninput" />
+                </label>
+            </div>
 
-<section id="mazegeneratordemoid">
-    <div style="margin-bottom: 20px;">
-        <div class="settings-container">
-            <label class="margin-right">
-                Width:
-                <input type="number" min="1" max="101" step="2" @bind="XSize" />
-            </label>
-            <label class="margin-right">
-                Height:
-                <input type="number" min="1" max="101" step="2" @bind="YSize" />
-            </label>
-        </div>
-        <div class="settings-container">
-            <label class="slider-label">
-                Emptiness: <span class="value-display">@Emptiness%</span>
-                <input type="range" min="0" max="100" @bind-value="Emptiness" @bind-value:event="oninput" />
-            </label>
+            <div class="settings-container">
+                <label>
+                    Wall Shortness: <span class="value-display">@WallShortness%</span>
+                    <input type="range" min="0" max="100" @bind-value="WallShortness" @bind-value:event="oninput" />
+                </label>
+            </div>
+
+            <div class="settings-container">
+                <label>
+                    Slow Visualization
+                    <input type="checkbox" @bind="IsSlowVisualization" />
+                </label>
+            </div>
+
+            <div class="settings-container">
+                <button @onclick="GenerateMazeAsync">Generate Maze</button>
+            </div>
         </div>
 
-        <div class="settings-container">
-            <label>
-                Wall Shortness: <span class="value-display">@WallShortness%</span>
-                <input type="range" min="0" max="100" @bind-value="WallShortness" @bind-value:event="oninput" />
-            </label>
-        </div>
+        @if (_maze != null)
+        {
+            <MazeDisplay Maze="_maze" />
+        }
 
-        <div class="settings-container">
-            <label>
-                Slow Visualization
-                <input type="checkbox" @bind="IsSlowVisualization" />
-            </label>
-        </div>
+    </section>
+</div>
+@code {
+    private bool _generationInProgress = false;
 
-        <div class="settings-container">
-            <button @onclick="GenerateMazeAsync">Generate Maze</button>
-        </div>
-    </div>
-
-    @if (_maze != null)
+    protected override void OnInitialized()
     {
-        <MazeDisplay Maze="_maze" />
+        base.OnInitialized();
+        PageTitleService.SetTitle("Maze Generator");
     }
 
-</section>
-
-@code {
-
-    private bool _generationInProgress = false;
     protected override async Task GenerateMazeAsync()
     {
         if (_generationInProgress) return;
