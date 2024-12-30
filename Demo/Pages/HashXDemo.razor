@@ -3,139 +3,146 @@
 @using Demo.Demos.HashX
 @using DimonSmart.Hash
 @using DimonSmart.Hash.Interfaces
+@using Demo.Services
+@using GeneticAlgorithm.GeneralGenetic
+@inject PageTitleService PageTitleService
 
-<link rel="stylesheet" href="css/demos.css"/>
-<PageTitle>HashX Demo coming soon</PageTitle>
+<link rel="stylesheet" href="css/demos.css" />
+<PageTitle>HashX Research</PageTitle>
+<div class="page-container">
+    <div class="hash-dashboard-container">
+        <div class="hash-dashboard-item hash-dashboard-droparea">
+            <div class="dropzone @_dropClass rounded">
+                <InputFile id="fileInput" multiple title=""
+                           OnChange="HandleFileSelected"
+                           @ondragenter="HandleDragEnter"
+                           @ondragleave="HandleDragLeave" />
+                Drop files here or click to upload.
+            </div>
 
-<h3>HashX Research demo</h3>
+            <p class="info-text">
+                The uploaded file is stored only on your computer and has not been uploaded anywhere else.
+            </p>
 
-<div class="hash-dashboard-container">
-    <div class="hash-dashboard-item hash-dashboard-droparea">
-        <div class="dropzone @_dropClass rounded">
-            <InputFile id="fileInput" multiple title=""
-                       OnChange="HandleFileSelected"
-                       @ondragenter="HandleDragEnter"
-                       @ondragleave="HandleDragLeave"/>
-            Drop files here or click to upload.
+            <!-- File Information Display -->
+            @if (_fileData != null)
+            {
+                <table class="file-info-table">
+                    <tr>
+                        <td>
+                            <strong>File Name:</strong>
+                        </td>
+                        <td>@_fileData.FileName</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>File Size:</strong>
+                        </td>
+                        <td>@_fileData.Data.Length bytes</td>
+                    </tr>
+                </table>
+            }
+            else
+            {
+                <p>Please upload the file first.</p>
+            }
         </div>
+        <div class="hash-dashboard-item hash-dashboard-item">
 
-        <p class="info-text">
-            The uploaded file is stored only on your computer and has not been uploaded anywhere else.
-        </p>
+            <div class="hash-options">
+                <!-- Md5 Component -->
+                <label>
+                    <input type="checkbox" @bind="_md5Selected" />
+                    <strong>Md5:</strong>
+                    <span>Generates an MD5 hash from the input buffer.</span>
+                </label>
 
-        <!-- File Information Display -->
-        @if (_fileData != null)
+                <!-- Sha1 Component -->
+                <label>
+                    <input type="checkbox" @bind="_sha1Selected" />
+                    <strong>Sha1:</strong>
+                    <span>Generates a SHA1 hash from the input buffer.</span>
+                </label>
+
+                <!-- Xor Component -->
+                <label>
+                    <input type="checkbox" @bind="_xorSelected" />
+                    <strong>Xor:</strong>
+                    <input type="number" min="@XorMinValue" max="@XorMaxValue" @bind="XorHashSize" />
+                    <span>Xor incoming byte and shift next xor position by one bit, wrap it at the end of buffer.</span>
+                </label>
+
+                <!-- Zero Component -->
+                <label>
+                    <input type="checkbox" @bind="_zeroSelected" />
+                    <strong>Zero:</strong>
+                    <span>Hash always equals buffer. Used as a baseline for collision calculation.</span>
+                </label>
+
+                <!-- Buffer length -->
+                <label>
+                    <strong>BufferLength:</strong>
+                    <input type="number" min="@BufferMinValue" max="@BufferMaxValue" @bind="BufferValue" />
+                    <span>Length of the block to be hashed.</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Indicator -->
+    <p>
+        <strong>Progress:</strong> @_progressText
+    </p>
+
+    <button @onclick="StartCalculation" disabled="@(_isCalculationRunning || _fileData == null)">Start</button>
+
+    <button @onclick="CancelCalculation" disabled="@(_isCalculationRunning == false)">Cancel</button>
+
+    <div class="hash-result-container">
+
+        @if (_md5CalculationResult != null)
         {
-            <table class="file-info-table">
-                <tr>
-                    <td>
-                        <strong>File Name:</strong>
-                    </td>
-                    <td>@_fileData.FileName</td>
-                </tr>
-                <tr>
-                    <td>
-                        <strong>File Size:</strong>
-                    </td>
-                    <td>@_fileData.Data.Length bytes</td>
-                </tr>
-            </table>
+            <div class="hash-result-card">
+                <UniqueCalculationResultDisplay Result="_md5CalculationResult" />
+            </div>
         }
-        else
+
+        @if (_sha1CalculationResult != null)
         {
-            <p>Please upload the file first.</p>
+            <div class="hash-result-card">
+                <UniqueCalculationResultDisplay Result="_sha1CalculationResult" />
+            </div>
+        }
+
+        @if (_xorCalculationResult != null)
+        {
+            <div class="hash-result-card">
+                <UniqueCalculationResultDisplay Result="_xorCalculationResult" />
+            </div>
+        }
+
+        @if (_zeroCalculationResult != null)
+        {
+            <div class="hash-result-card">
+                <UniqueCalculationResultDisplay Result="_zeroCalculationResult" />
+            </div>
         }
     </div>
-    <div class="hash-dashboard-item hash-dashboard-item">
 
-        <div class="hash-options">
-            <!-- Md5 Component -->
-            <label>
-                <input type="checkbox" @bind="_md5Selected"/>
-                <strong>Md5:</strong>
-                <span>Generates an MD5 hash from the input buffer.</span>
-            </label>
+    <!-- Hash Calculation Result -->
+    <label>
+        <strong>Result:</strong>
+    </label>
 
-            <!-- Sha1 Component -->
-            <label>
-                <input type="checkbox" @bind="_sha1Selected"/>
-                <strong>Sha1:</strong>
-                <span>Generates a SHA1 hash from the input buffer.</span>
-            </label>
-
-            <!-- Xor Component -->
-            <label>
-                <input type="checkbox" @bind="_xorSelected"/>
-                <strong>Xor:</strong>
-                <input type="number" min="@XorMinValue" max="@XorMaxValue" @bind="XorHashSize"/>
-                <span>Xor incoming byte and shift next xor position by one bit, wrap it at the end of buffer.</span>
-            </label>
-
-            <!-- Zero Component -->
-            <label>
-                <input type="checkbox" @bind="_zeroSelected"/>
-                <strong>Zero:</strong>
-                <span>Hash always equals buffer. Used as a baseline for collision calculation.</span>
-            </label>
-
-            <!-- Buffer length -->
-            <label>
-                <strong>BufferLength:</strong>
-                <input type="number" min="@BufferMinValue" max="@BufferMaxValue" @bind="BufferValue"/>
-                <span>Length of the block to be hashed.</span>
-            </label>
-        </div>
-    </div>
+    <LogViewer @ref="_logViewer" />
 </div>
-
-<!-- Progress Indicator -->
-<p>
-    <strong>Progress:</strong> @_progressText
-</p>
-
-<button @onclick="StartCalculation" disabled="@(_isCalculationRunning || _fileData == null)">Start</button>
-
-<button @onclick="CancelCalculation" disabled="@(_isCalculationRunning == false)">Cancel</button>
-
-<div class="hash-result-container">
-
-    @if (_md5CalculationResult != null)
-    {
-        <div class="hash-result-card">
-            <UniqueCalculationResultDisplay Result="_md5CalculationResult"/>
-        </div>
-    }
-
-    @if (_sha1CalculationResult != null)
-    {
-        <div class="hash-result-card">
-            <UniqueCalculationResultDisplay Result="_sha1CalculationResult"/>
-        </div>
-    }
-
-    @if (_xorCalculationResult != null)
-    {
-        <div class="hash-result-card">
-            <UniqueCalculationResultDisplay Result="_xorCalculationResult"/>
-        </div>
-    }
-
-    @if (_zeroCalculationResult != null)
-    {
-        <div class="hash-result-card">
-            <UniqueCalculationResultDisplay Result="_zeroCalculationResult"/>
-        </div>
-    }
-</div>
-
-<!-- Hash Calculation Result -->
-<label>
-    <strong>Result:</strong>
-</label>
-
-<LogViewer @ref="_logViewer"/>
-
 @code {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        PageTitleService.SetTitle("HashX Research demo");
+    }
+
     private LogViewer _logViewer = null!;
 
     private FileData? _fileData;

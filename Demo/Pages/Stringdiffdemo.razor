@@ -1,44 +1,51 @@
 ﻿@page "/stringdiffdemo"
+@using Demo.Services
 @using Demo.Stringdiffdemo
 @using DimonSmart.StringDiff
+@inject PageTitleService PageTitleService
+<link rel="stylesheet" href="css/demos.css" />
 
-<PageTitle>StringDiff Demo</PageTitle>
+<PageTitle>StringDiff</PageTitle>
+<div class="page-container">
+    <section>
+        <div style="display: flex; gap: 20px;">
+            <textarea @bind="TextLeft" @oninput="OnTextLeftInput" placeholder="Enter text here..." rows="8" style="width: 50%; resize: vertical;"></textarea>
+            <textarea @bind="TextRight" @oninput="OnTextRightInput" placeholder="Enter text here..." rows="8" style="width: 50%; resize: vertical;"></textarea>
+        </div>
 
-<h1>StringDiff Demo</h1>
+        <div style="margin-top: 20px;">
+            <h2>Options</h2>
+            <label>
+                <input type="checkbox" @bind="BreakOnWords" />
+                Try break on words
+            </label>
+            <br />
+            <label>
+                Minimum diff length: @MinDiffLength
+                <input type="range" min="1" max="10" @bind="MinDiffLength" />
+            </label>
+        </div>
 
-<section>
-    <div style="display: flex; gap: 20px;">
-        <textarea @bind="TextLeft" @oninput="OnTextLeftInput" placeholder="Enter text here..." rows="8" style="width: 50%; resize: vertical;"></textarea>
-        <textarea @bind="TextRight" @oninput="OnTextRightInput" placeholder="Enter text here..." rows="8" style="width: 50%; resize: vertical;"></textarea>
-    </div>
+        <div style="margin-top: 20px;">
+            <button @onclick="SetExample1">1: Book Quote</button>
+            <button @onclick="SetExample2">2: Poetry</button>
+            <button @onclick="SetExample3">3: Numbers</button>
+            <button @onclick="SetExample4">4: Program Code</button>
+            <button @onclick="SetExample5">5: Cooking Recipe</button>
+        </div>
 
-    <div style="margin-top: 20px;">
-        <h2>Options</h2>
-        <label>
-            <input type="checkbox" @bind="BreakOnWords" />
-            Try break on words
-        </label>
-        <br />
-        <label>
-            Minimum diff length: @MinDiffLength
-            <input type="range" min="1" max="10" @bind="MinDiffLength" />
-        </label>
-    </div>
-
-    <div style="margin-top: 20px;">
-        <button @onclick="SetExample1">1: Book Quote</button>
-        <button @onclick="SetExample2">2: Poetry</button>
-        <button @onclick="SetExample3">3: Numbers</button>
-        <button @onclick="SetExample4">4: Program Code</button>
-        <button @onclick="SetExample5">5: Cooking Recipe</button>
-    </div>
-
-    <div style="margin-top: 20px;">
-        <DiffViewBox HeaderText="Text differences" Diff="@_stringDiffHighlightedResult" />
-    </div>
-</section>
-
+        <div style="margin-top: 20px;">
+            <DiffViewBox HeaderText="Text differences" Diff="@_stringDiffHighlightedResult" />
+        </div>
+    </section>
+</div>
 @code {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        PageTitleService.SetTitle("StringDiff");
+    }
+
     private string _textLeft = string.Empty;
 
     private string TextLeft

@@ -1,12 +1,15 @@
 ﻿@page "/bjgame"
 @using Demo.Components
 @using Demo.Demos.BJ
+@using Demo.Services
 @using GeneticAlgorithm.GeneralGenetic
+@inject PageTitleService PageTitleService
+
 <link rel="stylesheet" href="css/demos.css" />
 
 <PageTitle>Blackjack</PageTitle>
 
-<div class="page-container casino-style">
+<div class="casino-style">
     @if (GameInstance.CurrentGameState == BlackjackGameBase.GameState.GameNotStarted)
     {
             <div class="game-area start-game-label-container">
@@ -38,6 +41,7 @@
     protected override void OnInitialized()
     {
         base.OnInitialized();
+        PageTitleService.SetTitle("Blackjack");
 
         var shoe = new Shoe(DeckFactory.CreateShuffledDecks(6, RandomProvider.Shared).Cards, redCardPosition: 100);
         GameInstance = new BlackjackGameWithPlayer(shoe);

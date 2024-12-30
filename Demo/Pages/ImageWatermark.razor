@@ -1,81 +1,84 @@
 ﻿@page "/ImageWaterMark"
 @using Demo.Components
+@using Demo.Services
 @using Microsoft.AspNetCore.Components.Forms
 @using SkiaSharp
 @using SkiaSharp.Views.Blazor
+@inject PageTitleService PageTitleService
 <link rel="stylesheet" href="css/demos.css" />
 
 <PageTitle>Image Watermark</PageTitle>
-
-<div class="watermark-dashboard-container">
-    <div class="watermark-dashboard-item watermark-dashboard-droparea">
-        <div class="dropzone @_dropClass rounded">
-            <InputFile id="fileInput" multiple="false" accept="image/*" title=""
-            OnChange="HandleFileSelected"
-            @ondragenter="HandleDragEnter"
-            @ondragleave="HandleDragLeave" />
-            Drop an image here or click to upload.
-        </div>
-
-        <!-- Image Preview -->
-        @if (_imageDataUrl != null)
-        {
-            <div class="image-preview">
-                <img src="@_imageDataUrl" alt="Image preview" />
-                <p>Image Size: @(_waterMarkedImageBytes?.Length / 1024) KB</p>
+<div class="page-container">
+    <div class="watermark-dashboard-container">
+        <div class="watermark-dashboard-item watermark-dashboard-droparea">
+            <div class="dropzone @_dropClass rounded">
+                <InputFile id="fileInput" multiple="false" accept="image/*" title=""
+                           OnChange="HandleFileSelected"
+                           @ondragenter="HandleDragEnter"
+                           @ondragleave="HandleDragLeave" />
+                Drop an image here or click to upload.
             </div>
 
-        }
-        else
-        {
-            <p class="info-text">
-                The uploaded image is stored only on your computer and is not uploaded anywhere else.
-            </p>
-        }
-    </div>
-    <div class="watermark-dashboard-item watermark-dashboard-textarea">
-        <div class="settings-container">
-            <label for="rotationId" class="margin-right">Rotate image:</label>
-            <RotationControl Id="rotationId" Rotation="@_imageRotation" RotationChanged="OnRotationChanged" />
-        </div>
-        <div class="settings-container">
-            <label for="watermarkText" class="margin-right">Watermark Text:</label>
-            <textarea @bind="_watermarkText" style="width: 100%" id="watermarkText" rows="2" cols="25"></textarea>
-        </div>
+            <!-- Image Preview -->
+            @if (_imageDataUrl != null)
+            {
+                <div class="image-preview">
+                    <img src="@_imageDataUrl" alt="Image preview" />
+                    <p>Image Size: @(_waterMarkedImageBytes?.Length / 1024) KB</p>
+                </div>
 
-        <div class="settings-container">
-            <label for="watermarkTextColorPicker" class="margin-right">Color:</label>
-            <ColorPicker Id="watermarkTextColorPicker" @bind-SelectedColor="_watermarkTextColorPicker" AllowedColors="new SKColor[] { SKColors.Red, SKColors.Green, SKColors.Blue, SKColors.White, SKColors.Black }" />
+            }
+            else
+            {
+                <p class="info-text">
+                    The uploaded image is stored only on your computer and is not uploaded anywhere else.
+                </p>
+            }
         </div>
+        <div class="watermark-dashboard-item watermark-dashboard-textarea">
+            <div class="settings-container">
+                <label for="rotationId" class="margin-right">Rotate image:</label>
+                <RotationControl Id="rotationId" Rotation="@_imageRotation" RotationChanged="OnRotationChanged" />
+            </div>
+            <div class="settings-container">
+                <label for="watermarkText" class="margin-right">Watermark Text:</label>
+                <textarea @bind="_watermarkText" style="width: 100%" id="watermarkText" rows="2" cols="25"></textarea>
+            </div>
 
-        <div class="settings-container">
-            <label for="watermarkOpacity" class="margin-right">Opacity (%):</label>
-            <input type="number" @bind="_watermarkOpacity" id="watermarkOpacity" min="1" max="100" style="width: 6em;" />
-        </div>
-        <div class="settings-container">
-            <label for="watermarkAngle" class="margin-right">Angle (°):</label>
-            <input type="number" @bind="_watermarkAngle" id="watermarkAngle" min="0" max="360" style="width: 6em;" />
-        </div>
-        <div class="settings-container">
-            <label for="watermarkDensity" class="margin-right">Density:</label>
-            <input type="number" @bind="_watermarkDensity" id="watermarkDensity" min="1" max="100" style="width: 6em;" />
-        </div>
-        <div class="settings-container">
-            <label for="resizeOptions" class="margin-right">Resize Options:</label>
-            <select @bind="_selectedResizeOption" class="spaced-element" id="resizeOptions">
-                @foreach (var option in Enum.GetValues<ResizeOption>())
-                {
-                    <option value="@option">@option.ToString().TrimStart('_')</option>
-                }
-            </select>
-        </div>
-        <button class="btn" @onclick="ApplyWatermark">Apply</button>
-        @if (_imageDataUrl != null)
-        {
-            <a href="@_imageDataUrl" download="doc.png" class="btn">Download</a>
-        }
+            <div class="settings-container">
+                <label for="watermarkTextColorPicker" class="margin-right">Color:</label>
+                <ColorPicker Id="watermarkTextColorPicker" @bind-SelectedColor="_watermarkTextColorPicker" AllowedColors="new SKColor[] { SKColors.Red, SKColors.Green, SKColors.Blue, SKColors.White, SKColors.Black }" />
+            </div>
+
+            <div class="settings-container">
+                <label for="watermarkOpacity" class="margin-right">Opacity (%):</label>
+                <input type="number" @bind="_watermarkOpacity" id="watermarkOpacity" min="1" max="100" style="width: 6em;" />
+            </div>
+            <div class="settings-container">
+                <label for="watermarkAngle" class="margin-right">Angle (°):</label>
+                <input type="number" @bind="_watermarkAngle" id="watermarkAngle" min="0" max="360" style="width: 6em;" />
+            </div>
+            <div class="settings-container">
+                <label for="watermarkDensity" class="margin-right">Density:</label>
+                <input type="number" @bind="_watermarkDensity" id="watermarkDensity" min="1" max="100" style="width: 6em;" />
+            </div>
+            <div class="settings-container">
+                <label for="resizeOptions" class="margin-right">Resize Options:</label>
+                <select @bind="_selectedResizeOption" class="spaced-element" id="resizeOptions">
+                    @foreach (var option in Enum.GetValues<ResizeOption>())
+                    {
+                        <option value="@option">@option.ToString().TrimStart('_')</option>
+                    }
+                </select>
+            </div>
+            <button class="btn" @onclick="ApplyWatermark">Apply</button>
+            @if (_imageDataUrl != null)
+            {
+                <a href="@_imageDataUrl" download="doc.png" class="btn">Download</a>
+            }
 
 
+        </div>
     </div>
 </div>
 
@@ -93,6 +96,12 @@
     private int _imageRotation = 0;
 
     private SKColor _watermarkTextColorPicker = SKColors.Red;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        PageTitleService.SetTitle("Image Watermark");
+    }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
@@ -343,7 +352,6 @@
         display: inline-block;
         margin: 1em;
         width: fit-content;
-      
         color: white;
         background-color: #007bff;
         border: none;

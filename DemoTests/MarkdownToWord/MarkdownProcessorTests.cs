@@ -1,6 +1,6 @@
 using Demo.Demos.MarkdownToWord;
 
-namespace DemoTests
+namespace DemoTests.MarkdownToWord
 {
     public class MarkdownProcessorTests
     {

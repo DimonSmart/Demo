@@ -1,0 +1,73 @@
+﻿@* LanguageSelector.razor *@
+
+<div class="language-selector">
+    <label>
+        <input type="checkbox" @bind="_ShowRussian" /> Russian
+    </label>
+    <label>
+        <input type="checkbox" @bind="_ShowSpanish" /> Spanish
+    </label>
+    <label>
+        <input type="checkbox" @bind="_ShowEnglish" /> English
+    </label>
+</div>
+
+@code {
+    [Parameter]
+    public bool ShowRussian { get; set; }
+    [Parameter]
+    public bool ShowSpanish { get; set; }
+    [Parameter]
+    public bool ShowEnglish { get; set; }
+
+    // This callback tells the parent "languages changed"
+    [Parameter]
+    public EventCallback<(bool Russian, bool Spanish, bool English)> OnLanguagesChanged { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        EnsureAtLeastOneChecked();
+    }
+
+    private void EnsureAtLeastOneChecked()
+    {
+        // If user somehow unchecks everything, revert to the original state
+        if (!ShowRussian && !ShowSpanish && !ShowEnglish) ShowEnglish = true;
+    }
+
+    public bool _ShowRussian
+    {
+        get => ShowRussian;
+        set
+        {
+            ShowRussian = value;
+            EnsureAtLeastOneChecked();
+            NotifyParent();
+        }
+    }
+
+    public bool _ShowSpanish
+    {
+        get => ShowSpanish;
+        set
+        {
+            ShowSpanish = value;
+            EnsureAtLeastOneChecked();
+            NotifyParent();
+        }
+    }
+
+    public bool _ShowEnglish
+    {
+        get => ShowEnglish;
+        set
+        {
+            ShowEnglish = value;
+            EnsureAtLeastOneChecked();
+            NotifyParent();
+        }
+    }
+
+    private Task NotifyParent()
+        => OnLanguagesChanged.InvokeAsync((ShowRussian, ShowSpanish, ShowEnglish));
+}

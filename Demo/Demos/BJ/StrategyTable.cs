@@ -16,7 +16,11 @@
             if (strategy.Length != HardTotalSize + SoftTotalSize + PairSplittingSize)
                 throw new ArgumentException("Invalid strategy array length.");
 
-            _strategy = strategy;
+            _strategy = strategy.ToArray();
+        }
+
+        public StrategyTable(StrategyTable strategyTable) : this(strategyTable._strategy)
+        {
         }
 
         public BlackjackAction GetAction(IHandValues hand, int dealerCardValue)

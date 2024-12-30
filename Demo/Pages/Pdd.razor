@@ -1,0 +1,369 @@
+﻿@page "/pdd"
+@using Demo.Components
+@using Demo.Demos.Pdd
+@using System.Text.Json
+@using System.Text
+@using Demo.Services
+@using System.Text.RegularExpressions
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject PageTitleService PageTitleService
+@inject CardStorageService CardStorage
+@inject HttpClient HttpClient
+
+<link rel="stylesheet" href="css/demos.css" />
+
+<PageTitle>Practice DGT Spanish Driving Theory Test</PageTitle>
+
+<div class="page-container"
+@onkeydown="HandleKeyDown"
+@onpointerdown="HandlePointerDown"
+@onpointerup="HandlePointerUp"
+tabindex="0">
+
+    @if (IsLoading)
+    {
+        <div>Please wait. Exam data is loading (around 10 seconds)</div>
+        <div class="loading-bar-container">
+            <div class="loading-bar"></div>
+        </div>
+    }
+    else if (currentQuestion != null)
+    {
+        <div class="top-nav-bar">
+            <div class="question-id-statistics">
+                @if (currentQuestion != null)
+                {
+                    <span class="question-id-text">Id: @(currentQuestion.Id)</span>
+                }
+                <span class="stats-info" title="Question treated as studied if answered correctly 3 times in a row">
+                    Studied: @(questionQueue.LearnedQuestionCount)/@(questionQueue.TotalQuestionCount)
+                </span>
+            </div>
+
+            <div class="options">
+                <div class="highlight-toggle">
+                    <input type="checkbox"
+                           id="highlightTermsToggle"
+                           @bind="highlightTerms"
+                           title="Highlight key terms?" />
+                    <label for="highlightTermsToggle"
+                           title="Turn ON/OFF terms highlighting">
+                        Terms
+                    </label>
+                </div>
+                <div class="language-selector">
+                    <LanguageSelector ShowRussian="@showRussian"
+                                      ShowSpanish="@showSpanish"
+                                      ShowEnglish="@showEnglish"
+                                      OnLanguagesChanged="@OnLanguagesChanged" />
+                </div>
+
+            </div>
+        </div>
+
+        <div class="question-container">
+
+            <div class="question-text-and-image">
+                @if (currentQuestion!.Img)
+                {
+                    <img src="@Path.Combine(ImagesBaseAddress,$"{currentQuestion.Id}.jpg")"
+                    class="question-image"
+                    style="object-fit: scale-down" />
+                }
+
+                <div class="question-text">
+                    @((MarkupString)RenderLocalizedText(
+                            currentQuestion.LocalizedQuestionText,
+                            currentQuestion.MainTerms
+                            ))
+                </div>
+            </div>
+
+            <div class="answers">
+                @foreach (var (answer, index) in currentQuestion.Answers.Select((a, i) => (a, i)))
+                {
+                    <button class="answer-button @(GetAnswerCssClass(answer))"
+                    @onclick="() => AnswerQuestion(answer)"
+                    disabled="@hasAnswered">
+                        <div class="answer-number">@((index + 1))</div>
+                        <div class="answer-text">
+                            @((MarkupString)RenderLocalizedText(
+                                    answer.LocalizedAnswerText,
+                                    currentQuestion.MainTerms
+                                    ))
+                        </div>
+                    </button>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(currentQuestion?.RuleDescription?.English)
+         || !string.IsNullOrEmpty(currentQuestion?.RuleDescription?.Russian)
+         || !string.IsNullOrEmpty(currentQuestion?.RuleDescription?.Spanish))
+            {
+                <button class="btn-show-explanation" @onclick="ToggleExplanation">
+                    @((ShowExplanation ? "Hide" : "Show") + " explanation")
+                </button>
+
+                @if (ShowExplanation)
+                {
+                    <div class="rule-description mt-3">
+                        <!-- Example stub in Markdown format -->
+                        <p><strong>Example Rule Explanation (Markdown Stub)</strong></p>
+                        <p>@((MarkupString)RenderLocalizedText(currentQuestion.RuleDescription, currentQuestion.MainTerms))</p>
+                    </div>
+                }
+            }
+
+            <div class="navigation-buttons mt-3">
+                <button @onclick="GoToNextQuestion"
+                disabled="@(!hasAnswered)">
+                    Next
+                </button>
+            </div>
+
+        </div>
+    }
+    else
+    {
+        <p>All questions have been learned! Congratulations!</p>
+    }
+</div>
+
+@code {
+    private IReadOnlyCollection<QuestionItem> allQuestions = new List<QuestionItem>();
+    const string ExamDataBaseAddress = @"https://DimonSmart.github.io/DGT/";
+    const string ImagesBaseAddress = @"https://DimonSmart.github.io/DGT/images/";
+
+    private bool IsLoading = true;
+    private bool isCorrect;
+    private string? feedback;
+    private bool hasAnswered = false;
+    private bool ShowExplanation = false;
+
+    private bool highlightTerms = false;
+
+    // Language selection flags
+    private bool showRussian = false;
+    private bool showSpanish = true;
+    private bool showEnglish = false;
+
+    private Dictionary<int, int> questionProgress = new Dictionary<int, int>();
+    private QuestionQueue questionQueue = new QuestionQueue(new List<QuestionStudyCard>());
+    private QuestionStudyCard? questionStudyCard = null;
+    private QuestionItem? currentQuestion;
+    private AnswerItem? userSelectedAnswer = null;
+
+    private double pointerDownX;
+    private double pointerDownY;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        PageTitleService.SetTitle("Practice DGT Spanish Driving Theory Test");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        allQuestions = await LoadQuestions();
+        questionQueue = await LoadQuestionsQueue(allQuestions);
+        LoadNextQuestion();
+        IsLoading = false;
+    }
+
+    private Task OnLanguagesChanged((bool Russian, bool Spanish, bool English) newValues)
+    {
+        showRussian = newValues.Russian;
+        showSpanish = newValues.Spanish;
+        showEnglish = newValues.English;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+
+    // A set of dark colors used for highlighting different terms
+    private static readonly string[] termColors = new[]
+    {
+        "#8B008B", // DarkMagenta
+        "#800000", // Maroon
+        "#004080", // Dark blue
+        "#808000", // Olive
+        "#400080"  // Another dark shade
+    };
+
+    // Renders localized text for each selected language.
+    // If highlighting is enabled, it calls HighlightAllTerms.
+    private string RenderLocalizedText(LocalizedText text, List<LocalizedText>? questionTerms = null)
+    {
+        var sb = new StringBuilder();
+
+        if (showRussian && !string.IsNullOrWhiteSpace(text.Russian))
+        {
+            var ruText = text.Russian;
+            if (highlightTerms && questionTerms != null && questionTerms.Count > 0)
+                ruText = HighlightAllTerms(ruText, questionTerms, t => t.Russian);
+
+            sb.AppendLine($"<div class=\"language-line russian\">{ruText}</div>");
+        }
+
+        if (showSpanish && !string.IsNullOrWhiteSpace(text.Spanish))
+        {
+            var esText = text.Spanish;
+            if (highlightTerms && questionTerms != null && questionTerms.Count > 0)
+                esText = HighlightAllTerms(esText, questionTerms, t => t.Spanish);
+
+            sb.AppendLine($"<div class=\"language-line spanish\">{esText}</div>");
+        }
+
+        if (showEnglish && !string.IsNullOrWhiteSpace(text.English))
+        {
+            var enText = text.English;
+            if (highlightTerms && questionTerms != null && questionTerms.Count > 0)
+                enText = HighlightAllTerms(enText, questionTerms, t => t.English);
+
+            sb.AppendLine($"<div class=\"language-line english\">{enText}</div>");
+        }
+
+        return sb.ToString();
+    }
+
+    // Performs a case-insensitive replacement of each term with a colored, bolded version.
+    private string HighlightAllTerms(
+        string originalText,
+        List<LocalizedText> terms,
+        Func<LocalizedText, string> selectTermText)
+    {
+        var result = originalText;
+
+        for (int i = 0; i < terms.Count && i < termColors.Length; i++)
+        {
+            var term = selectTermText(terms[i]);
+            if (string.IsNullOrWhiteSpace(term))
+                continue;
+
+            var pattern = $"\\b{Regex.Escape(term)}\\b";
+            var color = termColors[i];
+
+            result = Regex.Replace(
+                result,
+                pattern,
+                match => $"<span style=\"font-weight:bold; color:{color}\">{match.Value}</span>",
+                RegexOptions.IgnoreCase
+            );
+        }
+
+        return result;
+    }
+   
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (currentQuestion == null) return;
+
+        // Attempt to parse the key as an integer (1..4)
+        if (int.TryParse(e.Key, out int answerIndex))
+        {
+            answerIndex -= 1;
+            if (answerIndex >= 0 && answerIndex < currentQuestion.Answers.Count && !hasAnswered)
+            {
+                var chosenAnswer = currentQuestion.Answers[answerIndex];
+                _ = AnswerQuestion(chosenAnswer);
+            }
+        }
+    }
+
+    // Swipe detection
+    private void HandlePointerDown(PointerEventArgs e)
+    {
+        pointerDownX = e.ClientX;
+        pointerDownY = e.ClientY;
+    }
+
+    private void HandlePointerUp(PointerEventArgs e)
+    {
+        var deltaX = e.ClientX - pointerDownX;
+        var deltaY = e.ClientY - pointerDownY;
+
+        // Simple threshold check
+        if (Math.Abs(deltaX) > 100 && Math.Abs(deltaY) < 50 && hasAnswered)
+        {
+            GoToNextQuestion();
+        }
+    }
+
+    internal async Task<IReadOnlyCollection<QuestionItem>> LoadQuestions()
+    {
+        try
+        {
+            var response = await HttpClient.GetAsync("https://DimonSmart.github.io/DGT/pdd.json");
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStreamAsync();
+            return await JsonSerializer.DeserializeAsync<List<QuestionItem>>(json) ?? new List<QuestionItem>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading questions: {ex.Message}");
+            return new List<QuestionItem>();
+        }
+    }
+
+    internal async Task<QuestionQueue> LoadQuestionsQueue(IReadOnlyCollection<QuestionItem> questions)
+    {
+        var cardSet = await CardStorage.LoadCardsAsync();
+        if (cardSet != null)
+           return new QuestionQueue(cardSet.Cards);
+        return new QuestionQueue(questions.Select(q => new QuestionStudyCard { Id = q.Id }));
+    }
+
+    private void LoadNextQuestion()
+    {
+        questionStudyCard = questionQueue.GetNextQuestion();
+        if (questionStudyCard == null)
+        {
+            currentQuestion = null;
+            return;
+        }
+        currentQuestion = allQuestions.FirstOrDefault(q => q.Id == questionStudyCard.Id);
+    }
+
+    private async Task AnswerQuestion(AnswerItem selectedAnswer)
+    {
+        if (currentQuestion == null || questionStudyCard == null) return;
+        userSelectedAnswer = selectedAnswer;
+        isCorrect = selectedAnswer.IsCorrect;
+        hasAnswered = true;
+        questionQueue.ProcessAnswer(questionStudyCard, isCorrect);
+        await CardStorage.SaveCardsAsync(new StoredCardsSet() { Cards = questionQueue.Cards, Version = "1.0" } );
+
+        StateHasChanged();
+        // No automatic transition here
+    }
+
+    private void GoToNextQuestion()
+    {
+        if (currentQuestion == null || questionStudyCard == null || userSelectedAnswer == null)
+            return;
+
+        questionQueue.ProcessAnswer(questionStudyCard, userSelectedAnswer.IsCorrect);
+        userSelectedAnswer = null;
+        ShowExplanation = false;
+        hasAnswered = false;
+        LoadNextQuestion();
+        StateHasChanged();
+    }
+
+    private void ToggleExplanation()
+    {
+        ShowExplanation = !ShowExplanation;
+    }
+
+    private string GetAnswerCssClass(AnswerItem answer)
+    {
+        if (userSelectedAnswer == null)
+            return string.Empty;
+        if (userSelectedAnswer == answer)
+            return answer.IsCorrect ? "correct-answer" : "incorrect-answer";
+        if (!userSelectedAnswer.IsCorrect && answer.IsCorrect)
+            return "correct-answer";
+        return string.Empty;
+    }
+}
