@@ -59,7 +59,7 @@
                 Screenshot = IncludeScreenshot ? screenshotDataUrl : null
             };
 
-        // await Http.PostAsJsonAsync("https://your-feedback-service.com/api/feedback", feedback);
+        await Http.PostAsJsonAsync(@"https://feedbackappname.azurewebsites.net/api/emailfeedback", feedback);
         await CloseDialog();
     }
 
