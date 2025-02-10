@@ -1,4 +1,5 @@
-﻿@using Demo.Services
+﻿@using Demo.Components
+@using Demo.Services
 @inherits LayoutComponentBase
 
 @inject PageTitleService PageTitleService
@@ -28,12 +29,16 @@
                     <button class="btn btn-secondary btn-sm rounded ms-3" data-feedback-fish>
                         Feedback
                     </button>
+                    <button @onclick="ShowFeedback">Отзыв</button>
                 </div>
             </div>
 
             <article class="content">
                 @Body
             </article>
+
+            <Feedback @ref="feedbackComponent" />
+
         </main>
     </div>
 </CascadingValue>
@@ -50,6 +55,16 @@
     {
         PageHeading = newTitle;
         await InvokeAsync(StateHasChanged);
+    }
+
+    private Feedback feedbackComponent = null!;
+
+    private async Task ShowFeedback()
+    {
+        if (feedbackComponent != null)
+        {
+            await feedbackComponent.OpenAsync();
+        }
     }
 
     public void Dispose()
