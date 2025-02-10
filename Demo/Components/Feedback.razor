@@ -1,0 +1,79 @@
+﻿@inject IJSRuntime JS
+@inject HttpClient Http
+
+<dialog id="feedbackDialog">
+    <form method="dialog">
+        <h2>Submit Feedback</h2>
+        <textarea @bind="FeedbackText" placeholder="Input feedback" rows="5" cols="50"></textarea>
+
+        <div>
+            <input type="checkbox" @bind="IncludeScreenshot" id="includeScreenshot" @bind:event="onchange" />
+            <label for="includeScreenshot">Add page screenshot</label>
+        </div>
+
+        @if (IncludeScreenshot && screenshotDataUrl is not null)
+        {
+            <div class="screenshot-preview">
+                <img src="@screenshotDataUrl" alt="Screenshot Preview" />
+            </div>
+        }
+
+        <div style="margin-top:10px;">
+            <button type="button" @onclick="SubmitFeedback">Submit</button>
+            <button type="button" @onclick="CloseDialog">Cancel</button>
+        </div>
+    </form>
+</dialog>
+
+<style>
+    .screenshot-preview {
+        margin-top: 10px;
+        text-align: center;
+    }
+
+        .screenshot-preview img {
+            width: 100px; /* Tiny preview */
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+        }
+</style>
+
+@code {
+    private string FeedbackText { get; set; } = "";
+    private bool IncludeScreenshot { get; set; } = true;
+    private string? screenshotDataUrl = null;
+
+    public async Task OpenAsync()
+    {
+        screenshotDataUrl = await JS.InvokeAsync<string>("captureScreenshot");
+        StateHasChanged();
+        await JS.InvokeVoidAsync("openFeedbackDialog");
+    }
+
+    private async Task SubmitFeedback()
+    {
+        var feedback = new FeedbackModel
+            {
+                Text = FeedbackText,
+                Screenshot = IncludeScreenshot ? screenshotDataUrl : null
+            };
+
+        await Http.PostAsJsonAsync(@"https://feedbackappname.azurewebsites.net/api/emailfeedback", feedback);
+        await CloseDialog();
+    }
+
+    private async Task CloseDialog()
+    {
+        await JS.InvokeVoidAsync("closeFeedbackDialog");
+        FeedbackText = "";
+        IncludeScreenshot = true;
+        screenshotDataUrl = null;
+    }
+
+    public class FeedbackModel
+    {
+        public required string Text { get; set; }
+        public string? Screenshot { get; set; }
+    }
+}
