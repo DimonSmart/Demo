@@ -2,25 +2,34 @@
 @inject HttpClient Http
 
 <dialog id="feedbackDialog">
-    <form method="dialog">
+    <form>
         <h2>Submit Feedback</h2>
-        <textarea @bind="FeedbackText" placeholder="Input feedback" rows="5" cols="50"></textarea>
+        <textarea @bind="FeedbackText" @bind:event="oninput"
+                  placeholder="Input feedback" rows="5" cols="50"></textarea>
 
         <div>
             <input type="checkbox" @bind="IncludeScreenshot" id="includeScreenshot" @bind:event="onchange" />
             <label for="includeScreenshot">Add page screenshot</label>
         </div>
 
-        @if (IncludeScreenshot && screenshotDataUrl is not null)
+        @if (IncludeScreenshot && !string.IsNullOrEmpty(screenshotDataUrl))
         {
             <div class="screenshot-preview">
                 <img src="@screenshotDataUrl" alt="Screenshot Preview" />
             </div>
         }
 
+        @if (IsSubmitting)
+        {
+            <div class="loading">
+                <div class="spinner"></div>
+                <span>Submitting feedback...</span>
+            </div>
+        }
+
         <div style="margin-top:10px;">
-            <button type="button" @onclick="SubmitFeedback">Submit</button>
-            <button type="button" @onclick="CloseDialog">Cancel</button>
+            <button type="button" @onclick="SubmitFeedback" disabled="@IsSubmitDisabled">Submit</button>
+            <button type="button" @onclick="CloseDialog" disabled="@IsSubmitting">Cancel</button>
         </div>
     </form>
 </dialog>
@@ -32,17 +41,48 @@
     }
 
         .screenshot-preview img {
-            width: 100px; /* Tiny preview */
+            width: 100px;
             height: auto;
             border-radius: 8px;
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
         }
+
+    .loading {
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+        color: #007bff;
+    }
+
+    .spinner {
+        width: 24px;
+        height: 24px;
+        border: 4px solid rgba(0, 123, 255, 0.3);
+        border-top-color: #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 8px;
+    }
+
+    @@keyframes spin {
+        to
+    {
+        transform: rotate(360deg);
+    }
+
+    }
 </style>
 
 @code {
     private string FeedbackText { get; set; } = "";
     private bool IncludeScreenshot { get; set; } = true;
     private string? screenshotDataUrl = null;
+    private bool IsSubmitting { get; set; } = false;
+
+    private bool IsSubmitDisabled => IsSubmitting || string.IsNullOrWhiteSpace(FeedbackText);
 
     public async Task OpenAsync()
     {
@@ -53,13 +93,31 @@
 
     private async Task SubmitFeedback()
     {
+        if (IsSubmitting || string.IsNullOrWhiteSpace(FeedbackText))
+            return;
+
+        IsSubmitting = true;
+        StateHasChanged();
+
+        // Yield control to ensure the UI updates immediately, showing the spinner sooner.
+        await Task.Yield();
+
         var feedback = new FeedbackModel
             {
                 Text = FeedbackText,
                 Screenshot = IncludeScreenshot ? screenshotDataUrl : null
             };
 
-        await Http.PostAsJsonAsync(@"https://feedbackappname.azurewebsites.net/api/emailfeedback", feedback);
+        try
+        {
+            await Http.PostAsJsonAsync("https://feedbackappname.azurewebsites.net/api/emailfeedback", feedback);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error submitting feedback: " + ex.Message);
+        }
+
+        IsSubmitting = false;
         await CloseDialog();
     }
 
@@ -69,6 +127,8 @@
         FeedbackText = "";
         IncludeScreenshot = true;
         screenshotDataUrl = null;
+        IsSubmitting = false;
+        StateHasChanged();
     }
 
     public class FeedbackModel
