@@ -18,5 +18,6 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 
 // builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddScoped<CardStorageService>();
+builder.Services.AddScoped<UserPreferencesStorageService>();
 
 await builder.Build().RunAsync();

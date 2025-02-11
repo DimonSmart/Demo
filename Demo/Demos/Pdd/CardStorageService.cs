@@ -18,10 +18,5 @@ namespace Demo.Demos.Pdd
             if (compact is null || string.IsNullOrWhiteSpace(compact.V)) return null;
             return compact.ToDomain();
         }
-
-        //    public async Task<bool> HasSavedCardsAsync()
-        //    {
-        //        return await localStorage.ContainKeyAsync(StorageKey);
-        //    }
     }
 }

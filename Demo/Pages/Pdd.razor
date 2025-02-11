@@ -6,6 +6,7 @@
 @using Demo.Services
 @using System.Text.RegularExpressions
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject UserPreferencesStorageService PreferencesStorage
 @inject PageTitleService PageTitleService
 @inject CardStorageService CardStorage
 @inject HttpClient HttpClient
@@ -15,10 +16,10 @@
 <PageTitle>Practice DGT Spanish Driving Theory Test</PageTitle>
 
 <div class="page-container"
-@onkeydown="HandleKeyDown"
-@onpointerdown="HandlePointerDown"
-@onpointerup="HandlePointerUp"
-tabindex="0">
+     @onkeydown="HandleKeyDown"
+     @onpointerdown="HandlePointerDown"
+     @onpointerup="HandlePointerUp"
+     tabindex="0">
 
     @if (IsLoading)
     {
@@ -44,7 +45,8 @@ tabindex="0">
                 <div class="highlight-toggle">
                     <input type="checkbox"
                            id="highlightTermsToggle"
-                           @bind="highlightTerms"
+                           checked="@highlightTerms"
+                           @onchange="OnHighlightTermsChanged"
                            title="Highlight key terms?" />
                     <label for="highlightTermsToggle"
                            title="Turn ON/OFF terms highlighting">
@@ -67,15 +69,15 @@ tabindex="0">
                 @if (currentQuestion!.Img)
                 {
                     <img src="@Path.Combine(ImagesBaseAddress,$"{currentQuestion.Id}.jpg")"
-                    class="question-image"
-                    style="object-fit: scale-down" />
+                         class="question-image"
+                         style="object-fit: scale-down" />
                 }
 
                 <div class="question-text">
                     @((MarkupString)RenderLocalizedText(
-                            currentQuestion.LocalizedQuestionText,
-                            currentQuestion.MainTerms
-                            ))
+                        currentQuestion.LocalizedQuestionText,
+                        currentQuestion.MainTerms
+                        ))
                 </div>
             </div>
 
@@ -83,22 +85,22 @@ tabindex="0">
                 @foreach (var (answer, index) in currentQuestion.Answers.Select((a, i) => (a, i)))
                 {
                     <button class="answer-button @(GetAnswerCssClass(answer))"
-                    @onclick="() => AnswerQuestion(answer)"
-                    disabled="@hasAnswered">
+                            @onclick="() => AnswerQuestion(answer)"
+                            disabled="@hasAnswered">
                         <div class="answer-number">@((index + 1))</div>
                         <div class="answer-text">
                             @((MarkupString)RenderLocalizedText(
-                                    answer.LocalizedAnswerText,
-                                    currentQuestion.MainTerms
-                                    ))
+                                answer.LocalizedAnswerText,
+                                currentQuestion.MainTerms
+                                ))
                         </div>
                     </button>
                 }
             </div>
 
             @if (!string.IsNullOrEmpty(currentQuestion?.RuleDescription?.English)
-         || !string.IsNullOrEmpty(currentQuestion?.RuleDescription?.Russian)
-         || !string.IsNullOrEmpty(currentQuestion?.RuleDescription?.Spanish))
+           || !string.IsNullOrEmpty(currentQuestion?.RuleDescription?.Russian)
+           || !string.IsNullOrEmpty(currentQuestion?.RuleDescription?.Spanish))
             {
                 <button class="btn-show-explanation" @onclick="ToggleExplanation">
                     @((ShowExplanation ? "Hide" : "Show") + " explanation")
@@ -116,7 +118,7 @@ tabindex="0">
 
             <div class="navigation-buttons mt-3">
                 <button @onclick="GoToNextQuestion"
-                disabled="@(!hasAnswered)">
+                        disabled="@(!hasAnswered)">
                     Next
                 </button>
             </div>
@@ -165,19 +167,33 @@ tabindex="0">
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+
+        var savedPreferences = await PreferencesStorage.LoadPreferencesAsync();
+        if (savedPreferences != null)
+        {
+            highlightTerms = savedPreferences.HighlightTerms;
+            if (savedPreferences.ShowRussian) showRussian = true;
+            if (savedPreferences.ShowSpanish) showSpanish = true;
+            if (savedPreferences.ShowEnglish) showEnglish = true;
+
+            if (!savedPreferences.ShowRussian) showRussian = false;
+            if (!savedPreferences.ShowSpanish) showSpanish = false;
+            if (!savedPreferences.ShowEnglish) showEnglish = false;
+        }
+
         allQuestions = await LoadQuestions();
         questionQueue = await LoadQuestionsQueue(allQuestions);
         LoadNextQuestion();
         IsLoading = false;
     }
 
-    private Task OnLanguagesChanged((bool Russian, bool Spanish, bool English) newValues)
+    private async Task OnLanguagesChanged((bool Russian, bool Spanish, bool English) newValues)
     {
         showRussian = newValues.Russian;
         showSpanish = newValues.Spanish;
         showEnglish = newValues.English;
         StateHasChanged();
-        return Task.CompletedTask;
+        await SaveUserPreferencesAsync();
     }
 
 
@@ -227,6 +243,24 @@ tabindex="0">
         return sb.ToString();
     }
 
+    private async Task OnHighlightTermsChanged(ChangeEventArgs e)
+    {
+        if (e.Value is bool boolValue)
+        {
+            highlightTerms = boolValue;
+        }
+        else if (bool.TryParse(e.Value?.ToString(), out var parsed))
+        {
+            highlightTerms = parsed;
+        }
+        else
+        {
+            highlightTerms = false;
+        }
+
+        await SaveUserPreferencesAsync();
+    }
+
     // Performs a case-insensitive replacement of each term with a colored, bolded version.
     private string HighlightAllTerms(
         string originalText,
@@ -254,7 +288,7 @@ tabindex="0">
 
         return result;
     }
-   
+
     private void HandleKeyDown(KeyboardEventArgs e)
     {
         if (currentQuestion == null) return;
@@ -310,7 +344,7 @@ tabindex="0">
     {
         var cardSet = await CardStorage.LoadCardsAsync();
         if (cardSet != null)
-           return new QuestionQueue(cardSet.Cards);
+            return new QuestionQueue(cardSet.Cards);
         return new QuestionQueue(questions.Select(q => new QuestionStudyCard { Id = q.Id }));
     }
 
@@ -332,7 +366,7 @@ tabindex="0">
         isCorrect = selectedAnswer.IsCorrect;
         hasAnswered = true;
         questionQueue.ProcessAnswer(questionStudyCard, isCorrect);
-        await CardStorage.SaveCardsAsync(new StoredCardsSet() { Cards = questionQueue.Cards, Version = "1.0" } );
+        await CardStorage.SaveCardsAsync(new StoredCardsSet() { Cards = questionQueue.Cards, Version = "1.0" });
 
         StateHasChanged();
         // No automatic transition here
@@ -366,4 +400,17 @@ tabindex="0">
             return "correct-answer";
         return string.Empty;
     }
+
+    private async Task SaveUserPreferencesAsync()
+    {
+        var preferences = new UserPreferences
+            {
+                HighlightTerms = highlightTerms,
+                ShowRussian = showRussian,
+                ShowSpanish = showSpanish,
+                ShowEnglish = showEnglish
+            };
+        await PreferencesStorage.SavePreferencesAsync(preferences);
+    }
+
 }

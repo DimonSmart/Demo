@@ -4,7 +4,7 @@
 <dialog id="feedbackDialog">
     <form>
         <h2>Submit Feedback</h2>
-        <textarea @bind="FeedbackText" @bind:event="oninput"
+        <textarea maxlength="2048" @bind="FeedbackText" @bind:event="oninput"
                   placeholder="Input feedback" rows="5" cols="50"></textarea>
 
         <div>
@@ -68,11 +68,9 @@
     }
 
     @@keyframes spin {
-        to
-    {
-        transform: rotate(360deg);
-    }
-
+        to {
+            transform: rotate(360deg);
+        }
     }
 </style>
 
@@ -96,15 +94,21 @@
         if (IsSubmitting || string.IsNullOrWhiteSpace(FeedbackText))
             return;
 
+        if (FeedbackText.Length > 2048)
+            FeedbackText = FeedbackText.Substring(0, 2048);
+
         IsSubmitting = true;
         StateHasChanged();
 
         // Yield control to ensure the UI updates immediately, showing the spinner sooner.
         await Task.Yield();
 
+        var browserInfo = await JS.InvokeAsync<string>("getBrowserInfo");
+        var textWithBrowserInfo = FeedbackText + "\n\n--- Browser Information ---\n" + browserInfo;
+
         var feedback = new FeedbackModel
             {
-                Text = FeedbackText,
+                Text = textWithBrowserInfo,
                 Screenshot = IncludeScreenshot ? screenshotDataUrl : null
             };
 

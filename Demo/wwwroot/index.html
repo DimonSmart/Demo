@@ -67,6 +67,16 @@
                 return { width: 0, height: 0 };
             }
         }
+        window.getBrowserInfo = () => {
+            return JSON.stringify({
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                url: window.location.href,
+                screenWidth: screen.width,
+                screenHeight: screen.height
+            }, null, 2);
+        };
     </script>
     <script src="js/imageProcessing.js"></script>
     <script src="js/textFunctiones.js"></script>
