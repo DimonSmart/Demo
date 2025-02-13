@@ -5,6 +5,7 @@
 @using System.Text
 @using Demo.Services
 @using System.Text.RegularExpressions
+@using Markdig
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
 @inject UserPreferencesStorageService PreferencesStorage
 @inject PageTitleService PageTitleService
@@ -109,8 +110,6 @@
                 @if (ShowExplanation)
                 {
                     <div class="rule-description mt-3">
-                        <!-- Example stub in Markdown format -->
-                        <p><strong>Example Rule Explanation (Markdown Stub)</strong></p>
                         <p>@((MarkupString)RenderLocalizedText(currentQuestion.RuleDescription, currentQuestion.MainTerms))</p>
                     </div>
                 }
@@ -135,6 +134,9 @@
     private IReadOnlyCollection<QuestionItem> allQuestions = new List<QuestionItem>();
     const string ExamDataBaseAddress = @"https://DimonSmart.github.io/DGT/";
     const string ImagesBaseAddress = @"https://DimonSmart.github.io/DGT/images/";
+    private readonly MarkdownPipeline markdownPipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .Build();
 
     private bool IsLoading = true;
     private bool isCorrect;
@@ -217,27 +219,33 @@
         {
             var ruText = text.Russian;
             if (highlightTerms && questionTerms != null && questionTerms.Count > 0)
+            {
                 ruText = HighlightAllTerms(ruText, questionTerms, t => t.Russian);
-
-            sb.AppendLine($"<div class=\"language-line russian\">{ruText}</div>");
+            }
+            var html = Markdown.ToHtml(ruText, markdownPipeline);
+            sb.AppendLine($"<div class=\"language-line russian\">{html}</div>");
         }
 
         if (showSpanish && !string.IsNullOrWhiteSpace(text.Spanish))
         {
             var esText = text.Spanish;
             if (highlightTerms && questionTerms != null && questionTerms.Count > 0)
+            {
                 esText = HighlightAllTerms(esText, questionTerms, t => t.Spanish);
-
-            sb.AppendLine($"<div class=\"language-line spanish\">{esText}</div>");
+            }
+            var html = Markdown.ToHtml(esText, markdownPipeline);
+            sb.AppendLine($"<div class=\"language-line spanish\">{html}</div>");
         }
 
         if (showEnglish && !string.IsNullOrWhiteSpace(text.English))
         {
             var enText = text.English;
             if (highlightTerms && questionTerms != null && questionTerms.Count > 0)
+            {
                 enText = HighlightAllTerms(enText, questionTerms, t => t.English);
-
-            sb.AppendLine($"<div class=\"language-line english\">{enText}</div>");
+            }
+            var html = Markdown.ToHtml(enText, markdownPipeline);
+            sb.AppendLine($"<div class=\"language-line english\">{html}</div>");
         }
 
         return sb.ToString();
