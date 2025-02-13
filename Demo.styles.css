@@ -1,3 +1,287 @@
+/* /Components/BlackJackGameControls.razor.rz.scp.css */
+.controls-container[b-83omkrd7dt] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    padding: 10px;
+    background-color: #1e1e1e;
+    border-radius: 10px;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.casino-button[b-83omkrd7dt] {
+    padding: 10px 20px;
+    font-size: 1.2em;
+    border-radius: 8px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px #999;
+}
+
+    .casino-button:disabled[b-83omkrd7dt] {
+        background-color: grey;
+        cursor: not-allowed;
+    }
+
+    .casino-button:active[b-83omkrd7dt] {
+        background-color: #45a049;
+        box-shadow: 0 2px #666;
+        transform: translateY(2px);
+    }
+/* /Components/GameInfo.razor.rz.scp.css */
+.game-info-container[b-4ep9ga38q9] {
+    display: flex;
+    flex-direction: row; /* Change to row to layout elements in one row */
+    padding: 5px; /* Reduce padding for a more compact layout */
+    background-color: #f3f3f3;
+    border-radius: 8px;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
+    width: auto;
+    font-family: 'DejaVu Sans', sans-serif;
+}
+
+.info-item[b-4ep9ga38q9] {
+    display: flex;
+    flex-direction: column; /* Change to column to stack label and value */
+    justify-content: center; /* Center items vertically */
+    margin-right: 10px; /* Add space between items */
+    padding: 5px;
+    border-right: 1px solid #ddd; /* Add right border for separation */
+}
+
+.info-item:last-child[b-4ep9ga38q9] {
+    border-right: none; /* Remove right border for the last item */
+}
+
+.info-label[b-4ep9ga38q9] {
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 2px; /* Reduce margin for a more compact layout */
+}
+
+.info-value[b-4ep9ga38q9] {
+    font-weight: bold;
+    color: #000;
+}
+
+.badge[b-4ep9ga38q9] {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.badge-inactive[b-4ep9ga38q9] {
+    background-color: lightgray;
+}
+
+.badge-finished[b-4ep9ga38q9] {
+    background-color: #4caf50; /* Green */
+    color: white;
+}
+
+.badge-raised[b-4ep9ga38q9] {
+    background-color: #f44336; /* Red */
+    color: white;
+}
+/* /Components/PlayingCard.razor.rz.scp.css */
+/* Card container styling */
+.card[b-4hvch2jdxh] {
+    width: 125px;
+    height: 175px;
+    border: 1px solid #000;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    perspective: 1000px;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* Card inner wrapper */
+.card-inner[b-4hvch2jdxh] {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.25s ease;
+}
+
+.card.face-up .card-inner[b-4hvch2jdxh] {
+    transform: rotateY(180deg);
+}
+
+.card.face-down .card-inner[b-4hvch2jdxh] {
+    transform: rotateY(0deg);
+}
+
+.card-content[b-4hvch2jdxh],
+.card-back[b-4hvch2jdxh] {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    backface-visibility: hidden;
+    border-radius: 10px;
+}
+
+.card-back[b-4hvch2jdxh] {
+    background-size: cover;
+    background-position: center;
+    z-index: 1;
+}
+
+/* Front of the card (face-up) */
+.card-content[b-4hvch2jdxh] {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+    font-family: 'DejaVu Sans', sans-serif;
+    padding: 5px;
+    background-size: cover;
+    background-position: center;
+    transform: rotateY(180deg); /* Rotate front side initially */
+    z-index: 2;
+}
+
+/* Ranks and suits */
+.card-rank[b-4hvch2jdxh] {
+    font-size: 1.8em;
+    position: absolute;
+}
+
+    .card-rank.top-left[b-4hvch2jdxh] {
+        top: 5px;
+        left: 5px;
+    }
+
+    .card-rank.bottom-right[b-4hvch2jdxh] {
+        bottom: 5px;
+        right: 5px;
+        transform: rotate(180deg); /* Flip bottom rank */
+    }
+
+.card-suit[b-4hvch2jdxh] {
+    font-size: 2.5em;
+    color: red;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Background images */
+.card.face-down .card-back[b-4hvch2jdxh] {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350"><rect width="250" height="350" rx="15" ry="15" fill="%23ffffff" stroke="%23000000" stroke-width="2"/><rect width="240" height="340" x="5" y="5" rx="10" ry="10" fill="url(%23crisscross-pattern)" /><defs><pattern id="crisscross-pattern" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M0 0 L20 20 M20 0 L0 20" stroke="%23000000" stroke-width="1" /></pattern></defs></svg>');
+}
+
+.card.face-up .card-content[b-4hvch2jdxh] {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350"><rect width="250" height="350" rx="15" ry="15" fill="%23ffffff" stroke="%23000000" stroke-width="2"/></svg>');
+}
+/* /Components/PlayingHand.razor.rz.scp.css */
+.hand-container[b-c3paqsdhow] {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    background-color: #f3f3f3;
+    border-radius: 8px;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 1em;
+}
+
+.hand-info[b-c3paqsdhow] {
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    font-size: 1em;
+}
+
+.bet-label[b-c3paqsdhow] {
+    margin-left: auto;
+}
+
+.total-score[b-c3paqsdhow], .badge[b-c3paqsdhow] {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.total-score[b-c3paqsdhow] {
+    background-color: #007bff;
+    color: white;
+}
+
+.badge-active[b-c3paqsdhow] {
+    background-color: #007bff;
+}
+
+.badge-inactive[b-c3paqsdhow] {
+    background-color: lightgray;
+}
+
+.badge-busted[b-c3paqsdhow] {
+    background-color: #f44336;
+}
+
+.hand-cards[b-c3paqsdhow] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.game-result-container[b-c3paqsdhow] {
+    font-size: 0.75em;
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    justify-content: space-between;
+}
+
+.game-result-badge-positive[b-c3paqsdhow] {
+    background-color: #28a745;
+    color: white;
+}
+
+.game-result-badge-negative[b-c3paqsdhow] {
+    background-color: #dc3545;
+    color: white;
+}
+
+.game-result-text-positive[b-c3paqsdhow] {
+    background-color: #28a745;
+    color: white !important;
+}
+
+.game-result-text-negative[b-c3paqsdhow] {
+    background-color: #ffc107;
+    color: black !important;
+}
+
+/* /Components/Spinner.razor.rz.scp.css */
+.spinner[b-kur20noa6s] {
+    width: 24px;
+    height: 24px;
+    border: 4px solid rgba(0, 123, 255, 0.3);
+    border-top-color: #007bff;
+    border-radius: 50%;
+    animation: spin-b-kur20noa6s 1s linear infinite;
+    margin-left: 8px;
+}
+
+@keyframes spin-b-kur20noa6s {
+    to {
+        transform: rotate(360deg);
+    }
+}
 /* /Layout/MainLayout.razor.rz.scp.css */
 .page[b-j9gssnu9fd] {
     position: relative;
@@ -72,8 +356,8 @@ main[b-j9gssnu9fd] {
     }
 
     .top-row[b-j9gssnu9fd], article[b-j9gssnu9fd] {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
     }
 }
 /* /Layout/NavMenu.razor.rz.scp.css */
@@ -128,10 +412,8 @@ main[b-j9gssnu9fd] {
     .nav-item[b-i4gb6bolqe]  a {
         color: #d7d7d7;
         border-radius: 4px;
-        height: 3rem;
         display: flex;
-        align-items: center;
-        line-height: 3rem;
+        align-items: center;    
     }
 
 .nav-item[b-i4gb6bolqe]  a.active {
@@ -158,5 +440,274 @@ main[b-j9gssnu9fd] {
         /* Allow sidebar to scroll for tall menus */
         height: calc(100vh - 3.5rem);
         overflow-y: auto;
+    }
+}
+/* /Pages/MazeRunnerDemo.razor.rz.scp.css */
+.recorder-controls-container[b-cwzyoo08z5] {
+    margin-top: 20px;
+    text-align: center;
+    border: 1px solid #ccc;
+    padding: 12px;
+    border-radius: 6px;
+    background-color: #fafafa;
+}
+
+.recorder-controls[b-cwzyoo08z5] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.magneto-button[b-cwzyoo08z5] {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.15s ease;
+}
+
+.magneto-button:not(:disabled):hover[b-cwzyoo08z5] {
+    transform: scale(1.05);
+}
+
+.magneto-button:disabled[b-cwzyoo08z5] {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.record-button .icon[b-cwzyoo08z5] {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 3px solid #d9534f;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.record-button.record-ready .icon[b-cwzyoo08z5] {
+    background-color: transparent;
+}
+
+.record-button.record-active .icon[b-cwzyoo08z5] {
+    background-color: #d9534f;
+    box-shadow: 0 0 8px rgba(217, 83, 79, 0.5);
+}
+
+.record-button.record-stopping .icon[b-cwzyoo08z5] {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 3px solid #111;
+    background-color: #111;
+}
+
+.play-button[b-cwzyoo08z5] {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #2f6f2f;
+}
+
+.play-button .play-icon[b-cwzyoo08z5] {
+    font-size: 18px;
+    color: #2f6f2f;
+    line-height: 1;
+}
+
+.play-button:disabled .play-icon[b-cwzyoo08z5] {
+    color: #7a7a7a;
+}
+
+.frame-duration-label[b-cwzyoo08z5] {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.frame-duration-label input[b-cwzyoo08z5] {
+    width: 80px;
+    padding: 4px 6px;
+}
+
+.recording-indicator[b-cwzyoo08z5],
+.playback-indicator[b-cwzyoo08z5] {
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.95rem;
+}
+
+.recording-indicator[b-cwzyoo08z5] {
+    color: #d9534f;
+    font-weight: 600;
+}
+
+.playback-indicator[b-cwzyoo08z5] {
+    color: #2f6f2f;
+}
+
+.indicator-dot[b-cwzyoo08z5] {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #d9534f;
+    animation: recorder-pulse-b-cwzyoo08z5 1s ease-in-out infinite;
+}
+
+@keyframes recorder-pulse-b-cwzyoo08z5 {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.4);
+        opacity: 0.6;
+    }
+}
+/* /Pages/PdfCropperDemo.razor.rz.scp.css */
+.pdf-cropper-page[b-mo07e118hf] {
+    padding-bottom: 2rem;
+}
+
+.preview-grid[b-mo07e118hf] {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.preview-image[b-mo07e118hf] {
+    width: 100%;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.5rem;
+    background-color: #fff;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.08);
+    display: block;
+}
+
+.preview-placeholder[b-mo07e118hf],
+.preview-message[b-mo07e118hf] {
+    min-height: 280px;
+    border: 1px dashed var(--bs-border-color, #dee2e6);
+    border-radius: 0.5rem;
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.preview-message[b-mo07e118hf] {
+    border-style: solid;
+}
+
+.preview-placeholder .spinner-border[b-mo07e118hf] {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.processing-card[b-mo07e118hf] {
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.75rem;
+    background-color: #f8fbff;
+    padding: 1rem 1.25rem;
+}
+
+.progress-log[b-mo07e118hf] {
+    list-style: none;
+    padding-left: 1.25rem;
+}
+
+.progress-log li[b-mo07e118hf]::marker {
+    color: var(--bs-primary);
+}
+
+.stat-box[b-mo07e118hf] {
+    background-color: #f8f9fa;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    height: 100%;
+}
+
+.stat-label[b-mo07e118hf] {
+    font-size: 0.85rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.stat-value[b-mo07e118hf] {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.log-output[b-mo07e118hf] {
+    margin-top: 0.75rem;
+    max-height: 220px;
+    overflow-y: auto;
+    background-color: #1e1e1e;
+    color: #dcdcdc;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.results-list[b-mo07e118hf] {
+    display: flex;
+    flex-direction: column;
+}
+/* /Pages/Stringdiffdemo.razor.rz.scp.css */
+.stringdiff-container[b-vl03x21x07] {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 1rem;
+    max-height: 100%;
+}
+
+.stringdiff-textareas[b-vl03x21x07] {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+    min-height: 6em;
+}
+
+.stringdiff-textareas textarea[b-vl03x21x07] {
+    width: 50%;
+    height: 100%;
+    resize: none;
+    min-height: 3em;
+}
+
+.stringdiff-options[b-vl03x21x07] {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 640.98px) {
+    .stringdiff-textareas[b-vl03x21x07] {
+        flex-direction: column;
+    }
+
+    .stringdiff-textareas textarea[b-vl03x21x07] {
+        width: 100%;
+        height: 200px;
+        min-height: 3em;
     }
 }
