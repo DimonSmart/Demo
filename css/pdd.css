@@ -1,0 +1,500 @@
+﻿/* ------------------------------------------------------------------------
+   PDD PAGE STYLES
+   This file contains styles for the Spanish Driving Theory Test (PDD) page.
+   All class names are prefixed with "pdd-" to denote page-specific global styling.
+------------------------------------------------------------------------ */
+
+/* -------------------------
+   Top Navigation Bar (Header)
+   Purpose: Styles the header section which includes the navigation bar,
+            question ID, statistics, and control options.
+------------------------- */
+.pdd-top-nav-bar {
+    width: 100%;
+    background-color: #f9f9f9;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+}
+
+/* Fixed top navigation bar that stays in place when scrolling */
+.fixed-top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+/* Add padding to the content to prevent it from appearing under the fixed bar */
+.pdd-content {
+    padding-top: 10px;
+}
+
+/* Batch progress styling */
+.pdd-batch-progress {
+    margin-left: 20px;
+    color: #555;
+}
+
+/* Container for stats info and reset button */
+.pdd-stats-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Styling for reset button */
+.pdd-reset-button {
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    color: #333;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .pdd-reset-button:hover {
+        background-color: #e2e6ea;
+    }
+
+/* Container for question ID and statistics */
+.pdd-question-id-statistics {
+    display: flex;
+    gap: 20px;
+}
+
+/* Styling for question ID text and stats information */
+.pdd-question-id-text,
+.pdd-stats-info {
+    font-size: 1em;
+    color: #555;
+}
+
+/* Options container for toggles and selectors */
+.pdd-options {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Language selector container */
+.pdd-language-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Highlight toggle container */
+.pdd-highlight-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+/* -------------------------
+   Question Container
+   Purpose: Wraps the entire question block including question text, image,
+            and associated controls.
+------------------------- */
+.pdd-question-container {
+    margin-top: 10px;
+}
+
+.pdd-question-id-container {
+    flex-basis: 100%;
+    font-size: 1em;
+    color: #555;
+}
+
+
+/* -------------------------
+   Text and Image Section
+   Purpose: Layout for displaying the question text alongside an image.
+------------------------- */
+.pdd-question-text-and-image {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.pdd-question-image {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 640px) {
+    .pdd-question-text-and-image {
+        flex-direction: column;
+    }
+
+    .pdd-question-image {
+        max-width: 100%;
+        margin-top: 1rem;
+    }
+}
+
+
+/* -------------------------
+   Answers Section
+   Purpose: Styles for the list of answers including buttons, numbering,
+            and hover effects.
+------------------------- */
+.pdd-answers {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.pdd-answer-number {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 2em;
+    height: 2em;
+    background-color: #e6e6e6;
+    border-radius: 50%;
+    font-weight: bold;
+    color: #333;
+}
+
+.pdd-answer-text {
+    flex: 1 1 auto;
+}
+
+.pdd-answer-button {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 1rem;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 5px;
+}
+
+    /* Hover effect for answer buttons */
+    .pdd-answer-button:hover {
+        background-color: #e9ecef;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    }
+
+
+/* -------------------------
+   Language Blocks
+   Purpose: Styles for multi-language text sections. Each block displays
+            language-specific content with a title.
+------------------------- */
+.pdd-language-block {
+    margin-bottom: 0px;
+}
+
+    .pdd-language-block p {
+        margin-bottom: 5px;
+    }
+
+    .pdd-language-block.pdd-russian {
+        color: #002200;
+    }
+
+    .pdd-language-block.pdd-spanish {
+        color: maroon;
+    }
+
+    .pdd-language-block.pdd-english {
+        color: black;
+    }
+
+/* Separator line between different language blocks */
+.pdd-language-separator {
+    border: none;
+    border-top: 2px solid #aaa;
+    margin: 0px 0;
+}
+
+/* -------------------------
+   Feedback Messages
+   Purpose: Styles for feedback messages, including success and error
+            notifications with a fade-in-out animation.
+------------------------- */
+@keyframes pdd-fadeInOut {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.1);
+    }
+}
+
+.pdd-feedback {
+    display: inline-block;
+    padding: 10px 20px;
+    margin-top: 15px;
+    border-radius: 5px;
+    animation: pdd-fadeInOut 1.5s ease-in-out;
+}
+
+.pdd-text-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.pdd-text-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.pdd-correct-answer {
+    border: 2px solid green;
+}
+
+.pdd-incorrect-answer {
+    border: 2px solid red;
+}
+
+
+/* -------------------------
+   Loading Bar
+   Purpose: Provides a visual loading indicator during data fetch or
+            processing operations.
+------------------------- */
+.pdd-loading-bar-container {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    background-color: #f3f3f3;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.pdd-loading-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 20%;
+    height: 100%;
+    background-color: #007bff;
+    animation: pdd-slide 2s linear infinite;
+}
+
+@keyframes pdd-slide {
+    0% {
+        left: -20%;
+    }
+
+    100% {
+        left: 100%;
+    }
+}
+
+
+/* -------------------------
+   Language Lines
+   Purpose: Styles for individual language line items within content blocks,
+            including decorative bullet points.
+------------------------- */
+.pdd-language-line {
+    margin-bottom: 8px;
+    position: relative;
+}
+
+    .pdd-language-line::before {
+        content: "• ";
+        color: darkblue;
+    }
+
+    .pdd-language-line.russian {
+        color: darkgreen;
+    }
+
+    .pdd-language-line.spanish {
+        color: maroon;
+    }
+
+    .pdd-language-line.english {
+        color: black;
+    }
+
+
+/* -------------------------
+   Explanation Button
+   Purpose: Styles for the Show/Hide explanation button to make it look like a link
+------------------------- */
+.pdd-btn-show-explanation {
+    background: none;
+    border: none;
+    color: #0066cc;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    margin-top: 10px;
+    display: inline-block;
+}
+
+    .pdd-btn-show-explanation:hover {
+        text-decoration: underline;
+    }
+
+    .pdd-btn-show-explanation:focus {
+        outline: thin dotted;
+        color: #0056b3;
+    }
+
+/* -------------------------
+   Page Container
+   Purpose: Defines the main container for the page layout.
+------------------------- */
+.pdd-page-container {
+    position: relative;
+}
+
+    .pdd-page-container:focus {
+        outline: none;
+    }
+
+.pdd-image-container {
+    position: relative;
+    width: 220px;
+    height: auto;
+    flex-shrink: 1;
+    margin-right: 0;
+}
+
+.pdd-question-id {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    z-index: 1;
+}
+
+.pdd-question-image {
+    width: 100%; /* 100% ширины контейнера */
+    height: auto; /* Высота подстраивается автоматически */
+    max-width: 220px; /* Соответствует ширине контейнера */
+    border-radius: 8px;
+    border: 3px solid #cccccc; /* Default gray border for all images */
+    box-shadow: 0 0 0 1px rgba(204, 204, 204, 0.5);
+    box-sizing: border-box; /* Ensure border is included in element dimensions */
+    margin: 0;
+    padding: 0;
+    display: block; /* Consistent display behavior */
+}
+
+/* -------------------------
+   Language Selection and Translation
+   Purpose: Styles for the new language selection approach with translation buttons
+------------------------- */
+.primary-language-dropdown {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+    background-color: #fff;
+    font-size: 0.9rem;
+}
+
+.primary-language-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.primary-language-selector label {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.pdd-translation-buttons {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 5px;
+    justify-content: flex-end;
+}
+
+.pdd-trans-btn {
+    padding: 2px 6px;
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    color: #666;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.pdd-trans-btn:hover {
+    background-color: #e9ecef;
+}
+
+.pdd-translation-content {
+    display: none;
+    padding-left: 0.5rem;
+    border-left: 3px solid #dee2e6;
+    background-color: #f8f9fa;
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
+}
+
+.pdd-translation-content.show {
+    display: block;
+}
+
+/* Styling for language blocks */
+.pdd-language-block {
+    margin-bottom: 10px;
+    position: relative;
+}
+
+/* Different styling for each language */
+.pdd-spanish {
+    color: #333;
+}
+
+.pdd-english {
+    color: #333;
+}
+
+.pdd-russian {
+    color: #333;
+}
+
+/* When shown as translation, use lighter styling */
+.pdd-translation-content.pdd-spanish,
+.pdd-translation-content.pdd-english,
+.pdd-translation-content.pdd-russian {
+    color: #666;
+}

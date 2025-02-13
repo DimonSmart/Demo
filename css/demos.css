@@ -1,0 +1,51 @@
+﻿:root {
+    --gap-size: 20px;
+    --global-margin-top: 20px;
+}
+
+.settings-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--gap-size);
+    margin-bottom: 1em;
+}
+
+.slider-label {
+    display: flex;
+    align-items: center;
+    white-space: nowrap; /* Prevents wrapping and ensures label and slider are on the same line */
+}
+
+.value-display {
+    display: inline-block;
+    width: 3em; /* Enough space to accommodate '100%' */
+    text-align: right;
+}
+
+.margin-right {
+    margin-right: 20px;
+}
+
+.page-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 3.5rem); /* Height minus top navbar */
+    min-height: max(100px, calc(100vh - 3.5rem));
+    padding: 1rem;
+    margin: 0;
+    overflow-y: auto;
+}
+
+.maze-runner-container {
+    flex-direction: row;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 640.98px) {
+    .page-container {
+        height: auto;
+        min-height: calc(100vh - 3.5rem);
+    }
+}
+
