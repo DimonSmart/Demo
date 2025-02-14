@@ -11,6 +11,15 @@
         gtag('config', 'G-DSFDP06PSM');
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha256-6H5VB5QyLldKH9oMFUmjxw2uWpPZETQXpCkBaDjquMs=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        window.computeMD5Bytes = function (byteArray) {
+            var u8arr = new Uint8Array(byteArray);
+            var wordArray = CryptoJS.lib.WordArray.create(u8arr);
+            var md5 = CryptoJS.MD5(wordArray);
+            return md5.toString();
+        }
+    </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Demo</title>
@@ -21,7 +30,7 @@
     <link rel="stylesheet" href="css/demos.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carter+One&display=swap">
-    <link rel="stylesheet" href="Demo.styles.css"  />
+    <link rel="stylesheet" href="Demo.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
 </head>
 

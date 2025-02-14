@@ -1,8 +1,10 @@
 using Blazored.LocalStorage;
 using BlazorImageProcessing;
 using Demo;
+using Demo.Demos.HashX;
 using Demo.Demos.Pdd;
 using Demo.Services;
+using DimonSmart.Hash.Interfaces;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
@@ -16,7 +18,10 @@ builder.Services.AddScoped<BrowserService>();
 builder.Services.AddScoped<ImageProcessingService>();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
-// builder.Services.AddBlazoredLocalStorage();
+// Hash demo
+builder.Services.AddScoped<IHashAlgorithm, JsMd5Algorithm>();
+
+// Pdd demo
 builder.Services.AddScoped<CardStorageService>();
 builder.Services.AddScoped<UserPreferencesStorageService>();
 

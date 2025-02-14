@@ -6,6 +6,7 @@
 @using Demo.Services
 @using GeneticAlgorithm.GeneralGenetic
 @inject PageTitleService PageTitleService
+@inject IHashAlgorithm Md5Algorithm
 
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>HashX Research</PageTitle>
@@ -239,7 +240,7 @@
     {
         _resultAssignmentMap = new Dictionary<Type, Action<UniqueCalculationResult>>
         {
-            { typeof(Md5WebAssemblyAdaptedHashAlgorithm), result => _md5CalculationResult = result },
+            { typeof(JsMd5Algorithm), result => _md5CalculationResult = result },
             { typeof(Sha1HashAlgorithm), result => _sha1CalculationResult = result },
             { typeof(ZeroHashAlgorithm), result => _zeroCalculationResult = result },
             { typeof(XorHash), result => _xorCalculationResult = result }
@@ -261,7 +262,7 @@
 
         if (_md5Selected)
         {
-            await ProcessHashAsync(new Md5WebAssemblyAdaptedHashAlgorithm(), fileData.Data, bufferSize, cancellationToken);
+            await ProcessHashAsync(Md5Algorithm, fileData.Data, bufferSize, cancellationToken);
         }
 
         if (_sha1Selected)
