@@ -6,7 +6,7 @@
 @using DimonSmart.MazeGenerator
 @inject PageTitleService PageTitleService
 
-@inherits MazeBaseComponent
+@inherits MazeBaseComponent<MazeCellModel>
 
 @implements IMazePlotter
 
@@ -54,7 +54,11 @@
 
         @if (_maze != null)
         {
-            <MazeDisplay Maze="_maze" />
+            <MazeDisplay TCell="MazeCellModel" Maze="_maze">
+                <CellTemplate Context="cell">
+                    <MazeCell X="@cell.X" Y="@cell.Y" Cell="@cell.Cell" />
+                </CellTemplate>
+            </MazeDisplay>
         }
 
     </section>
@@ -75,7 +79,7 @@
         CancelGeneration();
         var options = new MazeBuildOptions(WallShortness / 100, Emptiness / 100.0);
         _maze = new Maze<MazeCellModel>(XSize, YSize);
-        var mazeBuilder = new MazeBuilder(_maze, options);
+        var mazeBuilder = new MazeBuilder<MazeCellModel>(_maze, options);
         await mazeBuilder.BuildAsync(this, CancellationTokenSource.Token);
         StateHasChanged();
         _generationInProgress = false;
