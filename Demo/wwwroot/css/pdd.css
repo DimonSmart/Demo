@@ -1,0 +1,312 @@
+﻿/* ------------------------------------------------------------------------
+   PDD PAGE STYLES
+   This file contains styles for the Spanish Driving Theory Test (PDD) page.
+   All class names are prefixed with "pdd-" to denote page-specific global styling.
+------------------------------------------------------------------------ */
+
+/* -------------------------
+   Top Navigation Bar (Header)
+   Purpose: Styles the header section which includes the navigation bar,
+            question ID, statistics, and control options.
+------------------------- */
+.pdd-top-nav-bar {
+    width: 100%;
+    background-color: #f9f9f9;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+}
+
+/* Container for question ID and statistics */
+.pdd-question-id-statistics {
+    display: flex;
+    gap: 20px;
+}
+
+/* Styling for question ID text and stats information */
+.pdd-question-id-text,
+.pdd-stats-info {
+    font-size: 1em;
+    color: #555;
+}
+
+/* Options container for toggles and selectors */
+.pdd-options {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Language selector container */
+.pdd-language-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Highlight toggle container */
+.pdd-highlight-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+/* -------------------------
+   Question Container
+   Purpose: Wraps the entire question block including question text, image,
+            and associated controls.
+------------------------- */
+.pdd-question-container {
+    margin-top: 10px;
+}
+
+.pdd-question-id-container {
+    flex-basis: 100%;
+    font-size: 1em;
+    color: #555;
+}
+
+
+/* -------------------------
+   Text and Image Section
+   Purpose: Layout for displaying the question text alongside an image.
+------------------------- */
+.pdd-question-text-and-image {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.pdd-question-image {
+    max-width: 25%;
+    min-width: 300px;
+}
+
+.pdd-question-text {
+    font-size: 1em;
+    font-weight: normal;
+    min-width: 300px;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 640px) {
+    .pdd-question-text-and-image {
+        flex-direction: column;
+    }
+
+    .pdd-question-image {
+        max-width: 100%;
+        margin-top: 1rem;
+    }
+}
+
+
+/* -------------------------
+   Answers Section
+   Purpose: Styles for the list of answers including buttons, numbering,
+            and hover effects.
+------------------------- */
+.pdd-answers {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.pdd-answer-number {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 2em;
+    height: 2em;
+    background-color: #e6e6e6;
+    border-radius: 50%;
+    font-weight: bold;
+    color: #333;
+}
+
+.pdd-answer-text {
+    flex: 1 1 auto;
+}
+
+.pdd-answer-button {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 1rem;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+    /* Hover effect for answer buttons */
+    .pdd-answer-button:hover {
+        background-color: #e2e6ea;
+    }
+
+
+/* -------------------------
+   Language Blocks
+   Purpose: Styles for multi-language text sections. Each block displays
+            language-specific content with a title.
+------------------------- */
+.pdd-language-block {
+    margin-bottom: 0px;
+}
+
+    .pdd-language-block p {
+        margin-bottom: 5px;
+    }
+
+    .pdd-language-block.pdd-russian {
+        color: #002200;
+    }
+
+    .pdd-language-block.pdd-spanish {
+        color: maroon;
+    }
+
+    .pdd-language-block.pdd-english {
+        color: navy;
+    }
+
+/* Separator line between different language blocks */
+.pdd-language-separator {
+    border: none;
+    border-top: 2px solid #aaa;
+    margin: 0px 0;
+}
+
+/* -------------------------
+   Feedback Messages
+   Purpose: Styles for feedback messages, including success and error
+            notifications with a fade-in-out animation.
+------------------------- */
+@keyframes pdd-fadeInOut {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.1);
+    }
+}
+
+.pdd-feedback {
+    display: inline-block;
+    padding: 10px 20px;
+    margin-top: 15px;
+    border-radius: 5px;
+    animation: pdd-fadeInOut 1.5s ease-in-out;
+}
+
+.pdd-text-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.pdd-text-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.pdd-correct-answer {
+    border: 2px solid green;
+}
+
+.pdd-incorrect-answer {
+    border: 2px solid red;
+}
+
+
+/* -------------------------
+   Loading Bar
+   Purpose: Provides a visual loading indicator during data fetch or
+            processing operations.
+------------------------- */
+.pdd-loading-bar-container {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    background-color: #f3f3f3;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.pdd-loading-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 20%;
+    height: 100%;
+    background-color: #007bff;
+    animation: pdd-slide 2s linear infinite;
+}
+
+@keyframes pdd-slide {
+    0% {
+        left: -20%;
+    }
+
+    100% {
+        left: 100%;
+    }
+}
+
+
+/* -------------------------
+   Language Lines
+   Purpose: Styles for individual language line items within content blocks,
+            including decorative bullet points.
+------------------------- */
+.pdd-language-line {
+    margin-bottom: 8px;
+    position: relative;
+}
+
+    .pdd-language-line::before {
+        content: "• ";
+        color: darkblue;
+    }
+
+    .pdd-language-line.russian {
+        color: darkgreen;
+    }
+
+    .pdd-language-line.spanish {
+        color: maroon;
+    }
+
+    .pdd-language-line.english {
+        color: navy;
+    }
+
+
+/* -------------------------
+   Page Container
+   Purpose: Defines the main container for the page layout.
+------------------------- */
+.pdd-page-container {
+    position: relative;
+}
+
+    .pdd-page-container:focus {
+        outline: none;
+    }
