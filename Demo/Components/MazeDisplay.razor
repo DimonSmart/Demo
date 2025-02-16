@@ -1,4 +1,6 @@
 ﻿@using DimonSmart.MazeGenerator
+@typeparam TCell where TCell : ICell
+
 
 @if (Maze != null)
 {
@@ -7,7 +9,12 @@
         {
             for (var x = 0; x < Maze.Width; x++)
             {
-                <MazeCell X="x" Y="y" Cell="@Maze[x, y]" OnCellClick="HandleCellClick" />
+                @CellTemplate(new CellContext<TCell>
+                   {
+                       X = x,
+                       Y = y,
+                       Cell = Maze[x, y]
+                   })
             }
         }
     </div>

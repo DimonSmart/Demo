@@ -12,11 +12,12 @@
 @inject CardStorageService CardStorage
 @inject HttpClient HttpClient
 
+<link rel="stylesheet" href="css/pdd.css" />
 <link rel="stylesheet" href="css/demos.css" />
 
 <PageTitle>Practice DGT Spanish Driving Theory Test</PageTitle>
 
-<div class="page-container"
+<div class="pdd-page-container"
      @onkeydown="HandleKeyDown"
      @onpointerdown="HandlePointerDown"
      @onpointerup="HandlePointerUp"
@@ -25,25 +26,25 @@
     @if (IsLoading)
     {
         <div>Please wait. Exam data is loading (around 10 seconds)</div>
-        <div class="loading-bar-container">
-            <div class="loading-bar"></div>
+        <div class="pdd-loading-bar-container">
+            <div class="pdd-loading-bar"></div>
         </div>
     }
     else if (currentQuestion != null)
     {
-        <div class="top-nav-bar">
-            <div class="question-id-statistics">
+        <div class="pdd-top-nav-bar">
+            <div class="pdd-question-id-statistics">
                 @if (currentQuestion != null)
                 {
-                    <span class="question-id-text">Id: @(currentQuestion.Id)</span>
+                    <span class="pdd-question-id-text">Id: @(currentQuestion.Id)</span>
                 }
-                <span class="stats-info" title="Question treated as studied if answered correctly 3 times in a row">
+                <span class="pdd-stats-info" title="Question treated as studied if answered correctly 3 times in a row">
                     Studied: @(questionQueue.LearnedQuestionCount)/@(questionQueue.TotalQuestionCount)
                 </span>
             </div>
 
-            <div class="options">
-                <div class="highlight-toggle">
+            <div class="pdd-options">
+                <div class="pdd-highlight-toggle">
                     <input type="checkbox"
                            id="highlightTermsToggle"
                            checked="@highlightTerms"
@@ -54,7 +55,7 @@
                         Terms
                     </label>
                 </div>
-                <div class="language-selector">
+                <div class="pdd-language-selector">
                     <LanguageSelector ShowRussian="@showRussian"
                                       ShowSpanish="@showSpanish"
                                       ShowEnglish="@showEnglish"
@@ -64,17 +65,17 @@
             </div>
         </div>
 
-        <div class="question-container">
+        <div class="pdd-question-container">
 
-            <div class="question-text-and-image">
+            <div class="pdd-question-text-and-image">
                 @if (currentQuestion!.Img)
                 {
                     <img src="@Path.Combine(ImagesBaseAddress,$"{currentQuestion.Id}.jpg")"
-                         class="question-image"
+                         class="pdd-question-image"
                          style="object-fit: scale-down" />
                 }
 
-                <div class="question-text">
+                <div class="pdd-question-text">
                     @((MarkupString)RenderLocalizedText(
                         currentQuestion.LocalizedQuestionText,
                         currentQuestion.MainTerms
@@ -82,14 +83,14 @@
                 </div>
             </div>
 
-            <div class="answers">
+            <div class="pdd-answers">
                 @foreach (var (answer, index) in currentQuestion.Answers.Select((a, i) => (a, i)))
                 {
-                    <button class="answer-button @(GetAnswerCssClass(answer))"
+                    <button class="pdd-answer-button @(GetAnswerCssClass(answer))"
                             @onclick="() => AnswerQuestion(answer)"
                             disabled="@hasAnswered">
-                        <div class="answer-number">@((index + 1))</div>
-                        <div class="answer-text">
+                        <div class="pdd-answer-number">@((index + 1))</div>
+                        <div class="pdd-answer-text">
                             @((MarkupString)RenderLocalizedText(
                                 answer.LocalizedAnswerText,
                                 currentQuestion.MainTerms
@@ -103,13 +104,13 @@
            || !string.IsNullOrEmpty(currentQuestion?.RuleDescription?.Russian)
            || !string.IsNullOrEmpty(currentQuestion?.RuleDescription?.Spanish))
             {
-                <button class="btn-show-explanation" @onclick="ToggleExplanation">
+                <button class="pdd-btn-show-explanation" @onclick="ToggleExplanation">
                     @((ShowExplanation ? "Hide" : "Show") + " explanation")
                 </button>
 
                 @if (ShowExplanation)
                 {
-                    <div class="rule-description mt-3">
+                    <div class="pdd-rule-description mt-3">
                         <p>@((MarkupString)RenderLocalizedText(currentQuestion.RuleDescription, currentQuestion.MainTerms))</p>
                     </div>
                 }
@@ -214,42 +215,55 @@
     private string RenderLocalizedText(LocalizedText text, List<LocalizedText>? questionTerms = null)
     {
         var sb = new StringBuilder();
+        bool firstBlock = true;
+
+        void AppendWithSeparator(string languageClass, string title, string content)
+        {
+            if (highlightTerms && questionTerms != null && questionTerms.Any())
+            {
+                if (languageClass == "pdd-russian")
+                {
+                    content = HighlightAllTerms(content, questionTerms, term => term.Russian);
+                }
+                else if (languageClass == "pdd-spanish")
+                {
+                    content = HighlightAllTerms(content, questionTerms, term => term.Spanish);
+                }
+                else if (languageClass == "pdd-english")
+                {
+                    content = HighlightAllTerms(content, questionTerms, term => term.English);
+                }
+            }
+
+            if (!firstBlock)
+            {
+                sb.AppendLine("<hr class='pdd-language-separator' />");
+            }
+            sb.AppendLine($"<div class='pdd-language-block {languageClass}'>");
+            sb.AppendLine(Markdown.ToHtml(content, markdownPipeline));
+            sb.AppendLine("</div>");
+            firstBlock = false;
+        }
+
 
         if (showRussian && !string.IsNullOrWhiteSpace(text.Russian))
         {
-            var ruText = text.Russian;
-            if (highlightTerms && questionTerms != null && questionTerms.Count > 0)
-            {
-                ruText = HighlightAllTerms(ruText, questionTerms, t => t.Russian);
-            }
-            var html = Markdown.ToHtml(ruText, markdownPipeline);
-            sb.AppendLine($"<div class=\"language-line russian\">{html}</div>");
+            AppendWithSeparator("pdd-russian", "Русский", text.Russian);
         }
 
         if (showSpanish && !string.IsNullOrWhiteSpace(text.Spanish))
         {
-            var esText = text.Spanish;
-            if (highlightTerms && questionTerms != null && questionTerms.Count > 0)
-            {
-                esText = HighlightAllTerms(esText, questionTerms, t => t.Spanish);
-            }
-            var html = Markdown.ToHtml(esText, markdownPipeline);
-            sb.AppendLine($"<div class=\"language-line spanish\">{html}</div>");
+            AppendWithSeparator("pdd-spanish", "Español", text.Spanish);
         }
 
         if (showEnglish && !string.IsNullOrWhiteSpace(text.English))
         {
-            var enText = text.English;
-            if (highlightTerms && questionTerms != null && questionTerms.Count > 0)
-            {
-                enText = HighlightAllTerms(enText, questionTerms, t => t.English);
-            }
-            var html = Markdown.ToHtml(enText, markdownPipeline);
-            sb.AppendLine($"<div class=\"language-line english\">{html}</div>");
+            AppendWithSeparator("pdd-english", "English", text.English);
         }
 
         return sb.ToString();
     }
+
 
     private async Task OnHighlightTermsChanged(ChangeEventArgs e)
     {
@@ -403,7 +417,7 @@
         if (userSelectedAnswer == null)
             return string.Empty;
         if (userSelectedAnswer == answer)
-            return answer.IsCorrect ? "correct-answer" : "incorrect-answer";
+            return answer.IsCorrect ? "pdd-correct-answer" : "pdd-incorrect-answer";
         if (!userSelectedAnswer.IsCorrect && answer.IsCorrect)
             return "correct-answer";
         return string.Empty;
