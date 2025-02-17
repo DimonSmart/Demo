@@ -1,0 +1,57 @@
+﻿@page "/mazerunnerdemo"
+
+@using Demo.Components
+@using Demo.Demos.MazeRunner
+@using Demo.Services
+@using DimonSmart.MazeGenerator
+@inject PageTitleService PageTitleService
+
+@implements IMazePlotter
+
+<link rel="stylesheet" href="css/demos.css" />
+<PageTitle>Maze Generator Demo</PageTitle>
+
+<div class="page-container">
+    <section id="mazegeneratordemoid">
+        @if (_maze != null)
+        {
+            <CascadingValue Value="_maze.Robot">
+                <MazeDisplay TCell="MazeRunnerCellModel" Maze="_maze">
+                    <CellTemplate Context="cell">
+                        <MazeRunnerCell X="@cell.X" Y="@cell.Y" Cell="@cell.Cell" />
+                    </CellTemplate>
+                </MazeDisplay>
+            </CascadingValue>
+        }
+
+    </section>
+</div>
+@code {
+    protected int XSize = 9;
+    protected int YSize = 9;
+    protected MazeRunnerMaze? _maze;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        PageTitleService.SetTitle("Maze runner");
+        GenerateMazeAsync();
+    }
+
+    protected void GenerateMazeAsync()
+    {
+        _maze = new MazeRunnerMaze(XSize, YSize);
+        var mazeBuilder = new MazeBuilder<MazeRunnerCellModel>(_maze);
+        mazeBuilder.Build(this, CancellationToken.None);
+        StateHasChanged();
+    }
+
+    private string GetCellColor(int x, int y) => _maze?.IsWall(x, y) ?? false ? "black" : "white";
+
+    public async Task PlotWallAsync(int x, int y)
+    {
+        StateHasChanged();
+        var delay = TimeSpan.FromMilliseconds(50);
+        await Task.Delay(delay);
+    }
+}
