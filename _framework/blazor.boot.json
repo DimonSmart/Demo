@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "Demo",
   "resources": {
-    "hash": "sha256-UMjFb8oZSusdg2StSZ9uXQajbsABueg+/3BSsQdHYY4=",
+    "hash": "sha256-mcypTanr3bHR+HpUCnuSNscBHFFT5bz+xqzb418FzmE=",
     "jsModuleNative": {
       "dotnet.native.8.0.13.2lncmhx7la.js": "sha256-mEPuUvjFDFe+aGbqF5fxdKzsBpeb04T+r8YNNchkIyY="
     },
@@ -9,7 +9,7 @@
       "dotnet.runtime.8.0.13.u06gzb76dq.js": "sha256-13vqU3hueOALvSTEM8xnJkJj2exVJYtNc1KZelMCDf0="
     },
     "wasmNative": {
-      "dotnet.native.wasm": "sha256-lh7V8QKraKvGrUl6xX/H4bPul/M32j2vkw68eNKI/n8="
+      "dotnet.native.wasm": "sha256-pVC5w5gtVzJycofIwMKYQvRyxnJJBnDydKAzEoPUjqE="
     },
     "icu": {
       "icudt_CJK.dat": "sha256-SZLtQnRc0JkwqHab0VUVP7T3uBPSeYzxzDnpxPpUnHk=",
@@ -19,12 +19,12 @@
     "assembly": {
       "Blazor.Canvas.wasm": "sha256-T4ZgGnBBqgFn7l9BvL+qKQ2iaa4XQcYzJtX0D9NLX2U=",
       "Blazored.LocalStorage.wasm": "sha256-OaMAAd5n7ORfyur5e3QIyEVKJ76MKIvwbg7/icnnYcU=",
-      "Demo.wasm": "sha256-Ko2ljDI0FToXC7epu5lPDWCO3RwukAi7OyY1x2d1/qE=",
+      "Demo.wasm": "sha256-02hS6MihqITLVMC3WP+3ZHXWKM/s/8HlhAWgHF6YakQ=",
       "DimonSmart.HashX.wasm": "sha256-GWbxNAvpJtxUlRfaqRw2Lgksx+9CYEfaRD5icDhoi8U=",
-      "DimonSmart.MazeGenerator.wasm": "sha256-QaCdWK1IG/EG1kX6XUdpAuhdG124VTUja4zAAD5aZRs=",
+      "DimonSmart.MazeGenerator.wasm": "sha256-shBkkKCYU9BWBHWfepJGz3YWWvdO1EOOhYsGsaeqkZM=",
       "DimonSmart.StringDiff.wasm": "sha256-ylnqITjBt/njOQb7blhQm53zDBM2Q6o6HHmLdTnbCFk=",
       "Excubo.Generators.Blazor.Attributes.wasm": "sha256-qVC+LIPC1NiSLnwtgPgDy8x2ViPcFHEh0j+pB1GfDyk=",
-      "GeneticAlgorithm.wasm": "sha256-+INKjh0r1Sw+erC5RImDjgaCEIxRc1vqeyhkgNGgjKI=",
+      "GeneticAlgorithm.wasm": "sha256-5MyMuG9O+EsWzZhKJ+dstIgFJpDFD9LbUeyDZXb5BtI=",
       "Markdig.wasm": "sha256-V7WFz4XftG6+734nZ8uJxyKkj9foEXU75ujInDD+VWk=",
       "Microsoft.AspNetCore.Components.wasm": "sha256-rG5Hk4ohIVgXDm2DqQ/EyT0sGxBKF0u8nfutieQztEw=",
       "Microsoft.AspNetCore.Components.Web.wasm": "sha256-YtZajVMueqbdcs48CcXV/GwaN3CExRYN6AtHUJwuyFQ=",
