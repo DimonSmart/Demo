@@ -27,7 +27,7 @@ else
 
 @code {
     [Parameter]
-    public IMaze? Maze { get; set; }
+    public IMaze<TCell>? Maze { get; set; }
 
     [Parameter]
     public EventCallback<(int X, int Y, string Button)> OnMazeCellClick { get; set; }
