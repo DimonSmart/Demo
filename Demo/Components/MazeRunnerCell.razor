@@ -1,0 +1,60 @@
+﻿@using Demo.Demos.MazeRunner
+@using Demo.Demos.TSM
+@using DimonSmart.MazeGenerator
+
+<div style="position: relative; width: 20px; height: 20px; background-color: @(GetBackgroundColor());
+    font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1;"
+     @onclick="HandleLeftClick" @oncontextmenu:preventDefault @oncontextmenu="HandleRightClick">
+    @GetCellContent()
+
+    @* Overlay robot icon if this cell contains the robot *@
+    @if (Robot != null && Robot.X == X && Robot.Y == Y)
+    {
+        <span style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                     display: flex; align-items: center; justify-content: center; pointer-events: none;">
+            🤖
+        </span>
+    }
+</div>
+
+@code {
+    [Parameter] public int X { get; set; }
+    [Parameter] public int Y { get; set; }
+    [Parameter] public MazeRunnerCellModel Cell { get; set; } = null!;
+    [Parameter] public EventCallback<(int X, int Y, string Button)> OnCellClick { get; set; }
+
+    // Cascading parameter for the Robot instance
+    [CascadingParameter] public Robot? Robot { get; set; }
+
+    private string GetCellContent()
+    {
+        if (Cell.IsApple())
+        {
+            return "🍎"; // Red apple
+        }
+        if (Cell.IsPear())
+        {
+            return "🍐"; // Green pear
+        }
+        return string.Empty;
+    }
+
+    private string GetBackgroundColor()
+    {
+        return Cell?.IsWall() ?? false ? "black" : "white";
+    }
+
+    private async Task HandleLeftClick(MouseEventArgs e)
+    {
+        if (!OnCellClick.HasDelegate)
+            return;
+        await OnCellClick.InvokeAsync((X, Y, "left"));
+    }
+
+    private async Task HandleRightClick(MouseEventArgs e)
+    {
+        if (!OnCellClick.HasDelegate)
+            return;
+        await OnCellClick.InvokeAsync((X, Y, "right"));
+    }
+}
