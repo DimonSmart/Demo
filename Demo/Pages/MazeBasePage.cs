@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace Demo.Pages;
 
-public abstract class MazeBaseComponent : ComponentBase
+public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICell
 {
     [Inject]
     public required BrowserService BrowserService { get; set; }
@@ -67,7 +67,7 @@ public abstract class MazeBaseComponent : ComponentBase
 
     protected bool IsSlowVisualization { get; set; }
 
-    protected IMaze? _maze;
+    protected IMaze<TCell>? _maze;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

@@ -6,7 +6,7 @@
 @using DimonSmart.MazeGenerator
 @inject PageTitleService PageTitleService
 
-@inherits MazeBaseComponent
+@inherits MazeBaseComponent<MazeCellModel>
 
 @implements IMazePlotter
 
@@ -79,7 +79,7 @@
         CancelGeneration();
         var options = new MazeBuildOptions(WallShortness / 100, Emptiness / 100.0);
         _maze = new Maze<MazeCellModel>(XSize, YSize);
-        var mazeBuilder = new MazeBuilder(_maze, options);
+        var mazeBuilder = new MazeBuilder<MazeCellModel>(_maze, options);
         await mazeBuilder.BuildAsync(this, CancellationTokenSource.Token);
         StateHasChanged();
         _generationInProgress = false;
