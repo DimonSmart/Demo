@@ -7,7 +7,7 @@
 
 @inject PageTitleService PageTitleService
 
-@inherits MazeBaseComponent
+@inherits MazeBaseComponent<MazeCellModel>
 
 @implements IWavePlotter
 @implements IPathPlotter
@@ -88,7 +88,7 @@
         CancelGeneration();
         var options = new DimonSmart.MazeGenerator.MazeBuildOptions(WallShortness / 100, Emptiness / 100.0);
         _maze = new Maze<MazeCellModel>(XSize, YSize);
-        var mazeBuilder = new MazeBuilder(_maze, options);
+        var mazeBuilder = new MazeBuilder<MazeCellModel>(_maze, options);
         await mazeBuilder.BuildAsync(null, CancellationTokenSource.Token);
         StateHasChanged();
         _generationInProgress = false;
@@ -148,7 +148,7 @@
         if (_startPoint == null || _endPoint == null) return;
         CancelGeneration();
         ClearWave();
-        var waveGenerator = new MazeWaveGenerator(_maze, this);
+        var waveGenerator = new MazeWaveGenerator<MazeCellModel>(_maze, this);
         var wave = await waveGenerator
             .GenerateWaveAsync(_startPoint.Value.X, _startPoint.Value.Y, _endPoint.Value.X, _endPoint.Value.Y, CancellationTokenSource.Token);
         if (wave.EndPoint != null)

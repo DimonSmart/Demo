@@ -13,7 +13,7 @@
                    {
                        X = x,
                        Y = y,
-                       Cell = (TCell)Maze[x, y]
+                       Cell = Maze[x, y]
                    })
             }
         }
@@ -27,7 +27,7 @@ else
 
 @code {
     [Parameter]
-    public IMaze? Maze { get; set; }
+    public IMaze<TCell>? Maze { get; set; }
 
     [Parameter]
     public RenderFragment<CellContext<TCell>> CellTemplate { get; set; } = default!;
