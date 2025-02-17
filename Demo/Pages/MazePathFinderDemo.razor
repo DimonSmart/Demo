@@ -54,7 +54,11 @@
 
         @if (_maze != null)
         {
-            <MazeDisplay Maze="_maze" OnMazeCellClick="HandleCellClick" />
+            <MazeDisplay TCell="MazeCellModel" Maze="_maze" OnMazeCellClick="HandleCellClick">
+                <CellTemplate Context="cell">
+                    <MazeCell X="@cell.X" Y="@cell.Y" Cell="@cell.Cell" OnCellClick="HandleCellClick" />
+                </CellTemplate>
+            </MazeDisplay>
         }
 
     </section>
