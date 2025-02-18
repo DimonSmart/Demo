@@ -29,4 +29,5 @@
 
 .page-container {
     margin-top: var(--global-margin-top);
+    height: calc(100vh - var(--global-margin-top));
 }
