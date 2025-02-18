@@ -1,0 +1,114 @@
+﻿@using System.Text.RegularExpressions
+@using System.Collections.ObjectModel
+@inject IJSRuntime JSRuntime
+
+<div class="log-viewer-container" style="display: flex; flex-direction: column; border: 1px solid #ccc; height: 100%">
+    <!-- Top control bar -->
+    <div class="d-flex align-items-center p-2 border-bottom">
+        <!-- Clear button -->
+        <button class="btn btn-secondary btn-sm rounded" @onclick="ClearLog">
+            Clear
+        </button>
+
+        <!-- Search box -->
+        <div class="ms-3">
+            <input type="text"
+                   class="form-control form-control-sm d-inline-block"
+                   style="width: 150px;"
+                   @bind="SearchQuery"
+                   @bind:event="oninput"
+                   placeholder="highlight..." />
+        </div>
+
+        <!-- Compact checkbox -->
+        <div class="form-check ms-3">
+            <input class="form-check-input" type="checkbox" @bind="CompactView" />
+            <label class="form-check-label">Compact</label>
+        </div>
+
+        <!-- Auto-scroll checkbox (aligns to the right) -->
+        <div class="form-check ms-auto">
+            <input class="form-check-input" type="checkbox" @bind="AutoScroll" />
+            <label class="form-check-label">Auto</label>
+        </div>
+    </div>
+
+    <!-- Log display area -->
+    <div @ref="LogContainer"
+         id="logContainer"
+         class="p-2"
+         style="overflow-y: scroll; min-height: 0;font-family: monospace; white-space: pre-wrap; height: 100%">
+        <div>
+            @if (!string.IsNullOrEmpty(SearchQuery))
+            {
+                @((MarkupString)HighlightLog(DisplayedLog, SearchQuery))
+            }
+            else
+            {
+                @DisplayedLog
+            }
+        </div>
+
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public ObservableCollection<string> LogMessages { get; set; } = new ObservableCollection<string>();
+
+
+    private string LogContent => string.Join("\n", LogMessages);
+    private bool AutoScroll { get; set; } = true;
+    private bool CompactView { get; set; }
+    private string SearchQuery { get; set; } = "";
+
+    private ElementReference LogContainer;
+
+    private string DisplayedLog =>
+        CompactView
+            ? string.Join("\n", LogMessages.Select(m => Regex.Replace(m, @"\s+", " ")))
+            : LogContent;
+
+    private bool _scrollRequested;
+
+    protected override void OnInitialized()
+    {
+        LogMessages.CollectionChanged += (s, e) =>
+        {
+            if (AutoScroll)
+            {
+                _scrollRequested = true;
+            }
+            InvokeAsync(StateHasChanged);
+        };
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_scrollRequested)
+        {
+            _scrollRequested = false;
+            await ScrollToBottom();
+        }
+    }
+
+    private async Task ScrollToBottom()
+    {
+        await JSRuntime.InvokeVoidAsync("scrollToBottom", LogContainer);
+    }
+
+    private void ClearLog()
+    {
+        LogMessages.Clear();
+    }
+
+    private string HighlightLog(string text, string search)
+    {
+        if (string.IsNullOrEmpty(search)) return text;
+
+        var pattern = Regex.Escape(search);
+        return Regex.Replace(text, pattern,
+            match => $"<span style=\"background-color: yellow;\">{match.Value}</span>",
+            RegexOptions.IgnoreCase);
+    }
+}
