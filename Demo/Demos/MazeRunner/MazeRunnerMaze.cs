@@ -2,7 +2,12 @@
 
 namespace Demo.Demos.MazeRunner;
 
-public class MazeRunnerMaze(int width, int height, Robot robot) : Maze<MazeRunnerCellModel>(width, height)
+public class MazeRunnerMaze : Maze<MazeRunnerCellModel>
 {
-    public Robot Robot { get; } = robot;
+    public MazeRunnerMaze(int width, int height) : base(width, height)
+    {
+        Robot = new Robot();
+        Robot.PutIntoMaze(this);
+    }
+    public Robot Robot { get; private set; }
 }

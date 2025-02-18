@@ -20,8 +20,10 @@ namespace Demo.Demos.MazeRunner
 
         public void MakeWall() => _wall = true;
 
+        public bool IsApple() => _specialMark == SpecialMarks.Apple;
         public void SetApple() => _specialMark = SpecialMarks.Apple;
 
+        public bool IsPear() => _specialMark == SpecialMarks.Pear;
         public void SetPear() => _specialMark = SpecialMarks.Pear;
 
         public void ClearSpecialMark() => _specialMark = SpecialMarks.None;

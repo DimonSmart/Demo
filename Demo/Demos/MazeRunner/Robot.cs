@@ -1,29 +1,25 @@
-﻿using DimonSmart.MazeGenerator;
-
-namespace Demo.Demos.MazeRunner;
+﻿namespace Demo.Demos.MazeRunner;
 
 public class Robot
 {
     // Current coordinates of the robot in the maze
-    public int X { get; private set; }
-    public int Y { get; private set; }
+    public int X { get; private set; } = 1;
+    public int Y { get; private set; } = 1;
 
     // Reference to the maze in which the robot moves
-    public Maze<MazeRunnerCellModel> Maze { get; }
+    public MazeRunnerMaze? Maze { get; private set; }
 
-    public Robot(Maze<MazeRunnerCellModel> maze, int startX, int startY)
+    public void PutIntoMaze(MazeRunnerMaze maze)
     {
         Maze = maze;
-        X = startX;
-        Y = startY;
     }
 
     // Methods for observing cells in different directions.
     // For simplicity, assume the robot always looks "up".
-    public MazeRunnerCellModel LookForward() => Maze[X, Y - 1];  // forward - up (y-1)
-    public MazeRunnerCellModel LookLeft() => Maze[X - 1, Y];  // left - (x-1)
-    public MazeRunnerCellModel LookRight() => Maze[X + 1, Y];  // right - (x+1)
-    public MazeRunnerCellModel LookBackward() => Maze[X, Y + 1];  // backward - down (y+1)
+    public MazeRunnerCellModel LookForward() => M[X, Y - 1];
+    public MazeRunnerCellModel LookLeft() => M[X - 1, Y];
+    public MazeRunnerCellModel LookRight() => M[X + 1, Y];
+    public MazeRunnerCellModel LookBackward() => M[X, Y + 1];
 
     // Methods for moving the robot one cell
     public void MoveForward()
@@ -58,7 +54,7 @@ public class Robot
     // Method allowing the robot to mark the current cell (e.g., with chalk)
     public void MarkCell()
     {
-        var cell = Maze[X, Y];
+        var cell = M[X, Y];
         cell.MarkVisited(); // Assumes Cell has a Marked property
     }
 
@@ -66,11 +62,24 @@ public class Robot
     private bool CanMoveTo(int newX, int newY)
     {
         // Check maze boundaries
-        if (newX < 0 || newX >= Maze.Width || newY < 0 || newY >= Maze.Height)
+        if (newX < 0 || newX >= M.Width || newY < 0 || newY >= M.Height)
         {
             return false;
         }
         // Additional checks can be added here (e.g., presence of a wall)
-        return !Maze.IsWall(newX, newY);
+        return !M.IsWall(newX, newY);
+    }
+
+
+    private MazeRunnerMaze M
+    {
+        get
+        {
+            if (Maze == null)
+            {
+                throw new InvalidOperationException("Robot is not in a maze");
+            }
+            return Maze;
+        }
     }
 }

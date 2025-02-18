@@ -1,6 +1,6 @@
 ﻿using DimonSmart.MazeGenerator;
 
-namespace Demo.Demos.TSM
+namespace Demo.Demos.MazePathFinder
 {
     public class MazeCellModel : ICell
     {

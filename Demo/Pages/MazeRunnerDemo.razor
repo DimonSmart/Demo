@@ -15,11 +15,13 @@
     <section id="mazegeneratordemoid">
         @if (_maze != null)
         {
-            <MazeDisplay TCell="MazeRunnerCellModel" Maze="_maze">
-                <CellTemplate Context="cell">
-                    <MazeCell X="@cell.X" Y="@cell.Y" Cell="@cell.Cell" />
-                </CellTemplate>
-            </MazeDisplay>
+            <CascadingValue Value="_maze.Robot">
+                <MazeDisplay TCell="MazeRunnerCellModel" Maze="_maze">
+                    <CellTemplate Context="cell">
+                        <MazeRunnerCell X="@cell.X" Y="@cell.Y" Cell="@cell.Cell" />
+                    </CellTemplate>
+                </MazeDisplay>
+            </CascadingValue>
         }
 
     </section>
@@ -27,7 +29,7 @@
 @code {
     protected int XSize = 9;
     protected int YSize = 9;
-    protected IMaze<MazeRunnerCellModel>? _maze;
+    protected MazeRunnerMaze? _maze;
 
     protected override void OnInitialized()
     {
@@ -38,7 +40,7 @@
 
     protected void GenerateMazeAsync()
     {
-        _maze = new Maze<MazeRunnerCellModel>(XSize, YSize);
+        _maze = new MazeRunnerMaze(XSize, YSize);
         var mazeBuilder = new MazeBuilder<MazeRunnerCellModel>(_maze);
         mazeBuilder.Build(this, CancellationToken.None);
         StateHasChanged();
