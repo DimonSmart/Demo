@@ -1,0 +1,93 @@
+﻿@using System.Text.RegularExpressions
+@inject IJSRuntime JSRuntime
+
+<div class="log-viewer-container" style="display: flex; flex-direction: column; height: 400px; border: 1px solid #ccc;">
+    <!-- Top control bar -->
+    <div class="d-flex align-items-center p-2 border-bottom">
+        <!-- Clear button -->
+        <button class="btn btn-secondary btn-sm rounded" @onclick="ClearLog">
+            Очистить лог
+        </button>
+
+        <!-- Search box -->
+        <div class="ms-3">
+            <label class="me-1">Поиск:</label>
+            <input type="text"
+                   class="form-control form-control-sm d-inline-block"
+                   style="width: 150px;"
+                   @bind="SearchQuery"
+                   @bind:event="oninput"
+                   placeholder="Введите слово" />
+        </div>
+
+        <!-- Compact checkbox -->
+        <div class="form-check ms-3">
+            <input class="form-check-input" type="checkbox" @bind="CompactView" />
+            <label class="form-check-label">Компактный</label>
+        </div>
+
+        <!-- Auto-scroll checkbox (aligns to the right) -->
+        <div class="form-check ms-auto">
+            <input class="form-check-input" type="checkbox" @bind="AutoScroll" />
+            <label class="form-check-label">авто</label>
+        </div>
+    </div>
+
+    <!-- Log display area -->
+    <div @ref="LogContainer"
+         class="p-2"
+         style="flex: 1; overflow-y: auto; font-family: monospace; white-space: pre-wrap;">
+        @if (!string.IsNullOrEmpty(SearchQuery))
+        {
+            @((MarkupString)HighlightLog(DisplayedLog, SearchQuery))
+        }
+        else
+        {
+            @DisplayedLog
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<string> LogMessages { get; set; } = new();
+
+    private string LogContent => string.Join("\n", LogMessages);
+    private bool AutoScroll { get; set; } = true;
+    private bool CompactView { get; set; }
+    private string SearchQuery { get; set; } = "";
+
+    private ElementReference LogContainer;
+
+    private string DisplayedLog =>
+        CompactView
+            ? string.Join("\n", LogMessages.Select(m => Regex.Replace(m, @"\s+", " ")))
+            : LogContent;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (AutoScroll)
+        {
+            await ScrollToBottom();
+        }
+    }
+
+    private async Task ScrollToBottom()
+    {
+        await JSRuntime.InvokeVoidAsync("scrollToBottom", LogContainer);
+    }
+
+    private void ClearLog()
+    {
+        LogMessages.Clear();
+    }
+
+    private string HighlightLog(string text, string search)
+    {
+        if (string.IsNullOrEmpty(search)) return text;
+
+        var pattern = Regex.Escape(search);
+        return Regex.Replace(text, pattern,
+            match => $"<span style=\"background-color: yellow;\">{match.Value}</span>",
+            RegexOptions.IgnoreCase);
+    }
+}
