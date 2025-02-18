@@ -1,29 +1,28 @@
 ﻿@using System.Text.RegularExpressions
 @inject IJSRuntime JSRuntime
 
-<div class="log-viewer-container" style="display: flex; flex-direction: column; height: 400px; border: 1px solid #ccc;">
+<div class="log-viewer-container" style="display: flex; flex-direction: column; border: 1px solid #ccc;">
     <!-- Top control bar -->
     <div class="d-flex align-items-center p-2 border-bottom">
         <!-- Clear button -->
         <button class="btn btn-secondary btn-sm rounded" @onclick="ClearLog">
-            Очистить лог
+            Clear
         </button>
 
         <!-- Search box -->
         <div class="ms-3">
-            <label class="me-1">Поиск:</label>
             <input type="text"
                    class="form-control form-control-sm d-inline-block"
                    style="width: 150px;"
                    @bind="SearchQuery"
                    @bind:event="oninput"
-                   placeholder="Введите слово" />
+                   placeholder="highlight..." />
         </div>
 
         <!-- Compact checkbox -->
         <div class="form-check ms-3">
             <input class="form-check-input" type="checkbox" @bind="CompactView" />
-            <label class="form-check-label">Компактный</label>
+            <label class="form-check-label">Compact</label>
         </div>
 
         <!-- Auto-scroll checkbox (aligns to the right) -->
@@ -36,7 +35,7 @@
     <!-- Log display area -->
     <div @ref="LogContainer"
          class="p-2"
-         style="flex: 1; overflow-y: auto; font-family: monospace; white-space: pre-wrap;">
+         style="flex: 1; overflow-y: auto; font-family: monospace; white-space: pre-wrap; height: 100%">
         @if (!string.IsNullOrEmpty(SearchQuery))
         {
             @((MarkupString)HighlightLog(DisplayedLog, SearchQuery))
