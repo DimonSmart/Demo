@@ -29,4 +29,7 @@
 
 .page-container {
     margin-top: var(--global-margin-top);
+    height: calc(100vh - 3.5rem - var(--global-margin-top));
+    min-height: max(100px, calc(100vh - 3.5rem - var(--global-margin-top)));
 }
+

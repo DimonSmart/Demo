@@ -4,6 +4,7 @@
 @using Demo.Demos.MazeRunner
 @using Demo.Services
 @using DimonSmart.MazeGenerator
+@using System.Collections.ObjectModel
 @inject PageTitleService PageTitleService
 
 @implements IMazePlotter
@@ -11,25 +12,45 @@
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze Generator Demo</PageTitle>
 
-<div class="page-container">
-    <section id="mazegeneratordemoid">
+<div class="page-container" style="display: flex;">
+    <!-- Left container: Maze and Joystick -->
+    <section style="flex: 1; overflow-y: auto; padding: 20px;">
         @if (_maze != null)
         {
-            <CascadingValue Value="_maze.Robot">
-                <MazeDisplay TCell="MazeRunnerCellModel" Maze="_maze">
-                    <CellTemplate Context="cell">
-                        <MazeRunnerCell X="@cell.X" Y="@cell.Y" Cell="@cell.Cell" />
-                    </CellTemplate>
-                </MazeDisplay>
-            </CascadingValue>
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: flex-start; align-items: flex-start;">
+                <!-- Maze display container -->
+                <div style="flex: 1 1 300px;">
+                    <CascadingValue Value="_maze.Robot">
+                        <MazeDisplay TCell="MazeRunnerCellModel" Maze="_maze">
+                            <CellTemplate Context="cell">
+                                <MazeRunnerCell X="@cell.X" Y="@cell.Y" Cell="@cell.Cell" />
+                            </CellTemplate>
+                        </MazeDisplay>
+                    </CascadingValue>
+                </div>
+                <!-- Joystick control container -->
+                <div style="flex: 0 0 auto;">
+                    <Joystick Width="150px" Height="150px"
+                              OnUpClicked="OnUpClicked"
+                              OnDownClicked="OnDownClicked"
+                              OnLeftClicked="OnLeftClicked"
+                              OnRightClicked="OnRightClicked" />
+                </div>
+            </div>
         }
+    </section>
 
+    <!-- Right container: Log view (full height) -->
+    <section style="min-width: 200px; width: 33%; border-left: 1px solid #ccc; height: 100%; overflow-y: auto;">
+        <LogView LogMessages="@LogMessages" />
     </section>
 </div>
+
 @code {
     protected int XSize = 9;
     protected int YSize = 9;
     protected MazeRunnerMaze? _maze;
+    private ObservableCollection<string> LogMessages { get; set; } = new ObservableCollection<string>();
 
     protected override void OnInitialized()
     {
@@ -46,12 +67,39 @@
         StateHasChanged();
     }
 
-    private string GetCellColor(int x, int y) => _maze?.IsWall(x, y) ?? false ? "black" : "white";
-
     public async Task PlotWallAsync(int x, int y)
     {
         StateHasChanged();
         var delay = TimeSpan.FromMilliseconds(50);
         await Task.Delay(delay);
+    }
+
+    // Joystick event handlers with log updates
+    private void OnUpClicked()
+    {
+        _maze?.Robot.MoveForward();
+        LogMessages.Add("Moved forward");
+        StateHasChanged();
+    }
+
+    private void OnDownClicked()
+    {
+        _maze?.Robot.MoveBackward();
+        LogMessages.Add("Moved backward");
+        StateHasChanged();
+    }
+
+    private void OnLeftClicked()
+    {
+        _maze?.Robot.MoveLeft();
+        LogMessages.Add("Moved left");
+        StateHasChanged();
+    }
+
+    private void OnRightClicked()
+    {
+        _maze?.Robot.MoveRight();
+        LogMessages.Add("Moved right");
+        StateHasChanged();
     }
 }
