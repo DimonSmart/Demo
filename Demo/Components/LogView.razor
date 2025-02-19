@@ -1,4 +1,5 @@
 ﻿@using System.Text.RegularExpressions
+@using System.Collections.ObjectModel
 @inject IJSRuntime JSRuntime
 
 <div class="log-viewer-container" style="display: flex; flex-direction: column; border: 1px solid #ccc;">
@@ -34,8 +35,9 @@
 
     <!-- Log display area -->
     <div @ref="LogContainer"
+         id="logContainer"
          class="p-2"
-         style="flex: 1; overflow-y: auto; font-family: monospace; white-space: pre-wrap; height: 100%">
+         style="overflow-y: scroll; min-height: 0;font-family: monospace; white-space: pre-wrap; height: 100%">
         @if (!string.IsNullOrEmpty(SearchQuery))
         {
             @((MarkupString)HighlightLog(DisplayedLog, SearchQuery))
@@ -48,7 +50,9 @@
 </div>
 
 @code {
-    [Parameter] public List<string> LogMessages { get; set; } = new();
+    [Parameter]
+    public ObservableCollection<string> LogMessages { get; set; } = new ObservableCollection<string>();
+
 
     private string LogContent => string.Join("\n", LogMessages);
     private bool AutoScroll { get; set; } = true;
@@ -62,13 +66,38 @@
             ? string.Join("\n", LogMessages.Select(m => Regex.Replace(m, @"\s+", " ")))
             : LogContent;
 
+    private bool _scrollRequested;
+
+    protected override void OnInitialized()
+    {
+        LogMessages.CollectionChanged += (s, e) =>
+        {
+            InvokeAsync(async () =>
+            {
+                StateHasChanged();
+                if (AutoScroll)
+                {
+                    await ScrollToBottomById();
+                }
+            });
+        };
+    }
+
+    private async Task ScrollToBottomById()
+    {
+        await JSRuntime.InvokeVoidAsync("scrollToBottomById", "logContainer");
+    }
+
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (AutoScroll)
+        if (_scrollRequested)
         {
+            _scrollRequested = false;
             await ScrollToBottom();
         }
     }
+
 
     private async Task ScrollToBottom()
     {

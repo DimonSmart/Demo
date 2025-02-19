@@ -4,6 +4,7 @@
 @using Demo.Demos.MazeRunner
 @using Demo.Services
 @using DimonSmart.MazeGenerator
+@using System.Collections.ObjectModel
 @inject PageTitleService PageTitleService
 
 @implements IMazePlotter
@@ -49,7 +50,7 @@
     protected int XSize = 9;
     protected int YSize = 9;
     protected MazeRunnerMaze? _maze;
-    private List<string> LogMessages { get; set; } = new List<string>();
+    private ObservableCollection<string> LogMessages { get; set; } = new ObservableCollection<string>();
 
     protected override void OnInitialized()
     {

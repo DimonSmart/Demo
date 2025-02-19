@@ -20,13 +20,27 @@
             return md5.toString();
         }
     </script>
-    <script type="text/javascript">
-        window.scrollToBottom = function (element) {
+    <script>
+        window.scrollToBottomById = (elementId) => {
+            const element = document.getElementById(elementId);
             if (element) {
-                element.scrollTop = element.scrollHeight;
+                console.log("scrollToBottomById вызвана. Элемент найден:", element);
+                if (element.lastElementChild) {
+                    element.lastElementChild.scrollIntoView({ behavior: "auto", block: "end" });
+                } else {
+                    // Если дочерних элементов нет – прокручиваем контейнер напрямую
+                    element.scrollTop = element.scrollHeight;
+                }
+                console.log("scrollTop после прокрутки:", element.scrollTop);
+            } else {
+                console.warn("scrollToBottomById: элемент с id", elementId, "не найден");
             }
         };
+
+
     </script>
+
+
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Demo</title>
