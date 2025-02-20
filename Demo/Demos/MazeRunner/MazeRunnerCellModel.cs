@@ -2,31 +2,39 @@
 
 namespace Demo.Demos.MazeRunner
 {
+    [Flags]
+    enum SpecialMarks
+    {
+        None = 0,
+        Apple = 1,
+        Pear = 2
+    }
+
     public class MazeRunnerCellModel : ICell
     {
-        enum SpecialMarks
-        {
-            None,
-            Apple = 1,
-            Pear = 2
-        }
-
         private SpecialMarks _specialMark = SpecialMarks.None;
 
-        private bool _wall = false;
+        private bool _isWall = false;
         private bool _visited = false;
 
-        public bool IsWall() => _wall;
+        /// <summary>
+        /// Cell was discovered by the robot.
+        /// </summary>
+        public bool Discovered { get; set; }
 
-        public void MakeWall() => _wall = true;
+        public bool IsWall() => _isWall;
 
-        public bool IsApple() => _specialMark == SpecialMarks.Apple;
-        public void SetApple() => _specialMark = SpecialMarks.Apple;
+        public void MakeWall() => _isWall = true;
 
-        public bool IsPear() => _specialMark == SpecialMarks.Pear;
-        public void SetPear() => _specialMark = SpecialMarks.Pear;
+        public bool IsApple() => (_specialMark & SpecialMarks.Apple) == SpecialMarks.Apple;
+        public void SetApple() => _specialMark |= SpecialMarks.Apple;
+
+        public bool IsPear() => (_specialMark & SpecialMarks.Pear) == SpecialMarks.Pear;
+        public void SetPear() => _specialMark |= SpecialMarks.Pear;
 
         public void ClearSpecialMark() => _specialMark = SpecialMarks.None;
         internal void MarkVisited() => _visited = true;
+
+      
     }
 }

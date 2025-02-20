@@ -4,8 +4,10 @@
 @using Demo.Demos.MazeRunner
 @using Demo.Services
 @using DimonSmart.MazeGenerator
-@using System.Collections.ObjectModel
+@using Microsoft.SemanticKernel
+@using Microsoft.SemanticKernel.ChatCompletion
 @inject PageTitleService PageTitleService
+@inject LogStore LogStore
 
 @implements IMazePlotter
 
@@ -43,13 +45,15 @@
         }
         <!-- Chat block -->
         <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
-            Chat is here
+            <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., move right)" style="width:300px;" />
+            <button @onclick="ProcessUserCommand">Send Command</button>
+            <div style="margin-top:10px;">Assistant's response: @ResponseMessage</div>
         </div>
     </section>
 
     <!-- Right container: Log view (full height) -->
     <section style="min-width: 200px; width: 33%; border-left: 1px solid #ccc; height: 100%; overflow-y: auto;">
-        <LogView LogMessages="@LogMessages" />
+        <LogView LogMessages="@LogStore.Messages" />
     </section>
 </div>
 
@@ -57,7 +61,10 @@
     protected int XSize = 9;
     protected int YSize = 9;
     protected MazeRunnerMaze? _maze;
-    private ObservableCollection<string> LogMessages { get; set; } = new ObservableCollection<string>();
+    protected Kernel? _kernel;
+
+    private string UserCommand { get; set; } = "";
+    private string ResponseMessage { get; set; } = "";
 
     protected override void OnInitialized()
     {
@@ -71,6 +78,8 @@
         _maze = new MazeRunnerMaze(XSize, YSize);
         var mazeBuilder = new MazeBuilder<MazeRunnerCellModel>(_maze);
         mazeBuilder.Build(this, CancellationToken.None);
+        _kernel = KernelFactory.BuildKernel(_maze);
+
         StateHasChanged();
     }
 
@@ -84,25 +93,57 @@
     // Joystick event handlers with log updates
     private void OnUpClicked()
     {
-        LogMessages.Add($"Moved forward: {_maze?.Robot.MoveForward()}");
+        LogStore.Messages.Add($"Moved forward: {_maze?.Robot.MoveForward()}");
         StateHasChanged();
     }
 
     private void OnDownClicked()
     {
-        LogMessages.Add($"Moved down: {_maze?.Robot.MoveBackward()}");
+        LogStore.Messages.Add($"Moved down: {_maze?.Robot.MoveBackward()}");
         StateHasChanged();
     }
 
     private void OnLeftClicked()
     {
-        LogMessages.Add($"Moved left: {_maze?.Robot.MoveLeft()}");
+        LogStore.Messages.Add($"Moved left: {_maze?.Robot.MoveLeft()}");
         StateHasChanged();
     }
 
     private void OnRightClicked()
     {
-        LogMessages.Add($"Moved right: {_maze?.Robot.MoveRight()}");
+        LogStore.Messages.Add($"Moved right: {_maze?.Robot.MoveRight()}");
+        StateHasChanged();
+    }
+
+    private async Task ProcessUserCommand()
+    {
+        string systemPrompt = @"
+You are a chatbot capable of controlling a robot in a maze.
+The robot understands and can execute the following commands: move up, down, left, right.
+The robot cannot pass through walls.
+When issued the 'look around' command, the robot look around for 1 cell.
+
+In the grid:
+  '?' indicates an unexplored cell.
+  '#' indicates a wall.
+  '_' indicates an open passage.
+  'R' indicates the robot's current position.
+  Any discovered object (e.g., 'apple') is labeled with its letter 'A' for apple.
+Once a cell is discovered, it remains visible permanently.
+";
+
+        var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
+
+        ChatHistory chatHistory = [];
+        chatHistory.AddSystemMessage(systemPrompt);
+        chatHistory.AddUserMessage(UserCommand);
+        var chatResult = await chatCompletionService
+         .GetChatMessageContentAsync(chatHistory, new PromptExecutionSettings
+             {
+                 FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+             }, _kernel);
+        ResponseMessage = chatResult.ToString();
+        LogStore.Messages.Add($"Semantic: {ResponseMessage}");
         StateHasChanged();
     }
 }
