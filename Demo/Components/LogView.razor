@@ -2,16 +2,16 @@
 @using System.Collections.ObjectModel
 @inject IJSRuntime JSRuntime
 
-<div class="log-viewer-container" style="display: flex; flex-direction: column; border: 1px solid #ccc; height: 100%">
+<div class="log-viewer-container" style="display: flex; flex-direction: column; border: 1px solid #ccc; height: 100%;">
     <!-- Top control bar -->
-    <div class="d-flex align-items-center p-2 border-bottom">
+    <div class="d-flex flex-wrap align-items-center p-2 border-bottom gap-2">
         <!-- Clear button -->
         <button class="btn btn-secondary btn-sm rounded" @onclick="ClearLog">
             Clear
         </button>
 
         <!-- Search box -->
-        <div class="ms-3">
+        <div>
             <input type="text"
                    class="form-control form-control-sm d-inline-block"
                    style="width: 150px;"
@@ -20,16 +20,16 @@
                    placeholder="highlight..." />
         </div>
 
-        <!-- Compact checkbox -->
-        <div class="form-check ms-3">
-            <input class="form-check-input" type="checkbox" @bind="CompactView" />
-            <label class="form-check-label">Compact</label>
-        </div>
-
-        <!-- Auto-scroll checkbox (aligns to the right) -->
-        <div class="form-check ms-auto">
+        <!-- Auto-scroll checkbox -->
+        <div class="form-check">
             <input class="form-check-input" type="checkbox" @bind="AutoScroll" />
             <label class="form-check-label">Auto</label>
+        </div>
+
+        <!-- Compact checkbox -->
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" @bind="CompactView" />
+            <label class="form-check-label">Compact</label>
         </div>
     </div>
 
@@ -37,7 +37,7 @@
     <div @ref="LogContainer"
          id="logContainer"
          class="p-2"
-         style="overflow-y: scroll; min-height: 0;font-family: monospace; white-space: pre-wrap; height: 100%">
+         style="overflow-y: scroll; min-height: 0; font-family: monospace; white-space: pre-wrap; height: 100%;">
         <div>
             @if (!string.IsNullOrEmpty(SearchQuery))
             {
@@ -48,14 +48,12 @@
                 @DisplayedLog
             }
         </div>
-
     </div>
 </div>
 
 @code {
     [Parameter]
     public ObservableCollection<string> LogMessages { get; set; } = new ObservableCollection<string>();
-
 
     private string LogContent => string.Join("\n", LogMessages);
     private bool AutoScroll { get; set; } = true;
