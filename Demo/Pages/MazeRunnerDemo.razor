@@ -13,7 +13,7 @@
 <PageTitle>Maze Generator Demo</PageTitle>
 
 <div class="page-container" style="display: flex;">
-    <!-- Left container: Maze and Joystick -->
+    <!-- Left container: Maze, Joystick and Chat -->
     <section style="flex: 1; overflow-y: auto; padding: 20px;">
         @if (_maze != null)
         {
@@ -41,6 +41,10 @@
                 </div>
             </div>
         }
+        <!-- Chat block -->
+        <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
+            Chat is here
+        </div>
     </section>
 
     <!-- Right container: Log view (full height) -->
