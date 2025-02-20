@@ -16,7 +16,10 @@
     <PackageReference Include="Markdig" Version="0.39.1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.8" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.2" />
     <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="8.0.8" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.37.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Ollama" Version="1.37.0-alpha" />
     <PackageReference Include="SkiaSharp.Views.Blazor" Version="3.116.1" />
   </ItemGroup>
 
