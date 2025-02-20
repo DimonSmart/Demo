@@ -17,17 +17,20 @@
     <section style="flex: 1; overflow-y: auto; padding: 20px;">
         @if (_maze != null)
         {
-            <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: flex-start; align-items: flex-start;">
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-items: flex-start;">
                 <!-- Maze display container -->
                 <div style="flex: 1 1 300px;">
-                    <CascadingValue Value="_maze.Robot">
-                        <MazeDisplay TCell="MazeRunnerCellModel" Maze="_maze">
-                            <CellTemplate Context="cell">
-                                <MazeRunnerCell X="@cell.X" Y="@cell.Y" Cell="@cell.Cell" />
-                            </CellTemplate>
-                        </MazeDisplay>
-                    </CascadingValue>
+                    <div style="display: flex; justify-content: center;">
+                        <CascadingValue Value="_maze.Robot">
+                            <MazeDisplay TCell="MazeRunnerCellModel" Maze="_maze">
+                                <CellTemplate Context="cell">
+                                    <MazeRunnerCell X="@cell.X" Y="@cell.Y" Cell="@cell.Cell" />
+                                </CellTemplate>
+                            </MazeDisplay>
+                        </CascadingValue>
+                    </div>
                 </div>
+
                 <!-- Joystick control container -->
                 <div style="flex: 0 0 auto;">
                     <Joystick Width="150px" Height="150px"
