@@ -2,38 +2,43 @@
 @using System.Collections.ObjectModel
 @inject IJSRuntime JSRuntime
 
+
 <div class="log-viewer-container" style="display: flex; flex-direction: column; border: 1px solid #ccc; height: 100%;">
     <!-- Top control bar -->
     <div class="d-flex flex-wrap align-items-center p-2 border-bottom gap-2">
-        <!-- Clear button -->
-        <button class="btn btn-secondary btn-sm rounded" @onclick="ClearLog">
-            Clear
-        </button>
-
-        <!-- Search box -->
-        <div>
-            <input type="text"
-                   class="form-control form-control-sm d-inline-block"
-                   style="width: 150px;"
-                   @bind="SearchQuery"
-                   @bind:event="oninput"
-                   placeholder="highlight..." />
-        </div>
-
-        <!-- Auto-scroll checkbox -->
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" @bind="AutoScroll" />
-            <label class="form-check-label">Auto</label>
-        </div>
-
-        <!-- Compact checkbox -->
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" @bind="CompactView" />
-            <label class="form-check-label">Compact</label>
-        </div>
+        @if (ShowClearButton)
+        {
+            <button class="btn btn-secondary btn-sm rounded" @onclick="ClearLog">
+                Clear
+            </button>
+        }
+        @if (ShowSearchBox)
+        {
+            <div>
+                <input type="text"
+                       class="form-control form-control-sm d-inline-block"
+                       style="width: 150px;"
+                       @bind="SearchQuery"
+                       @bind:event="oninput"
+                       placeholder="highlight..." />
+            </div>
+        }
+        @if (ShowAutoScroll)
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="AutoScroll" />
+                <label class="form-check-label">Auto</label>
+            </div>
+        }
+        @if (ShowCompactToggle)
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="CompactView" />
+                <label class="form-check-label">Compact</label>
+            </div>
+        }
     </div>
 
-    <!-- Log display area -->
     <div @ref="LogContainer"
          id="logContainer"
          class="p-2"
@@ -55,13 +60,21 @@
     [Parameter]
     public ObservableCollection<string> LogMessages { get; set; } = new ObservableCollection<string>();
 
+    [Parameter]
+    public bool ShowClearButton { get; set; } = true;
+    [Parameter]
+    public bool ShowSearchBox { get; set; } = true;
+    [Parameter]
+    public bool ShowAutoScroll { get; set; } = true;
+    [Parameter]
+    public bool ShowCompactToggle { get; set; } = true;
+
     private string LogContent => string.Join("\n", LogMessages);
     private bool AutoScroll { get; set; } = true;
     private bool CompactView { get; set; }
     private string SearchQuery { get; set; } = "";
 
     private ElementReference LogContainer;
-
     private string DisplayedLog =>
         CompactView
             ? string.Join("\n", LogMessages.Select(m => Regex.Replace(m, @"\s+", " ")))
@@ -102,7 +115,10 @@
 
     private string HighlightLog(string text, string search)
     {
-        if (string.IsNullOrEmpty(search)) return text;
+        if (string.IsNullOrEmpty(search))
+        {
+            return text;
+        }
 
         var pattern = Regex.Escape(search);
         return Regex.Replace(text, pattern,
