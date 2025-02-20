@@ -13,7 +13,7 @@
 <PageTitle>Maze Generator Demo</PageTitle>
 
 <div class="page-container" style="display: flex;">
-    <!-- Left container: Maze and Joystick -->
+    <!-- Left container: Maze, Joystick and Chat -->
     <section style="flex: 1; overflow-y: auto; padding: 20px;">
         @if (_maze != null)
         {
@@ -41,6 +41,10 @@
                 </div>
             </div>
         }
+        <!-- Chat block -->
+        <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
+            Chat is here
+        </div>
     </section>
 
     <!-- Right container: Log view (full height) -->
@@ -80,29 +84,25 @@
     // Joystick event handlers with log updates
     private void OnUpClicked()
     {
-        _maze?.Robot.MoveForward();
-        LogMessages.Add("Moved forward");
+        LogMessages.Add($"Moved forward: {_maze?.Robot.MoveForward()}");
         StateHasChanged();
     }
 
     private void OnDownClicked()
     {
-        _maze?.Robot.MoveBackward();
-        LogMessages.Add("Moved backward");
+        LogMessages.Add($"Moved down: {_maze?.Robot.MoveBackward()}");
         StateHasChanged();
     }
 
     private void OnLeftClicked()
     {
-        _maze?.Robot.MoveLeft();
-        LogMessages.Add("Moved left");
+        LogMessages.Add($"Moved left: {_maze?.Robot.MoveLeft()}");
         StateHasChanged();
     }
 
     private void OnRightClicked()
     {
-        _maze?.Robot.MoveRight();
-        LogMessages.Add("Moved right");
+        LogMessages.Add($"Moved right: {_maze?.Robot.MoveRight()}");
         StateHasChanged();
     }
 }
