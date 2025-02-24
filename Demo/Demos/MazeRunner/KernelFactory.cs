@@ -4,7 +4,7 @@ namespace Demo.Demos.MazeRunner
 {
     public static class KernelFactory
     {
-        public static Kernel BuildKernel()
+        public static Kernel BuildKernel(MazeRunnerMaze maze)
         {
             var configuration = new ConfigurationBuilder()
                 .AddUserSecrets<Program>()
@@ -34,6 +34,9 @@ namespace Demo.Demos.MazeRunner
                 logging.ClearProviders();
                 logging.SetMinimumLevel(LogLevel.Trace);
             });
+
+            builder.Services.AddSingleton(maze);
+            builder.Plugins.AddFromType<TimeInformationPlugin>();
 
             var kernel = builder.Build();
             return kernel;
