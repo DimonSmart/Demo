@@ -2,31 +2,48 @@
 
 namespace Demo.Demos.MazeRunner
 {
+    [Flags]
+    enum SpecialMarks
+    {
+        None = 0,
+        Apple = 1,
+        Pear = 2
+    }
+
     public class MazeRunnerCellModel : ICell
     {
-        enum SpecialMarks
-        {
-            None,
-            Apple = 1,
-            Pear = 2
-        }
-
         private SpecialMarks _specialMark = SpecialMarks.None;
 
-        private bool _wall = false;
+        private bool _isWall = false;
         private bool _visited = false;
 
-        public bool IsWall() => _wall;
+        public bool IsWall() => _isWall;
 
-        public void MakeWall() => _wall = true;
+        public void MakeWall() => _isWall = true;
 
-        public bool IsApple() => _specialMark == SpecialMarks.Apple;
-        public void SetApple() => _specialMark = SpecialMarks.Apple;
+        public bool IsApple() => (_specialMark & SpecialMarks.Apple) == SpecialMarks.Apple;
+        public void SetApple() => _specialMark |= SpecialMarks.Apple;
 
-        public bool IsPear() => _specialMark == SpecialMarks.Pear;
-        public void SetPear() => _specialMark = SpecialMarks.Pear;
+        public bool IsPear() => (_specialMark & SpecialMarks.Pear) == SpecialMarks.Pear;
+        public void SetPear() => _specialMark |= SpecialMarks.Pear;
 
         public void ClearSpecialMark() => _specialMark = SpecialMarks.None;
         internal void MarkVisited() => _visited = true;
+
+        /// <summary>
+        /// Returns a textual description of the cell.
+        /// </summary>
+        public string Description
+        {
+            get
+            {
+                if (_isWall) return "Wall";
+                if (_specialMark == SpecialMarks.None) return "Empty";
+                var marks = new List<string>();
+                if (IsApple()) marks.Add("Apple");
+                if (IsPear()) marks.Add("Pear");
+                return string.Join(", ", marks);
+            }
+        }
     }
 }

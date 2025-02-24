@@ -6,6 +6,7 @@
 @using DimonSmart.MazeGenerator
 @using System.Collections.ObjectModel
 @inject PageTitleService PageTitleService
+@inject LogStore LogStore
 
 @implements IMazePlotter
 
@@ -49,7 +50,7 @@
 
     <!-- Right container: Log view (full height) -->
     <section style="min-width: 200px; width: 33%; border-left: 1px solid #ccc; height: 100%; overflow-y: auto;">
-        <LogView LogMessages="@LogMessages" />
+        <LogView LogMessages="@LogStore.Messages" />
     </section>
 </div>
 
@@ -57,7 +58,6 @@
     protected int XSize = 9;
     protected int YSize = 9;
     protected MazeRunnerMaze? _maze;
-    private ObservableCollection<string> LogMessages { get; set; } = new ObservableCollection<string>();
 
     protected override void OnInitialized()
     {
@@ -84,25 +84,25 @@
     // Joystick event handlers with log updates
     private void OnUpClicked()
     {
-        LogMessages.Add($"Moved forward: {_maze?.Robot.MoveForward()}");
+        LogStore.Messages.Add($"Moved forward: {_maze?.Robot.MoveForward()}");
         StateHasChanged();
     }
 
     private void OnDownClicked()
     {
-        LogMessages.Add($"Moved down: {_maze?.Robot.MoveBackward()}");
+        LogStore.Messages.Add($"Moved down: {_maze?.Robot.MoveBackward()}");
         StateHasChanged();
     }
 
     private void OnLeftClicked()
     {
-        LogMessages.Add($"Moved left: {_maze?.Robot.MoveLeft()}");
+        LogStore.Messages.Add($"Moved left: {_maze?.Robot.MoveLeft()}");
         StateHasChanged();
     }
 
     private void OnRightClicked()
     {
-        LogMessages.Add($"Moved right: {_maze?.Robot.MoveRight()}");
+        LogStore.Messages.Add($"Moved right: {_maze?.Robot.MoveRight()}");
         StateHasChanged();
     }
 }

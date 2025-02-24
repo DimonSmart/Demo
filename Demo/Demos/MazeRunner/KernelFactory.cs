@@ -4,7 +4,7 @@ namespace Demo.Demos.MazeRunner
 {
     public static class KernelFactory
     {
-        public static Kernel BuildKernel(ILoggerFactory loggerFactory)
+        public static Kernel BuildKernel()
         {
             var configuration = new ConfigurationBuilder()
                 .AddUserSecrets<Program>()
@@ -26,12 +26,12 @@ namespace Demo.Demos.MazeRunner
             );
 #pragma warning restore SKEXP0070
 
-            // Register the logger factory and logging
-            builder.Services.AddSingleton(loggerFactory);
+            builder.Services.AddSingleton<LogStore>();
+            builder.Services.AddSingleton<ILoggerProvider, LogViewLoggerProvider>();
+
             builder.Services.AddLogging(logging =>
             {
                 logging.ClearProviders();
-                //  logging.AddProvider(new RegionLoggerProvider());
                 logging.SetMinimumLevel(LogLevel.Trace);
             });
 
