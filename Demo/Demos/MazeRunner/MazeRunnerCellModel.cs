@@ -17,6 +17,11 @@ namespace Demo.Demos.MazeRunner
         private bool _isWall = false;
         private bool _visited = false;
 
+        /// <summary>
+        /// Cell was discovered by the robot.
+        /// </summary>
+        public bool Discovered { get; set; }
+
         public bool IsWall() => _isWall;
 
         public void MakeWall() => _isWall = true;
@@ -30,20 +35,6 @@ namespace Demo.Demos.MazeRunner
         public void ClearSpecialMark() => _specialMark = SpecialMarks.None;
         internal void MarkVisited() => _visited = true;
 
-        /// <summary>
-        /// Returns a textual description of the cell.
-        /// </summary>
-        public string Description
-        {
-            get
-            {
-                if (_isWall) return "Wall";
-                if (_specialMark == SpecialMarks.None) return "Empty";
-                var marks = new List<string>();
-                if (IsApple()) marks.Add("Apple");
-                if (IsPear()) marks.Add("Pear");
-                return string.Join(", ", marks);
-            }
-        }
+      
     }
 }
