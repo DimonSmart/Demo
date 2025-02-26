@@ -1,6 +1,7 @@
 ﻿@page "/mazerunnerdemo"
 
 @using Demo.Components
+@using Demo.Demos.Common
 @using Demo.Demos.MazeRunner
 @using Demo.Services
 @using DimonSmart.MazeGenerator
@@ -8,6 +9,8 @@
 @using Microsoft.SemanticKernel.ChatCompletion
 @inject PageTitleService PageTitleService
 @inject LogStore LogStore
+@inject IOllamaModelService OllamaModelService
+@inject UserPreferencesStorageService<MazeRunnerUserPreferences> UserPreferencesStorageService
 
 @implements IMazePlotter
 
@@ -15,7 +18,7 @@
 <PageTitle>Maze Generator Demo</PageTitle>
 
 <div class="page-container" style="display: flex;">
-    <!-- Left container: Maze, Joystick and Chat -->
+    <!-- Left container: Maze, Joystick, Settings and Chat -->
     <section style="flex: 1; overflow-y: auto; padding: 20px;">
         @if (_maze != null)
         {
@@ -42,7 +45,22 @@
                               OnRightClicked="OnRightClicked" />
                 </div>
             </div>
+
+            <!-- Settings block: model selector -->
+            <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
+                <label for="modelSelect">Select Model:</label>
+                <select id="modelSelect" @onchange="OnModelChanged" value="@SelectedModelId">
+                    @if (AvailableModels != null)
+                    {
+                        @foreach (var model in AvailableModels)
+                        {
+                            <option value="@model.ModelId">@model.ModelId (@model.ParameterCount, @model.Size bytes)</option>
+                        }
+                    }
+                </select>
+            </div>
         }
+
         <!-- Chat block -->
         <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
             <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., move right)" style="width:300px;" />
@@ -66,28 +84,44 @@
     private string UserCommand { get; set; } = "";
     private string ResponseMessage { get; set; } = "";
 
-    protected override void OnInitialized()
+    private List<OllamaModelInfo> AvailableModels { get; set; } = new();
+    private string SelectedModelId { get; set; }
+
+    protected override async Task OnInitializedAsync()
     {
-        base.OnInitialized();
         PageTitleService.SetTitle("Maze runner");
-        GenerateMazeAsync();
+        GenerateMaze();
+
+        // Load available models from Ollama
+        AvailableModels = await OllamaModelService.GetLoadedModelsAsync();
+
+        // Load previously saved user preferences if any
+        var prefs = await UserPreferencesStorageService.LoadPreferencesAsync();
+        if (prefs != null && !string.IsNullOrEmpty(prefs.SelectedModelId))
+        {
+            SelectedModelId = prefs.SelectedModelId;
+        }
+        else if (AvailableModels.Count > 0)
+        {
+            // Default to first available model
+            SelectedModelId = AvailableModels[0].ModelId;
+        }
+
+        StateHasChanged();
     }
 
-    protected void GenerateMazeAsync()
+    protected void GenerateMaze()
     {
         _maze = new MazeRunnerMaze(XSize, YSize);
         var mazeBuilder = new MazeBuilder<MazeRunnerCellModel>(_maze);
         mazeBuilder.Build(this, CancellationToken.None);
         _kernel = KernelFactory.BuildKernel(_maze);
-
-        StateHasChanged();
     }
 
     public async Task PlotWallAsync(int x, int y)
     {
         StateHasChanged();
-        var delay = TimeSpan.FromMilliseconds(50);
-        await Task.Delay(delay);
+        await Task.Delay(50);
     }
 
     // Joystick event handlers with log updates
@@ -134,16 +168,28 @@ Once a cell is discovered, it remains visible permanently.
 
         var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
 
-        ChatHistory chatHistory = [];
+        var chatHistory = new ChatHistory();
         chatHistory.AddSystemMessage(systemPrompt);
         chatHistory.AddUserMessage(UserCommand);
-        var chatResult = await chatCompletionService
-         .GetChatMessageContentAsync(chatHistory, new PromptExecutionSettings
-             {
-                 FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-             }, _kernel);
+        var chatResult = await chatCompletionService.GetChatMessageContentAsync(chatHistory, new PromptExecutionSettings
+            {
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+            }, _kernel);
+
         ResponseMessage = chatResult.ToString();
         LogStore.Messages.Add($"Semantic: {ResponseMessage}");
+        StateHasChanged();
+    }
+
+    private async Task OnModelChanged(ChangeEventArgs e)
+    {
+        SelectedModelId = e.Value?.ToString();
+        var prefs = new MazeRunnerUserPreferences
+            {
+                SelectedModelId = SelectedModelId
+            };
+        await UserPreferencesStorageService.SavePreferencesAsync(prefs);
+        LogStore.Messages.Add($"Selected model changed: {SelectedModelId}");
         StateHasChanged();
     }
 }
