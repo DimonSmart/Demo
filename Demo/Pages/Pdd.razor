@@ -1,5 +1,6 @@
 ﻿@page "/pdd"
 @using Demo.Components
+@using Demo.Demos.Common
 @using Demo.Demos.Pdd
 @using System.Text.Json
 @using System.Text
@@ -7,7 +8,7 @@
 @using System.Text.RegularExpressions
 @using Markdig
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
-@inject UserPreferencesStorageService PreferencesStorage
+@inject UserPreferencesStorageService<PddUserPreferences> PreferencesStorage
 @inject PageTitleService PageTitleService
 @inject CardStorageService CardStorage
 @inject HttpClient HttpClient
@@ -425,7 +426,7 @@
 
     private async Task SaveUserPreferencesAsync()
     {
-        var preferences = new UserPreferences
+        var preferences = new PddUserPreferences
             {
                 HighlightTerms = highlightTerms,
                 ShowRussian = showRussian,

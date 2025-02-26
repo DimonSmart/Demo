@@ -1,6 +1,6 @@
 ﻿namespace Demo.Demos.Pdd
 {
-    public class UserPreferences
+    public class PddUserPreferences
     {
         public bool HighlightTerms { get; set; }
         public bool ShowRussian { get; set; }
