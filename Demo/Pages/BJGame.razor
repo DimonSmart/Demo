@@ -12,20 +12,20 @@
 <div class="casino-style">
     @if (GameInstance.CurrentGameState == BlackjackGameBase.GameState.GameNotStarted)
     {
-            <div class="game-area start-game-label-container">
-                <h1 class="start-game-label">Let's start the game.</h1>
-            </div>
+        <div class="game-area start-game-label-container">
+            <h1 class="start-game-label">Let's start the game.</h1>
+        </div>
     }
     else
     {
-            <div class="game-info-container">
-                <GameInfo Game="GameInstance" />
-            </div>
+        <div class="game-info-container">
+            <GameInfo Game="GameInstance" />
+        </div>
 
-            <div class="game-area">
-                <PlayingHand Hand="GameInstance.DealerHand" class="dealer-hand" />
-                <PlayerHands Game="GameInstance" />
-            </div>
+        <div class="game-area">
+            <PlayingHand Hand="GameInstance.DealerHand" class="dealer-hand" />
+            <PlayerHands Game="GameInstance" />
+        </div>
     }
 
     <div class="controls-container">
@@ -66,7 +66,7 @@
     }
 
     /* Overall casino-style page layout */
-    .page-container {
+    .casino-style {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -138,23 +138,31 @@
         background-position: center;
     }
 
-   .start-game-label-container {
-    position: relative;
-    height: 100%;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    background-image: url('images/bj/bj-before-start.png');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-}
+    .start-game-label-container {
+        position: relative;
+        height: 100%;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        background-image: url('images/bj/bj-before-start.png');
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
 
-.start-game-label {
-    position: relative;
-    top: 25%;
-    font-size: 3em;
-    color: #ffd700;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
-}
+    .start-game-label {
+        position: relative;
+        top: 25%;
+        font-size: 3em;
+        color: #ffd700;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
+    }
+
+    @@media (max-width: 768px) {
+        .game-info-container {
+            position: static;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+    }
 </style>

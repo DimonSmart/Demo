@@ -12,21 +12,38 @@
         public void PutIntoMaze(MazeRunnerMaze maze)
         {
             Maze = maze;
+            LookAround();
         }
 
-        // Methods for observing cells in different directions.
-        // For simplicity, assume the robot always looks "up".
-        public MazeRunnerCellModel LookForward() => M[X, Y - 1];
-        public MazeRunnerCellModel LookLeft() => M[X - 1, Y];
-        public MazeRunnerCellModel LookRight() => M[X + 1, Y];
-        public MazeRunnerCellModel LookBackward() => M[X, Y + 1];
+        // --- New helper methods for checking if the robot can move in each direction ---
+        public bool CanMoveUp()
+        {
+            return CanMoveTo(X, Y - 1);
+        }
+
+        public bool CanMoveDown()
+        {
+            return CanMoveTo(X, Y + 1);
+        }
+
+        public bool CanMoveLeft()
+        {
+            return CanMoveTo(X - 1, Y);
+        }
+
+        public bool CanMoveRight()
+        {
+            return CanMoveTo(X + 1, Y);
+        }
+        // ------------------------------------------------------------------------------
 
         // Methods for moving the robot one cell
-        public string MoveForward()
+        public string MoveUp()
         {
-            if (CanMoveTo(X, Y - 1))
+            if (CanMoveUp())
             {
-                Y = Y - 1;
+                Y -= 1;
+                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -34,9 +51,10 @@
 
         public string MoveLeft()
         {
-            if (CanMoveTo(X - 1, Y))
+            if (CanMoveLeft())
             {
-                X = X - 1;
+                X -= 1;
+                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -44,44 +62,37 @@
 
         public string MoveRight()
         {
-            if (CanMoveTo(X + 1, Y))
+            if (CanMoveRight())
             {
-                X = X + 1;
+                X += 1;
+                LookAround();
                 return "Ok";
             }
             return "Err";
         }
 
-        public string MoveBackward()
+        public string MoveDown()
         {
-            if (CanMoveTo(X, Y + 1))
+            if (CanMoveDown())
             {
-                Y = Y + 1;
+                Y += 1;
+                LookAround();
                 return "Ok";
             }
             return "Err";
-        }
-
-        // Method allowing the robot to mark the current cell (e.g., with chalk)
-        public void MarkCell()
-        {
-            var cell = M[X, Y];
-            cell.MarkVisited(); // Assumes Cell has a Marked property
         }
 
         // Private method to check if the robot can move to the specified cell
         private bool CanMoveTo(int newX, int newY)
         {
-            // Check maze boundaries
             if (newX < 0 || newX >= M.Width || newY < 0 || newY >= M.Height)
             {
                 return false;
             }
-            // Additional checks can be added here (e.g., presence of a wall)
             return !M.IsWall(newX, newY);
         }
 
-        public void LookAround()
+        private void LookAround()
         {
             if (Maze == null)
             {
@@ -96,7 +107,7 @@
                     var newY = Y + dy;
                     if (newX >= 0 && newX < Maze.Width && newY >= 0 && newY < Maze.Height)
                     {
-                        Maze[newX, newY].Discovered = true;
+                        Maze[newX, newY].SetDiscovered();
                     }
                 }
             }

@@ -5,10 +5,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RunAOTCompilation>true</RunAOTCompilation>
+    <UserSecretsId>b0fc7535-2618-4e55-8e74-affca9dcafc2</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
+    <PackageReference Include="DimonSmart.AiUtils" Version="1.25301.2132" />
     <PackageReference Include="DimonSmart.HashX" Version="1.24813.951" />
     <PackageReference Include="DimonSmart.MazeGenerator" Version="1.25218.855" />
     <PackageReference Include="DimonSmart.StringDiff" Version="1.24725.1329" />
@@ -17,8 +19,9 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.8" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.2" />
     <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="8.0.8" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.37.0" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.40.1" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.Ollama" Version="1.37.0-alpha" />
     <PackageReference Include="SkiaSharp.Views.Blazor" Version="3.116.1" />
   </ItemGroup>

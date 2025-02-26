@@ -1,7 +1,7 @@
 ﻿/* Card container styling */
 .card {
-    width: 100px;
-    height: 150px;
+    width: 125px;
+    height: 175px;
     border: 1px solid #000;
     border-radius: 10px;
     display: flex;
@@ -27,11 +27,9 @@
     transform: rotateY(180deg);
 }
 
-
 .card.face-down .card-inner {
     transform: rotateY(0deg);
 }
-
 
 .card-content,
 .card-back {
@@ -43,7 +41,6 @@
     backface-visibility: hidden;
     border-radius: 10px;
 }
-
 
 .card-back {
     background-size: cover;
@@ -67,7 +64,7 @@
 
 /* Ranks and suits */
 .card-rank {
-    font-size: 1.5em;
+    font-size: 1.8em;
     position: absolute;
 }
 
@@ -83,7 +80,7 @@
     }
 
 .card-suit {
-    font-size: 2em;
+    font-size: 2.5em;
     color: red;
     position: absolute;
     top: 50%;

@@ -1,25 +1,102 @@
 ﻿@page "/mazerunnerdemo"
 
 @using Demo.Components
+@using Demo.Demos.Common
 @using Demo.Demos.MazeRunner
 @using Demo.Services
 @using DimonSmart.MazeGenerator
 @using Microsoft.SemanticKernel
+@using Microsoft.SemanticKernel.Services
 @using Microsoft.SemanticKernel.ChatCompletion
+@using Microsoft.Extensions.DependencyInjection
 @inject PageTitleService PageTitleService
 @inject LogStore LogStore
+@inject IOllamaModelService OllamaModelService
+@inject UserPreferencesStorageService<MazeRunnerUserPreferences> UserPreferencesStorageService
 
 @implements IMazePlotter
+
+<!--
+  Maze Runner Demo
+  A simple page that generates a maze and controls a robot via joystick or chat commands.
+-->
 
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze Generator Demo</PageTitle>
 
 <div class="page-container" style="display: flex;">
-    <!-- Left container: Maze, Joystick and Chat -->
+    <!-- Left container: Maze, Joystick, Settings and Chat -->
     <section style="flex: 1; overflow-y: auto; padding: 20px;">
+        <div style="text-align: center; border: 1px solid #ccc; padding: 10px;">
+            <div>
+                <label for="connectionType">Connection Type:</label>
+                <select id="connectionType" @onchange="OnConnectionTypeChanged" value="@_connectionType">
+                    <option value="ollama">Ollama</option>
+                    <option value="openai">OpenAI</option>
+                </select>
+            </div>
+
+            @if (_connectionType == "ollama")
+            {
+                @if (AvailableModels != null && AvailableModels.Count > 0)
+                {
+                    <div style="margin-top:10px;">
+                        <label for="modelSelect">Select Ollama Model:</label>
+                        <select id="modelSelect" @onchange="OnModelChanged" value="@SelectedModelId">
+                            @foreach (var model in AvailableModels)
+                            {
+                                <option value="@model.ModelId">
+                                    @model.ModelId (@model.ParameterCount, @((model.Size / 1024.0 / 1024.0).ToString("F2")) MB)
+                                </option>
+                            }
+                        </select>
+                    </div>
+                }
+                else
+                {
+                    <div style="margin-top:10px;">
+                        <h4>Installing and Configuring ollama</h4>
+                        <p>No models were found. To get started with ollama, please follow these steps:</p>
+                        <ol style="text-align: left; display: inline-block;">
+                            <li>
+                                Download and install ollama from the official website:
+                                <a href="https://ollama.com" target="_blank">https://ollama.com</a>.
+                            </li>
+                            <li>
+                                Run ollama and download the required models (for example, using the command
+                                <code>ollama pull &lt;model-id&gt;</code>).
+                            </li>
+                            <li>Restart the application to apply the changes.</li>
+                        </ol>
+                    </div>
+                }
+            }
+            else if (_connectionType == "openai")
+            {
+                <div style="margin-top: 10px;">
+                    <label for="openaiKey">OpenAI API Key (will be masked):</label>
+                    <input id="openaiKey"
+                           type="password"
+                           @bind="_openAIApiKey"
+                           @bind:event="oninput"
+                           @onblur="SaveSettings"
+                           placeholder="Enter OpenAI API key" />
+                </div>
+                <div style="margin-top: 10px;">
+                    <label for="openaiModel">OpenAI Model (e.g., gpt-3.5-turbo):</label>
+                    <input id="openaiModel"
+                           type="text"
+                           @bind="_openAIModel"
+                           @bind:event="oninput"
+                           @onblur="SaveSettings"
+                           placeholder="Enter OpenAI Model" />
+                </div>
+            }
+        </div>
+
         @if (_maze != null)
         {
-            <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-items: flex-start;">
+            <div style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-items: flex-start;">
                 <!-- Maze display container -->
                 <div style="flex: 1 1 300px;">
                     <div style="display: flex; justify-content: center;">
@@ -42,13 +119,20 @@
                               OnRightClicked="OnRightClicked" />
                 </div>
             </div>
+
+            <!-- Chat block -->
+            <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
+                <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., 'move right')" style="width:300px;" />
+                <button @onclick="ProcessUserCommand" disabled="@IsProcessingCommand">Send Command</button>
+                @if (IsProcessingCommand)
+                {
+                    <Spinner />
+                }
+                <div style="margin-top:10px;">
+                    <strong>Assistant's response:</strong> @ResponseMessage
+                </div>
+            </div>
         }
-        <!-- Chat block -->
-        <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
-            <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., move right)" style="width:300px;" />
-            <button @onclick="ProcessUserCommand">Send Command</button>
-            <div style="margin-top:10px;">Assistant's response: @ResponseMessage</div>
-        </div>
     </section>
 
     <!-- Right container: Log view (full height) -->
@@ -61,89 +145,227 @@
     protected int XSize = 9;
     protected int YSize = 9;
     protected MazeRunnerMaze? _maze;
-    protected Kernel? _kernel;
 
+    private bool IsProcessingCommand = false;
     private string UserCommand { get; set; } = "";
     private string ResponseMessage { get; set; } = "";
 
-    protected override void OnInitialized()
+    // List to store the moves that the robot has made.
+    private List<string> RobotMoves { get; set; } = new List<string>();
+
+    // The available LLM models found by the IOllamaModelService
+    private IReadOnlyList<OllamaModelInfo> AvailableModels { get; set; } = new List<OllamaModelInfo>();
+    private string SelectedModelId { get; set; } = "";
+
+    private string _connectionType = "ollama"; // default to ollama
+    private string _openAIApiKey = "";
+    private string _openAIModel = "gpt-4.0-mini";
+
+    protected override async Task OnInitializedAsync()
     {
-        base.OnInitialized();
         PageTitleService.SetTitle("Maze runner");
-        GenerateMazeAsync();
+        GenerateMaze();
+
+        // Load all available models from the service
+        AvailableModels = await OllamaModelService.GetLoadedModelsAsync();
+
+        // Load user preferences (which includes the selected model, if any)
+        var preferences = await UserPreferencesStorageService.LoadPreferencesAsync();
+        if (preferences != null)
+        {
+            if (!string.IsNullOrEmpty(preferences.SelectedModelId))
+                SelectedModelId = preferences.SelectedModelId;
+            if (!string.IsNullOrEmpty(preferences.ConnectionType))
+                _connectionType = preferences.ConnectionType;
+            if (!string.IsNullOrEmpty(preferences.OpenAIApiKey))
+                _openAIApiKey = preferences.OpenAIApiKey;
+            if (!string.IsNullOrEmpty(preferences.OpenAIModel))
+                _openAIModel = preferences.OpenAIModel;
+        }
+
+        if (preferences == null && AvailableModels.Count > 0)
+            SelectedModelId = AvailableModels[0].ModelId;
+
+        StateHasChanged();
     }
 
-    protected void GenerateMazeAsync()
+    // Generates the initial maze
+    protected void GenerateMaze()
     {
         _maze = new MazeRunnerMaze(XSize, YSize);
         var mazeBuilder = new MazeBuilder<MazeRunnerCellModel>(_maze);
         mazeBuilder.Build(this, CancellationToken.None);
-        _kernel = KernelFactory.BuildKernel(_maze);
-
-        StateHasChanged();
     }
 
-    public async Task PlotWallAsync(int x, int y)
+    // Example method to convert the current maze state into a string (text/ASCII).
+    private string GetMazeStateString()
+    {
+        if (_maze == null) return "No maze found.";
+        return $"Maze size: {XSize}x{YSize}. Robot at: {_maze.Robot.X}, {_maze.Robot.Y}";
+    }
+
+    async Task IMazePlotter.PlotWallAsync(int x, int y)
     {
         StateHasChanged();
-        var delay = TimeSpan.FromMilliseconds(50);
-        await Task.Delay(delay);
+        await Task.Delay(50);
     }
 
-    // Joystick event handlers with log updates
+    #region Joystick event handlers
     private void OnUpClicked()
     {
-        LogStore.Messages.Add($"Moved forward: {_maze?.Robot.MoveForward()}");
+        var result = _maze?.Robot.MoveUp();
+        RobotMoves.Add("MoveUp");
+        LogStore.Messages.Add(new LogStore.LogMessage($"Moved up: {result}", LogStore.LogType.RobotMovements));
         StateHasChanged();
     }
 
     private void OnDownClicked()
     {
-        LogStore.Messages.Add($"Moved down: {_maze?.Robot.MoveBackward()}");
+        var result = _maze?.Robot.MoveDown();
+        RobotMoves.Add("MoveDown");
+        LogStore.Messages.Add(new LogStore.LogMessage($"Moved down: {result}", LogStore.LogType.RobotMovements));
+
         StateHasChanged();
     }
 
     private void OnLeftClicked()
     {
-        LogStore.Messages.Add($"Moved left: {_maze?.Robot.MoveLeft()}");
+        var result = _maze?.Robot.MoveLeft();
+        RobotMoves.Add("MoveLeft");
+        LogStore.Messages.Add(new LogStore.LogMessage($"Moved left: {result}", LogStore.LogType.RobotMovements));
         StateHasChanged();
     }
 
     private void OnRightClicked()
     {
-        LogStore.Messages.Add($"Moved right: {_maze?.Robot.MoveRight()}");
+        var result = _maze?.Robot.MoveRight();
+        RobotMoves.Add("MoveRight");
+        LogStore.Messages.Add(new LogStore.LogMessage($"Moved right: {result}", LogStore.LogType.RobotMovements));
+        StateHasChanged();
+    }
+    #endregion
+
+    // Called when the user enters a command and clicks "Send Command"
+    private async Task ProcessUserCommand()
+    {
+        if (IsProcessingCommand) return;
+
+        IsProcessingCommand = true;
+        StateHasChanged();
+
+        try
+        {
+            var kernel = await SetupChatService();
+            var response = await ExecuteChatCompletion(kernel);
+            ResponseMessage = response;
+            LogStore.Messages.Add(new LogStore.LogMessage($"Semantic: {ResponseMessage}", LogStore.LogType.SemanticKernel));
+        }
+        catch (Exception ex)
+        {
+            HandleError("An error occurred", ex);
+        }
+        finally
+        {
+            IsProcessingCommand = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<Kernel> SetupChatService()
+    {
+        if (_maze == null)
+            throw new InvalidOperationException("Maze is not initialized");
+
+        var kernelBuildParameters = new KernelBuildParameters(
+            _maze, 
+            _connectionType, 
+            SelectedModelId, 
+            _openAIModel, 
+            IncludePlugins: true, 
+            _openAIApiKey, 
+            LogStore
+        );
+        return await Task.FromResult(KernelFactory.BuildKernel(kernelBuildParameters));
+    }
+
+    private async Task<string> ExecuteChatCompletion(Kernel kernel)
+    {
+        var systemPrompt = BuildSystemPrompt();
+        var chatHistory = new ChatHistory();
+        chatHistory.AddSystemMessage(systemPrompt);
+        chatHistory.AddUserMessage(UserCommand);
+
+        var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
+        var chatResult = await chatCompletionService.GetChatMessageContentAsync(
+            chatHistory,
+            new PromptExecutionSettings
+            {
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
+            },
+            kernel
+        );
+
+        return chatResult.ToString();
+    }
+
+    private string BuildSystemPrompt()
+    {
+        string initialPrompt = "You are a chatbot capable of controlling a robot in a maze.";
+        string movesSoFar = string.Join(", ", RobotMoves);
+        string currentMazeState = GetMazeStateString();
+
+        return $@"
+{initialPrompt}
+
+Here is the conversation context:
+
+Initial Maze State:
+{currentMazeState}
+
+Moves so far:
+{movesSoFar}
+
+Current (last) Maze State:
+{currentMazeState}
+";
+    }
+
+    private void HandleError(string userMessage, Exception ex)
+    {
+        ResponseMessage = userMessage;
+        LogStore.Messages.Add(new LogStore.LogMessage($"Error: {ex.Message}", LogStore.LogType.SemanticKernel));
+        if (ex.InnerException != null)
+        {
+            LogStore.Messages.Add(new LogStore.LogMessage($"Inner exception: {ex.InnerException.Message}", LogStore.LogType.SemanticKernel));
+        }
+    }
+
+    private async Task OnModelChanged(ChangeEventArgs e)
+    {
+        SelectedModelId = e.Value?.ToString() ?? "";
+        await SaveSettings();
+        LogStore.Messages.Add(new LogStore.LogMessage($"Selected Ollama model changed: {SelectedModelId}", LogStore.LogType.UserInput));
         StateHasChanged();
     }
 
-    private async Task ProcessUserCommand()
+    private async Task OnConnectionTypeChanged(ChangeEventArgs e)
     {
-        string systemPrompt = @"
-You are a chatbot capable of controlling a robot in a maze.
-The robot understands and can execute the following commands: move up, down, left, right.
-The robot cannot pass through walls.
-When issued the 'look around' command, the robot look around for 1 cell.
-
-In the grid:
-  '?' indicates an unexplored cell.
-  '#' indicates a wall.
-  '_' indicates an open passage.
-  'R' indicates the robot's current position.
-  Any discovered object (e.g., 'apple') is labeled with its letter 'A' for apple.
-Once a cell is discovered, it remains visible permanently.
-";
-
-        var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
-
-        ChatHistory chatHistory = [];
-        chatHistory.AddSystemMessage(systemPrompt);
-        chatHistory.AddUserMessage(UserCommand);
-        var chatResult = await chatCompletionService
-         .GetChatMessageContentAsync(chatHistory, new PromptExecutionSettings
-             {
-                 FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-             }, _kernel);
-        ResponseMessage = chatResult.ToString();
-        LogStore.Messages.Add($"Semantic: {ResponseMessage}");
+        _connectionType = e.Value?.ToString() ?? "ollama";
+        await SaveSettings();
+        LogStore.Messages.Add(new LogStore.LogMessage($"Connection type changed: {_connectionType}", LogStore.LogType.UserInput));
         StateHasChanged();
+    }
+
+    private async Task SaveSettings()
+    {
+        var preferences = new MazeRunnerUserPreferences
+            {
+                SelectedModelId = SelectedModelId,
+                ConnectionType = _connectionType,
+                OpenAIApiKey = _openAIApiKey,
+                OpenAIModel = _openAIModel
+            };
+        await UserPreferencesStorageService.SavePreferencesAsync(preferences);
+        LogStore.Messages.Add(new LogStore.LogMessage("Settings saved.", LogStore.LogType.UserInput));
     }
 }

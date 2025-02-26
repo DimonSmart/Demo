@@ -3,22 +3,92 @@
 namespace Demo.Demos.MazeRunner
 {
     /// <summary>
-    /// Extension methods for MazeEnvironment.
+    /// Extension methods for the Maze environment.
     /// </summary>
     public static class MazeExtensions
     {
         /// <summary>
-        /// Generates a detailed textual representation of the discovered parts of the maze.
+        /// Generates a textual representation of the maze using single-character symbols for each cell:
+        ///  - R = Robot
+        ///  - # = Wall
+        ///  - A = Apple
+        ///  - P = Pear
+        ///  - _ = Empty (discovered)
+        ///  - ? = Undiscovered
+        /// The output includes column headers, a separator line, and row indices for easy reference.
         /// </summary>
         /// <param name="maze">The maze environment containing the maze and the robot.</param>
         /// <param name="encloseSymbolsInQuotes">
-        /// If true, each cell symbol is enclosed in quotes (e.g., 'R', '#' etc.).
+        /// If true, each cell symbol is enclosed in quotes (e.g., 'R', '#', etc.).
         /// </param>
-        /// <returns>A string representing the discovered maze parts in a detailed textual format.</returns>
-        public static string MakeDiscoveredMazePartView(this MazeRunnerMaze maze, bool encloseSymbolsInQuotes = false)
+        /// <returns>A string representing the maze in a single-character textual format.</returns>
+        public static string MakeMazeAsTextRepresentation(this MazeRunnerMaze maze, bool encloseSymbolsInQuotes = false)
         {
             var sb = new StringBuilder();
+            var width = maze.Width;
+            var height = maze.Height;
 
+            // Column headers
+            sb.Append("     ");
+            for (var x = 0; x < width; x++)
+            {
+                // Use columns as numeric for clarity
+                var header = x.ToString().PadLeft(2);
+                sb.Append($"{header} ");
+            }
+            sb.AppendLine();
+
+            // Separator line
+            sb.Append("     ");
+            for (var x = 0; x < width; x++)
+            {
+                sb.Append("---");
+            }
+            sb.AppendLine();
+
+            // Each row with row index and cells
+            for (var y = 0; y < height; y++)
+            {
+                // Row number
+                sb.Append(y.ToString().PadLeft(3) + " | ");
+                for (var x = 0; x < width; x++)
+                {
+                    var cell = maze[x, y];
+                    var symbol = GetCellSymbol(cell, x, y, maze.Robot);
+
+                    // Optionally enclose symbols in quotes
+                    if (encloseSymbolsInQuotes)
+                    {
+                        sb.Append($"'{symbol}' ");
+                    }
+                    else
+                    {
+                        sb.Append($"{symbol}  "); // extra space for better spacing
+                    }
+                }
+                sb.AppendLine();
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Generates a simplified list representation of the maze cells.
+        /// Each cell is represented as "x,y=symbol" (coordinates are 1-indexed)
+        /// and entries are separated by semicolons.
+        /// Optionally, undiscovered cells (with symbol '?') can be skipped.
+        /// </summary>
+        /// <param name="maze">The maze environment containing the maze and the robot.</param>
+        /// <param name="encloseSymbolsInQuotes">
+        /// If true, each cell symbol is enclosed in quotes.
+        /// </param>
+        /// <param name="includeUndiscoveredCells">
+        /// If false, cells that are not discovered (with symbol '?') are not included.
+        /// </param>
+        /// <returns>A string representing the maze as a list of cells in the format "x,y=symbol;".</returns>
+        public static string MakeMazeAsSimpleCellList(this MazeRunnerMaze maze, bool encloseSymbolsInQuotes = false, bool includeUndiscoveredCells = true)
+        {
+            var sb = new StringBuilder();
             var width = maze.Width;
             var height = maze.Height;
 
@@ -27,49 +97,60 @@ namespace Demo.Demos.MazeRunner
                 for (var x = 0; x < width; x++)
                 {
                     var cell = maze[x, y];
-                    var description = GetCellDescription(cell, x, y, maze.Robot);
+                    var symbol = GetCellSymbol(cell, x, y, maze.Robot);
 
-                    if (encloseSymbolsInQuotes)
-                    {
-                        sb.Append($"'{description}' ");
-                    }
-                    else
-                    {
-                        sb.Append($"{description} ");
-                    }
+                    // Skip undiscovered cells if not included
+                    if (!includeUndiscoveredCells && symbol == "?")
+                        continue;
+
+                    // Optionally enclose symbol in quotes
+                    var outputSymbol = encloseSymbolsInQuotes ? $"'{symbol}'" : symbol;
+
+                    // Coordinates are 1-indexed for better readability
+                    sb.Append($"{x + 1},{y + 1}={outputSymbol};");
                 }
-                sb.AppendLine();
             }
-            var result = sb.ToString();
-            return result;
+
+            return sb.ToString();
         }
 
         /// <summary>
-        /// Determines the detailed textual description for a maze cell.
+        /// Returns a single-character symbol for the cell.
+        /// For discovered cells that are empty, returns '_' instead of '.'.
         /// </summary>
-        /// <param name="cell">The maze cell.</param>
-        /// <param name="x">The x coordinate of the cell.</param>
-        /// <param name="y">The y coordinate of the cell.</param>
-        /// <param name="robot">The robot in the maze environment.</param>
-        /// <returns>A string representing the detailed description of the cell.</returns>
-        private static string GetCellDescription(MazeRunnerCellModel cell, int x, int y, Robot robot)
+        private static string GetCellSymbol(MazeRunnerCellModel cell, int x, int y, Robot robot)
         {
+            // Robot position takes precedence
             if (robot != null && x == robot.X && y == robot.Y)
-                return "Robot";
+            {
+                return "R";
+            }
 
-            if (!cell.Discovered)
+            // Undiscovered cell
+            if (!cell.IsDiscovered())
+            {
                 return "?";
+            }
 
+            // Wall
             if (cell.IsWall())
-                return "Wall";
+            {
+                return "#";
+            }
 
-            var descriptions = new List<string>();
+            // Apple or Pear (they won't coexist in the same cell)
             if (cell.IsApple())
-                descriptions.Add("Apple");
-            if (cell.IsPear())
-                descriptions.Add("Pear");
+            {
+                return "A";
+            }
 
-            return descriptions.Count > 0 ? string.Join(", ", descriptions) : "Empty";
+            if (cell.IsPear())
+            {
+                return "P";
+            }
+
+            // Otherwise, an empty discovered cell represented as '_'
+            return "_";
         }
     }
 }
