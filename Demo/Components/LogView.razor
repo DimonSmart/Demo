@@ -1,9 +1,9 @@
 ﻿@using System.Text.RegularExpressions
 @using System.Collections.ObjectModel
+@using Demo.Demos.MazeRunner
 @inject IJSRuntime JSRuntime
 
-
-<div class="log-viewer-container" style="display: flex; flex-direction: column; border: 1px solid #ccc; height: 100%;">
+<div class="log-viewer-container" style="display: flex; flex-direction: column; border: 1px solid #ccc; height: 100%; max-width: 100%; word-break: break-word; overflow-wrap: break-word;">
     <!-- Top control bar -->
     <div class="d-flex flex-wrap align-items-center p-2 border-bottom gap-2">
         @if (ShowClearButton)
@@ -42,23 +42,40 @@
     <div @ref="LogContainer"
          id="logContainer"
          class="p-2"
-         style="overflow-y: scroll; min-height: 0; font-family: monospace; white-space: pre-wrap; height: 100%;">
+         style="overflow-y: scroll; min-height: 0; min-width: 0; font-family: monospace; white-space: pre-wrap; overflow-wrap: break-word; height: 100%;">
         <div>
-            @if (!string.IsNullOrEmpty(SearchQuery))
+            @foreach (var log in LogMessages)
             {
-                @((MarkupString)HighlightLog(DisplayedLog, SearchQuery))
-            }
-            else
-            {
-                @DisplayedLog
+                var messageText = CompactView ? Regex.Replace(log.Message, @"\s+", " ") : log.Message;
+                switch (log.Type)
+                {
+                    case LogStore.LogType.SemanticKernel:
+                        <div style="font-size: 0.8em; color: #666; margin-bottom: 4px;">
+                            @RenderLogMessage(messageText)
+                        </div>
+                        break;
+                    case LogStore.LogType.RobotMovements:
+                        <div style="font-size: 1em; color: blue; margin-bottom: 4px;">
+                            @RenderLogMessage(messageText)
+                        </div>
+                        break;
+                    case LogStore.LogType.UserInput:
+                    default:
+                        <div style="font-size: 1em; color: black; margin-bottom: 4px;">
+                            @RenderLogMessage(messageText)
+                        </div>
+                        break;
+                }
             }
         </div>
     </div>
+
+
 </div>
 
 @code {
     [Parameter]
-    public ObservableCollection<string> LogMessages { get; set; } = new ObservableCollection<string>();
+    public ObservableCollection<LogStore.LogMessage> LogMessages { get; set; } = new ObservableCollection<LogStore.LogMessage>();
 
     [Parameter]
     public bool ShowClearButton { get; set; } = true;
@@ -77,7 +94,7 @@
     private ElementReference LogContainer;
     private string DisplayedLog =>
         CompactView
-            ? string.Join("\n", LogMessages.Select(m => Regex.Replace(m, @"\s+", " ")))
+            ? string.Join("\n", LogMessages.Select(m => Regex.Replace(m.Message, @"\s+", " ")))
             : LogContent;
 
     private bool _scrollRequested;
@@ -125,4 +142,17 @@
             match => $"<span style=\"background-color: yellow;\">{match.Value}</span>",
             RegexOptions.IgnoreCase);
     }
+
+    private RenderFragment RenderLogMessage(string messageText) => builder =>
+    {
+        if (!string.IsNullOrEmpty(SearchQuery))
+        {
+            builder.AddMarkupContent(0, HighlightLog(messageText, SearchQuery));
+        }
+        else
+        {
+            builder.AddContent(1, messageText);
+        }
+    };
+
 }
