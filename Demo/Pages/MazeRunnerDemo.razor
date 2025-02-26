@@ -44,20 +44,33 @@
                               OnLeftClicked="OnLeftClicked"
                               OnRightClicked="OnRightClicked" />
                 </div>
-            </div>
 
-            <!-- Settings block: model selector -->
-            <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
-                <label for="modelSelect">Select Model:</label>
-                <select id="modelSelect" @onchange="OnModelChanged" value="@SelectedModelId">
-                    @if (AvailableModels != null)
+
+                <!-- Settings block: model selector or installation instructions -->
+                <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
+                    @if (AvailableModels != null && AvailableModels.Count > 0)
                     {
-                        @foreach (var model in AvailableModels)
-                        {
-                            <option value="@model.ModelId">@model.ModelId (@model.ParameterCount, @model.Size bytes)</option>
-                        }
+                        <label for="modelSelect">Select Model:</label>
+                        <select id="modelSelect" @onchange="OnModelChanged" value="@SelectedModelId">
+                            @foreach (var model in AvailableModels)
+                            {
+                                <option value="@model.ModelId">@model.ModelId (@model.ParameterCount, @model.Size bytes)</option>
+                            }
+                        </select>
                     }
-                </select>
+                    else
+                    {
+                        <div>
+                            <h4>Installing and Configuring ollama</h4>
+                            <p>No models were found. To get started with ollama, please follow these steps:</p>
+                            <ol style="text-align: left; display: inline-block;">
+                                <li>Download and install ollama from the official website: <a href="https://ollama.com" target="_blank">https://ollama.com</a>.</li>
+                                <li>Run ollama and download the required models (for example, using the command <code>ollama pull &lt;model-id&gt;</code>).</li>
+                                <li>Restart the application to apply the changes.</li>
+                            </ol>
+                        </div>
+                    }
+                </div>
             </div>
         }
 
@@ -92,10 +105,8 @@
         PageTitleService.SetTitle("Maze runner");
         GenerateMaze();
 
-        // Load available models from Ollama
         AvailableModels = await OllamaModelService.GetLoadedModelsAsync();
 
-        // Load previously saved user preferences if any
         var prefs = await UserPreferencesStorageService.LoadPreferencesAsync();
         if (prefs != null && !string.IsNullOrEmpty(prefs.SelectedModelId))
         {
@@ -103,7 +114,6 @@
         }
         else if (AvailableModels.Count > 0)
         {
-            // Default to first available model
             SelectedModelId = AvailableModels[0].ModelId;
         }
 
@@ -183,7 +193,7 @@ Once a cell is discovered, it remains visible permanently.
 
     private async Task OnModelChanged(ChangeEventArgs e)
     {
-        SelectedModelId = e.Value?.ToString();
+        SelectedModelId = e.Value.ToString();
         var prefs = new MazeRunnerUserPreferences
             {
                 SelectedModelId = SelectedModelId
