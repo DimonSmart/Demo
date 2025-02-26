@@ -97,7 +97,7 @@
     private string UserCommand { get; set; } = "";
     private string ResponseMessage { get; set; } = "";
 
-    private List<OllamaModelInfo> AvailableModels { get; set; } = new();
+    private IReadOnlyList<OllamaModelInfo> AvailableModels { get; set; } = new List<OllamaModelInfo>();
     private string SelectedModelId { get; set; }
 
     protected override async Task OnInitializedAsync()
