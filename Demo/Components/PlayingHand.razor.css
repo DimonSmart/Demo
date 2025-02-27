@@ -1,19 +1,20 @@
 ﻿.hand-container {
     display: flex;
     flex-direction: column;
-    padding: 5px;
+    padding: 10px;
     background-color: #f3f3f3;
     border-radius: 8px;
     box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 1em;
 }
 
 .hand-info {
-    font-size: 0.75em;
     margin-bottom: 10px;
     display: flex;
     justify-content: space-between;
     gap: 10px;
     align-items: center;
+    font-size: 1em;
 }
 
 .bet-label {
@@ -46,7 +47,7 @@
 .hand-cards {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 10px;
 }
 
 .game-result-container {
@@ -75,4 +76,29 @@
 .game-result-text-negative {
     background-color: #ffc107;
     color: black !important;
+}
+
+@media (max-width: 768px) {
+    .card {
+        width: 100px;
+        height: 140px;
+    }
+
+    .card-rank {
+        font-size: 1.5em;
+    }
+
+    .card-suit {
+        font-size: 2em;
+    }
+
+    .hand-cards {
+        gap: 5px;
+    }
+
+    .hand-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
 }

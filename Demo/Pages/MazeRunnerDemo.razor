@@ -57,6 +57,12 @@
                                 <option value="@model.ModelId">@model.ModelId (@model.ParameterCount, @model.Size bytes)</option>
                             }
                         </select>
+                        <!-- Chat block -->
+                        <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
+                            <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., move right)" style="width:300px;" />
+                            <button @onclick="ProcessUserCommand">Send Command</button>
+                            <div style="margin-top:10px;">Assistant's response: @ResponseMessage</div>
+                        </div>
                     }
                     else
                     {
@@ -73,13 +79,6 @@
                 </div>
             </div>
         }
-
-        <!-- Chat block -->
-        <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
-            <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., move right)" style="width:300px;" />
-            <button @onclick="ProcessUserCommand">Send Command</button>
-            <div style="margin-top:10px;">Assistant's response: @ResponseMessage</div>
-        </div>
     </section>
 
     <!-- Right container: Log view (full height) -->

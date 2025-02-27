@@ -35,13 +35,11 @@ builder.Services.Configure<OllamaOptions>(options =>
 {
     options.BaseAddress = "http://localhost:11434";
 });
-
 builder.Services.AddHttpClient<IOllamaModelService, OllamaModelService>((sp, client) =>
 {
     var options = sp.GetRequiredService<IOptions<OllamaOptions>>().Value;
     client.BaseAddress = new Uri(options.BaseAddress);
 });
-
 builder.Services.AddScoped<UserPreferencesStorageService<MazeRunnerUserPreferences>>();
 
 
