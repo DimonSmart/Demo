@@ -26,32 +26,32 @@ namespace Demo.Demos.MazeRunner
         [Description("Moves the robot to the right (increases X by 1) and returns its updated coordinates.")]
         public string MoveRight(KernelArguments context)
         {
-            _maze.Robot.MoveRight();
-            return $"The robot moved to ({_maze.Robot.X}, {_maze.Robot.Y}).";
+            var status = _maze.Robot.MoveRight();
+            return $"The robot moved right:{status}. Coordinates:({_maze.Robot.X}, {_maze.Robot.Y}).";
         }
 
         [KernelFunction("MoveLeft")]
         [Description("Moves the robot to the left (decreases X by 1) and returns its updated coordinates.")]
         public string MoveLeftAsync(KernelArguments context)
         {
-            _maze.Robot.MoveLeft();
-            return $"The robot moved to ({_maze.Robot.X}, {_maze.Robot.Y}).";
+            var status = _maze.Robot.MoveLeft();
+            return $"The robot moved left:{status}. Coordinates:({_maze.Robot.X}, {_maze.Robot.Y}).";
         }
 
         [KernelFunction("MoveDown")]
-        [Description("Moves the robot down (decreases Y by 1) and returns its updated coordinates.")]
+        [Description("Moves the robot down (increases Y by 1) and returns its updated coordinates.")]
         public string MoveDown(KernelArguments context)
         {
-            _maze.Robot.MoveBackward();
-            return $"The robot moved to ({_maze.Robot.X}, {_maze.Robot.Y}).";
+            var status =_maze.Robot.MoveDown();
+            return $"The robot moved down:{status}. Coordinates:({_maze.Robot.X}, {_maze.Robot.Y}).";
         }
 
         [KernelFunction("MoveUp")]
-        [Description("Moves the robot up (increases Y by 1) and returns its updated coordinates.")]
+        [Description("Moves the robot up (decreases Y by 1) and returns its updated coordinates.")]
         public string MoveUp(KernelArguments context)
         {
-            _maze.Robot.MoveForward();
-            return $"The robot moved to ({_maze.Robot.X}, {_maze.Robot.Y}).";
+            var status = _maze.Robot.MoveUp();
+            return $"The robot moved up:{status}. Coordinates:({_maze.Robot.X}, {_maze.Robot.Y}).";
         }
 
     }

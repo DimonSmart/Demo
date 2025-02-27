@@ -136,13 +136,13 @@
     // Joystick event handlers with log updates
     private void OnUpClicked()
     {
-        LogStore.Messages.Add($"Moved forward: {_maze?.Robot.MoveForward()}");
+        LogStore.Messages.Add($"Moved forward: {_maze?.Robot.MoveUp()}");
         StateHasChanged();
     }
 
     private void OnDownClicked()
     {
-        LogStore.Messages.Add($"Moved down: {_maze?.Robot.MoveBackward()}");
+        LogStore.Messages.Add($"Moved down: {_maze?.Robot.MoveDown()}");
         StateHasChanged();
     }
 

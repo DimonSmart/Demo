@@ -22,7 +22,7 @@
         public MazeRunnerCellModel LookBackward() => M[X, Y + 1];
 
         // Methods for moving the robot one cell
-        public string MoveForward()
+        public string MoveUp()
         {
             if (CanMoveTo(X, Y - 1))
             {
@@ -52,7 +52,7 @@
             return "Err";
         }
 
-        public string MoveBackward()
+        public string MoveDown()
         {
             if (CanMoveTo(X, Y + 1))
             {
