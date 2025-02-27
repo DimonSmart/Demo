@@ -3,12 +3,14 @@
 namespace Demo.Demos.MazeRunner
 {
     /// <summary>
-    /// Extension methods for MazeEnvironment.
+    /// Extension methods for the Maze environment.
     /// </summary>
     public static class MazeExtensions
     {
         /// <summary>
         /// Generates a detailed textual representation of the discovered parts of the maze.
+        /// The output includes column headers, a separator line, and row numbers for easy navigation.
+        /// Each cell is represented by a descriptive symbol: "Robot", "Wall", "Apple", "Pear", "Empty", or "?" if undiscovered.
         /// </summary>
         /// <param name="maze">The maze environment containing the maze and the robot.</param>
         /// <param name="encloseSymbolsInQuotes">
@@ -18,34 +20,45 @@ namespace Demo.Demos.MazeRunner
         public static string MakeDiscoveredMazePartView(this MazeRunnerMaze maze, bool encloseSymbolsInQuotes = false)
         {
             var sb = new StringBuilder();
-
             var width = maze.Width;
             var height = maze.Height;
 
+            // Column header with each column number
+            sb.Append("     ");
+            for (var x = 0; x < width; x++)
+            {
+                var header = x.ToString().PadLeft(3);
+                sb.Append(encloseSymbolsInQuotes ? $"'{header}' " : $"{header} ");
+            }
+            sb.AppendLine();
+
+            // Separator line (optional)
+            sb.Append("     ");
+            for (var x = 0; x < width; x++)
+            {
+                sb.Append("----");
+            }
+            sb.AppendLine();
+
+            // Rows with row numbers and cell descriptions
             for (var y = 0; y < height; y++)
             {
+                sb.Append(y.ToString().PadLeft(3) + " | ");
                 for (var x = 0; x < width; x++)
                 {
                     var cell = maze[x, y];
                     var description = GetCellDescription(cell, x, y, maze.Robot);
-
-                    if (encloseSymbolsInQuotes)
-                    {
-                        sb.Append($"'{description}' ");
-                    }
-                    else
-                    {
-                        sb.Append($"{description} ");
-                    }
+                    sb.Append(encloseSymbolsInQuotes ? $"'{description}' " : $"{description} ");
                 }
                 sb.AppendLine();
             }
-            var result = sb.ToString();
-            return result;
+            return sb.ToString();
         }
 
         /// <summary>
         /// Determines the detailed textual description for a maze cell.
+        /// The description is determined based on whether the cell is occupied by the robot,
+        /// undiscovered, a wall, or contains specific items (Apple or Pear).
         /// </summary>
         /// <param name="cell">The maze cell.</param>
         /// <param name="x">The x coordinate of the cell.</param>
@@ -57,7 +70,7 @@ namespace Demo.Demos.MazeRunner
             if (robot != null && x == robot.X && y == robot.Y)
                 return "Robot";
 
-            if (!cell.Discovered)
+            if (!cell.IsDiscovered())
                 return "?";
 
             if (cell.IsWall())

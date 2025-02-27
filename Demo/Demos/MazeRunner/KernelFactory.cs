@@ -38,6 +38,9 @@ namespace Demo.Demos.MazeRunner
             builder.Services.AddSingleton(maze);
             builder.Plugins.AddFromType<TimeInformationPlugin>();
 
+            var mazeRunnerPlugin = new MazeRunnerRobotPlugin(maze);
+            builder.Plugins.AddFromObject(mazeRunnerPlugin);
+
             var kernel = builder.Build();
             return kernel;
         }

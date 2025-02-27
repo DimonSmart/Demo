@@ -62,12 +62,6 @@
             return "Err";
         }
 
-        // Method allowing the robot to mark the current cell (e.g., with chalk)
-        public void MarkCell()
-        {
-            var cell = M[X, Y];
-            cell.MarkVisited(); // Assumes Cell has a Marked property
-        }
 
         // Private method to check if the robot can move to the specified cell
         private bool CanMoveTo(int newX, int newY)
@@ -96,7 +90,7 @@
                     var newY = Y + dy;
                     if (newX >= 0 && newX < Maze.Width && newY >= 0 && newY < Maze.Height)
                     {
-                        Maze[newX, newY].Discovered = true;
+                        Maze[newX, newY].SetDiscovered();
                     }
                 }
             }
