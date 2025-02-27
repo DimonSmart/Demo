@@ -78,27 +78,3 @@
     color: black !important;
 }
 
-@media (max-width: 768px) {
-    .card {
-        width: 100px;
-        height: 140px;
-    }
-
-    .card-rank {
-        font-size: 1.5em;
-    }
-
-    .card-suit {
-        font-size: 2em;
-    }
-
-    .hand-cards {
-        gap: 5px;
-    }
-
-    .hand-info {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
-    }
-}
