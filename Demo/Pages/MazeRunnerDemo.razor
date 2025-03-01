@@ -177,17 +177,6 @@
 
         string systemPrompt = @"
 You are a chatbot capable of controlling a robot in a maze.
-The robot understands and can execute the following commands: move up, down, left, right.
-The robot cannot pass through walls.
-When issued the 'look around' command, the robot look around for 1 cell.
-
-In the grid:
-  '?' indicates an unexplored cell.
-  '#' indicates a wall.
-  '_' indicates an open passage.
-  'R' indicates the robot's current position.
-  Any discovered object (e.g., 'apple') is labeled with its letter 'A' for apple.
-Once a cell is discovered, it remains visible permanently.
 ";
 
         var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();

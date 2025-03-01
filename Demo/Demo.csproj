@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
+    <PackageReference Include="DimonSmart.AiUtils" Version="1.25301.2132" />
     <PackageReference Include="DimonSmart.HashX" Version="1.24813.951" />
     <PackageReference Include="DimonSmart.MazeGenerator" Version="1.25218.855" />
     <PackageReference Include="DimonSmart.StringDiff" Version="1.24725.1329" />
