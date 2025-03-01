@@ -17,7 +17,7 @@ namespace Demo.Demos.MazeRunner
         /// If true, each cell symbol is enclosed in quotes (e.g., 'R', '#' etc.).
         /// </param>
         /// <returns>A string representing the discovered maze parts in a detailed textual format.</returns>
-        public static string MakeDiscoveredMazePartView(this MazeRunnerMaze maze, bool encloseSymbolsInQuotes = false)
+        public static string MakeMazeAsTextRepresentation(this MazeRunnerMaze maze, bool encloseSymbolsInQuotes = false)
         {
             var sb = new StringBuilder();
             var width = maze.Width;

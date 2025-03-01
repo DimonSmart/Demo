@@ -54,13 +54,19 @@
                         <select id="modelSelect" @onchange="OnModelChanged" value="@SelectedModelId">
                             @foreach (var model in AvailableModels)
                             {
-                                <option value="@model.ModelId">@model.ModelId (@model.ParameterCount, @model.Size bytes)</option>
+                                <option value="@model.ModelId">
+                                    @model.ModelId (@model.ParameterCount, @((model.Size / 1024.0 / 1024.0).ToString("F2")) MB)
+                                </option>
                             }
                         </select>
                         <!-- Chat block -->
                         <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
                             <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., move right)" style="width:300px;" />
-                            <button @onclick="ProcessUserCommand">Send Command</button>
+                            <button @onclick="ProcessUserCommand" disabled="@IsProcessingCommand">Send Command</button>
+                            @if (IsProcessingCommand)
+                            {
+                                <Spinner />
+                            }
                             <div style="margin-top:10px;">Assistant's response: @ResponseMessage</div>
                         </div>
                     }
@@ -91,7 +97,7 @@
     protected int XSize = 9;
     protected int YSize = 9;
     protected MazeRunnerMaze? _maze;
-    protected Kernel? _kernel;
+    private bool IsProcessingCommand = false;
 
     private string UserCommand { get; set; } = "";
     private string ResponseMessage { get; set; } = "";
@@ -124,7 +130,7 @@
         _maze = new MazeRunnerMaze(XSize, YSize);
         var mazeBuilder = new MazeBuilder<MazeRunnerCellModel>(_maze);
         mazeBuilder.Build(this, CancellationToken.None);
-        _kernel = KernelFactory.BuildKernel(_maze);
+        
     }
 
     public async Task PlotWallAsync(int x, int y)
@@ -160,6 +166,15 @@
 
     private async Task ProcessUserCommand()
     {
+        if (IsProcessingCommand)
+            return;
+
+        IsProcessingCommand = true;
+        StateHasChanged();
+
+        var kernelBuildParameters = new KernelBuildParameters(_maze, SelectedModelId, true);
+        var kernel = KernelFactory.BuildKernel(kernelBuildParameters);
+
         string systemPrompt = @"
 You are a chatbot capable of controlling a robot in a maze.
 The robot understands and can execute the following commands: move up, down, left, right.
@@ -175,19 +190,27 @@ In the grid:
 Once a cell is discovered, it remains visible permanently.
 ";
 
-        var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
+        var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
 
         var chatHistory = new ChatHistory();
         chatHistory.AddSystemMessage(systemPrompt);
         chatHistory.AddUserMessage(UserCommand);
-        var chatResult = await chatCompletionService.GetChatMessageContentAsync(chatHistory, new PromptExecutionSettings
-            {
-                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-            }, _kernel);
 
-        ResponseMessage = chatResult.ToString();
-        LogStore.Messages.Add($"Semantic: {ResponseMessage}");
-        StateHasChanged();
+        try
+        {
+            var chatResult = await chatCompletionService.GetChatMessageContentAsync(chatHistory, new PromptExecutionSettings
+                {
+                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
+                }, kernel);
+
+            ResponseMessage = chatResult.ToString();
+            LogStore.Messages.Add($"Semantic: {ResponseMessage}");
+        }
+        finally
+        {
+            IsProcessingCommand = false;
+            StateHasChanged();
+        }
     }
 
     private async Task OnModelChanged(ChangeEventArgs e)

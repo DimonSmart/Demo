@@ -2,9 +2,11 @@
 
 namespace Demo.Demos.MazeRunner
 {
+    public record KernelBuildParameters(MazeRunnerMaze Maze, string ModelId, bool IncludePlugins);
+
     public static class KernelFactory
     {
-        public static Kernel BuildKernel(MazeRunnerMaze maze)
+        public static Kernel BuildKernel(KernelBuildParameters parameters)
         {
             var configuration = new ConfigurationBuilder()
                 .AddUserSecrets<Program>()
@@ -20,7 +22,7 @@ namespace Demo.Demos.MazeRunner
 
 #pragma warning disable SKEXP0070
             builder.AddOllamaChatCompletion(
-                modelId: "llama3.3:70b-instruct-q2_K",
+                modelId: parameters.ModelId,
                 httpClient: httpClient,
                 serviceId: "ollama"
             );
@@ -34,13 +36,14 @@ namespace Demo.Demos.MazeRunner
                 logging.ClearProviders();
                 logging.SetMinimumLevel(LogLevel.Trace);
             });
+            if (parameters.IncludePlugins)
+            {
+                builder.Services.AddSingleton(parameters.Maze);
+                builder.Plugins.AddFromType<TimeInformationPlugin>();
 
-            builder.Services.AddSingleton(maze);
-            builder.Plugins.AddFromType<TimeInformationPlugin>();
-
-            var mazeRunnerPlugin = new MazeRunnerRobotPlugin(maze);
-            builder.Plugins.AddFromObject(mazeRunnerPlugin);
-
+                var mazeRunnerPlugin = new MazeRunnerRobotPlugin(parameters.Maze, parameters.ModelId);
+                builder.Plugins.AddFromObject(mazeRunnerPlugin);
+            }
             var kernel = builder.Build();
             return kernel;
         }

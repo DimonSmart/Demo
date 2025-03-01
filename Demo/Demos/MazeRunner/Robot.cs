@@ -12,6 +12,7 @@
         public void PutIntoMaze(MazeRunnerMaze maze)
         {
             Maze = maze;
+            LookAround();
         }
 
         // Methods for observing cells in different directions.
@@ -27,6 +28,7 @@
             if (CanMoveTo(X, Y - 1))
             {
                 Y = Y - 1;
+                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -37,6 +39,7 @@
             if (CanMoveTo(X - 1, Y))
             {
                 X = X - 1;
+                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -47,6 +50,7 @@
             if (CanMoveTo(X + 1, Y))
             {
                 X = X + 1;
+                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -57,6 +61,7 @@
             if (CanMoveTo(X, Y + 1))
             {
                 Y = Y + 1;
+                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -75,7 +80,7 @@
             return !M.IsWall(newX, newY);
         }
 
-        public void LookAround()
+        private void LookAround()
         {
             if (Maze == null)
             {
