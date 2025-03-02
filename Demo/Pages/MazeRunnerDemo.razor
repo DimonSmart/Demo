@@ -14,6 +14,11 @@
 
 @implements IMazePlotter
 
+<!--
+  Maze Runner Demo
+  A simple page that generates a maze and controls a robot via joystick or chat commands.
+-->
+
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze Generator Demo</PageTitle>
 
@@ -59,15 +64,18 @@
                                 </option>
                             }
                         </select>
+
                         <!-- Chat block -->
                         <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
-                            <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., move right)" style="width:300px;" />
+                            <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., 'move right')" style="width:300px;" />
                             <button @onclick="ProcessUserCommand" disabled="@IsProcessingCommand">Send Command</button>
                             @if (IsProcessingCommand)
                             {
                                 <Spinner />
                             }
-                            <div style="margin-top:10px;">Assistant's response: @ResponseMessage</div>
+                            <div style="margin-top:10px;">
+                                <strong>Assistant's response:</strong> @ResponseMessage
+                            </div>
                         </div>
                     }
                     else
@@ -97,11 +105,15 @@
     protected int XSize = 9;
     protected int YSize = 9;
     protected MazeRunnerMaze? _maze;
-    private bool IsProcessingCommand = false;
 
+    private bool IsProcessingCommand = false;
     private string UserCommand { get; set; } = "";
     private string ResponseMessage { get; set; } = "";
 
+    // List to store the moves that the robot has made.
+    private List<string> RobotMoves { get; set; } = new List<string>();
+
+    // The available LLM models found by the IOllamaModelService
     private IReadOnlyList<OllamaModelInfo> AvailableModels { get; set; } = new List<OllamaModelInfo>();
     private string SelectedModelId { get; set; }
 
@@ -110,8 +122,10 @@
         PageTitleService.SetTitle("Maze runner");
         GenerateMaze();
 
+        // Load all available models from the service
         AvailableModels = await OllamaModelService.GetLoadedModelsAsync();
 
+        // Load user preferences (which includes the selected model, if any)
         var prefs = await UserPreferencesStorageService.LoadPreferencesAsync();
         if (prefs != null && !string.IsNullOrEmpty(prefs.SelectedModelId))
         {
@@ -125,72 +139,115 @@
         StateHasChanged();
     }
 
+    // Generates the initial maze
     protected void GenerateMaze()
     {
         _maze = new MazeRunnerMaze(XSize, YSize);
         var mazeBuilder = new MazeBuilder<MazeRunnerCellModel>(_maze);
         mazeBuilder.Build(this, CancellationToken.None);
-        
     }
 
+    // Example method to convert the current maze state into a string (text/ASCII).
+    // You can replace this with your own logic if you have a better representation.
+    private string GetMazeStateString()
+    {
+        if (_maze == null) return "No maze found.";
+        // This is just a placeholder to show something.
+        // For a real ASCII map, you'd iterate through the grid and build a string with walls, free cells, robot position, etc.
+        return $"Maze size: {XSize}x{YSize}. Robot at: {_maze.Robot.X}, {_maze.Robot.Y}";
+    }
+
+    // IMazePlotter requirement
     public async Task PlotWallAsync(int x, int y)
     {
         StateHasChanged();
         await Task.Delay(50);
     }
 
-    // Joystick event handlers with log updates
+    // Joystick event handlers, now also storing the move in RobotMoves.
     private void OnUpClicked()
     {
-        LogStore.Messages.Add($"Moved forward: {_maze?.Robot.MoveUp()}");
+        var result = _maze?.Robot.MoveUp();
+        RobotMoves.Add("MoveUp");
+        LogStore.Messages.Add($"Moved forward: {result}");
         StateHasChanged();
     }
 
     private void OnDownClicked()
     {
-        LogStore.Messages.Add($"Moved down: {_maze?.Robot.MoveDown()}");
+        var result = _maze?.Robot.MoveDown();
+        RobotMoves.Add("MoveDown");
+        LogStore.Messages.Add($"Moved down: {result}");
         StateHasChanged();
     }
 
     private void OnLeftClicked()
     {
-        LogStore.Messages.Add($"Moved left: {_maze?.Robot.MoveLeft()}");
+        var result = _maze?.Robot.MoveLeft();
+        RobotMoves.Add("MoveLeft");
+        LogStore.Messages.Add($"Moved left: {result}");
         StateHasChanged();
     }
 
     private void OnRightClicked()
     {
-        LogStore.Messages.Add($"Moved right: {_maze?.Robot.MoveRight()}");
+        var result = _maze?.Robot.MoveRight();
+        RobotMoves.Add("MoveRight");
+        LogStore.Messages.Add($"Moved right: {result}");
         StateHasChanged();
     }
 
+    // Called when the user enters a command and clicks "Send Command"
     private async Task ProcessUserCommand()
     {
-        if (IsProcessingCommand)
-            return;
+        if (IsProcessingCommand) return;
 
         IsProcessingCommand = true;
         StateHasChanged();
 
-        var kernelBuildParameters = new KernelBuildParameters(_maze, SelectedModelId, true);
-        var kernel = KernelFactory.BuildKernel(kernelBuildParameters);
-
-        string systemPrompt = @"
-You are a chatbot capable of controlling a robot in a maze.
-";
-
-        var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
-
-        var chatHistory = new ChatHistory();
-        chatHistory.AddSystemMessage(systemPrompt);
-        chatHistory.AddUserMessage(UserCommand);
-
         try
         {
-            var chatResult = await chatCompletionService.GetChatMessageContentAsync(chatHistory, new PromptExecutionSettings
-                {
-                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-                }, kernel);
+            // Build a kernel that can handle chat completion
+            var kernelBuildParameters = new KernelBuildParameters(_maze, SelectedModelId, IncludePlugins: true);
+            var kernel = KernelFactory.BuildKernel(kernelBuildParameters);
+
+            // Build a consolidated system prompt that includes:
+            // 1) Initial prompt (or context)
+            // 2) The list of all robot moves
+            // 3) The current / final state of the maze
+            string initialPrompt = "You are a chatbot capable of controlling a robot in a maze.";
+            string movesSoFar = string.Join(", ", RobotMoves); // or separate lines if you prefer
+            string currentMazeState = GetMazeStateString();
+
+            string systemPrompt = $@"
+{initialPrompt}
+
+Here is the conversation context:
+
+Initial Maze State:
+{currentMazeState}
+
+Moves so far:
+{movesSoFar}
+
+Current (last) Maze State:
+{currentMazeState}
+";
+
+            var chatHistory = new ChatHistory();
+            chatHistory.AddSystemMessage(systemPrompt);
+            chatHistory.AddUserMessage(UserCommand);
+
+            var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
+            var chatResult = await chatCompletionService.GetChatMessageContentAsync(
+                chatHistory,
+                new PromptExecutionSettings
+                    {
+                    // Adjust function choice and other settings as you prefer
+                        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
+                    },
+                kernel
+            );
 
             ResponseMessage = chatResult.ToString();
             LogStore.Messages.Add($"Semantic: {ResponseMessage}");
@@ -204,7 +261,7 @@ You are a chatbot capable of controlling a robot in a maze.
 
     private async Task OnModelChanged(ChangeEventArgs e)
     {
-        SelectedModelId = e.Value.ToString();
+        SelectedModelId = e.Value?.ToString() ?? "";
         var prefs = new MazeRunnerUserPreferences
             {
                 SelectedModelId = SelectedModelId
