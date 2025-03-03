@@ -53,43 +53,67 @@
 
                 <!-- Settings block: model selector or installation instructions -->
                 <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
-                    @if (AvailableModels != null && AvailableModels.Count > 0)
+                    @if (_connectionType == "ollama")
                     {
-                        <label for="modelSelect">Select Model:</label>
-                        <select id="modelSelect" @onchange="OnModelChanged" value="@SelectedModelId">
-                            @foreach (var model in AvailableModels)
-                            {
-                                <option value="@model.ModelId">
-                                    @model.ModelId (@model.ParameterCount, @((model.Size / 1024.0 / 1024.0).ToString("F2")) MB)
-                                </option>
-                            }
-                        </select>
-
-                        <!-- Chat block -->
-                        <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
-                            <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., 'move right')" style="width:300px;" />
-                            <button @onclick="ProcessUserCommand" disabled="@IsProcessingCommand">Send Command</button>
-                            @if (IsProcessingCommand)
-                            {
-                                <Spinner />
-                            }
-                            <div style="margin-top:10px;">
-                                <strong>Assistant's response:</strong> @ResponseMessage
+                        @if (AvailableModels != null && AvailableModels.Count > 0)
+                        {
+                            <label for="modelSelect">Select Ollama Model:</label>
+                            <select id="modelSelect" @onchange="OnModelChanged" value="@SelectedModelId">
+                                @foreach (var model in AvailableModels)
+                                {
+                                    <option value="@model.ModelId">
+                                        @model.ModelId (@model.ParameterCount, @((model.Size / 1024.0 / 1024.0).ToString("F2")) MB)
+                                    </option>
+                                }
+                            </select>
+                        }
+                        else
+                        {
+                            <div>
+                                <h4>Installing and Configuring ollama</h4>
+                                <p>No models were found. To get started with ollama, please follow these steps:</p>
+                                <ol style="text-align: left; display: inline-block;">
+                                    <li>Download and install ollama from the official website: <a href="https://ollama.com" target="_blank">https://ollama.com</a>.</li>
+                                    <li>Run ollama and download the required models (for example, using the command <code>ollama pull &lt;model-id&gt;</code>).</li>
+                                    <li>Restart the application to apply the changes.</li>
+                                </ol>
                             </div>
-                        </div>
+                        }
                     }
-                    else
+                    else if (_connectionType == "openai")
                     {
-                        <div>
-                            <h4>Installing and Configuring ollama</h4>
-                            <p>No models were found. To get started with ollama, please follow these steps:</p>
-                            <ol style="text-align: left; display: inline-block;">
-                                <li>Download and install ollama from the official website: <a href="https://ollama.com" target="_blank">https://ollama.com</a>.</li>
-                                <li>Run ollama and download the required models (for example, using the command <code>ollama pull &lt;model-id&gt;</code>).</li>
-                                <li>Restart the application to apply the changes.</li>
-                            </ol>
+                        <div style="margin-bottom: 10px;">
+                            <label for="openaiKey">OpenAI API Key (will be masked):</label>
+                            <input id="openaiKey" type="password" @bind="_openAIApiKey" @bind:event="oninput" placeholder="Enter OpenAI API key" />
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label for="openaiModel">OpenAI Model (e.g., gpt-3.5-turbo):</label>
+                            <input id="openaiModel" type="text" @bind="_openAIModel" @bind:event="oninput" placeholder="Enter OpenAI Model" />
                         </div>
                     }
+
+                    <div style="margin-top: 10px;">
+                        <label for="connectionType">Connection Type:</label>
+                        <select id="connectionType" @onchange="OnConnectionTypeChanged" value="@_connectionType">
+                            <option value="ollama">Ollama</option>
+                            <option value="openai">OpenAI</option>
+                        </select>
+                    </div>
+
+                    <button @onclick="SaveSettings">Save Settings</button>
+
+                    <!-- Chat block -->
+                    <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
+                        <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., 'move right')" style="width:300px;" />
+                        <button @onclick="ProcessUserCommand" disabled="@IsProcessingCommand">Send Command</button>
+                        @if (IsProcessingCommand)
+                        {
+                            <Spinner />
+                        }
+                        <div style="margin-top:10px;">
+                            <strong>Assistant's response:</strong> @ResponseMessage
+                        </div>
+                    </div>
                 </div>
             </div>
         }
@@ -115,7 +139,11 @@
 
     // The available LLM models found by the IOllamaModelService
     private IReadOnlyList<OllamaModelInfo> AvailableModels { get; set; } = new List<OllamaModelInfo>();
-    private string SelectedModelId { get; set; }
+    private string SelectedModelId { get; set; } = "";
+
+    private string _connectionType = "ollama"; // default to ollama
+    private string _openAIApiKey = "";
+    private string _openAIModel = "gpt-3.5-turbo";
 
     protected override async Task OnInitializedAsync()
     {
@@ -127,9 +155,24 @@
 
         // Load user preferences (which includes the selected model, if any)
         var prefs = await UserPreferencesStorageService.LoadPreferencesAsync();
-        if (prefs != null && !string.IsNullOrEmpty(prefs.SelectedModelId))
+        if (prefs != null)
         {
-            SelectedModelId = prefs.SelectedModelId;
+            if (!string.IsNullOrEmpty(prefs.SelectedModelId))
+            {
+                SelectedModelId = prefs.SelectedModelId;
+            }
+            if (!string.IsNullOrEmpty(prefs.ConnectionType))
+            {
+                _connectionType = prefs.ConnectionType;
+            }
+            if (!string.IsNullOrEmpty(prefs.OpenAIApiKey))
+            {
+                _openAIApiKey = prefs.OpenAIApiKey;
+            }
+            if (!string.IsNullOrEmpty(prefs.OpenAIModel))
+            {
+                _openAIModel = prefs.OpenAIModel;
+            }
         }
         else if (AvailableModels.Count > 0)
         {
@@ -207,8 +250,7 @@
 
         try
         {
-            // Build a kernel that can handle chat completion
-            var kernelBuildParameters = new KernelBuildParameters(_maze, SelectedModelId, IncludePlugins: true);
+            var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, IncludePlugins: true);
             var kernel = KernelFactory.BuildKernel(kernelBuildParameters);
 
             // Build a consolidated system prompt that includes:
@@ -242,10 +284,10 @@ Current (last) Maze State:
             var chatResult = await chatCompletionService.GetChatMessageContentAsync(
                 chatHistory,
                 new PromptExecutionSettings
-                    {
+                {
                     // Adjust function choice and other settings as you prefer
-                        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-                    },
+                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
+                },
                 kernel
             );
 
@@ -262,12 +304,29 @@ Current (last) Maze State:
     private async Task OnModelChanged(ChangeEventArgs e)
     {
         SelectedModelId = e.Value?.ToString() ?? "";
-        var prefs = new MazeRunnerUserPreferences
-            {
-                SelectedModelId = SelectedModelId
-            };
-        await UserPreferencesStorageService.SavePreferencesAsync(prefs);
-        LogStore.Messages.Add($"Selected model changed: {SelectedModelId}");
+        await SaveSettings();
+        LogStore.Messages.Add($"Selected Ollama model changed: {SelectedModelId}");
         StateHasChanged();
+    }
+
+    private async Task OnConnectionTypeChanged(ChangeEventArgs e)
+    {
+        _connectionType = e.Value?.ToString() ?? "ollama";
+        await SaveSettings();
+        LogStore.Messages.Add($"Connection type changed: {_connectionType}");
+        StateHasChanged();
+    }
+
+    private async Task SaveSettings()
+    {
+        var prefs = new MazeRunnerUserPreferences
+        {
+            SelectedModelId = SelectedModelId,
+            ConnectionType = _connectionType,
+            OpenAIApiKey = _openAIApiKey,
+            OpenAIModel = _openAIModel
+        };
+        await UserPreferencesStorageService.SavePreferencesAsync(prefs);
+        LogStore.Messages.Add("Settings saved.");
     }
 }

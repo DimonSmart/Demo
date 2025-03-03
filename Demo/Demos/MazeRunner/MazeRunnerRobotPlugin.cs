@@ -1,47 +1,40 @@
-﻿using Microsoft.SemanticKernel;
+﻿using DimonSmart.AiUtils;
+using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.Ollama;
-using System.Text.Json;
 using System.ComponentModel;
-using DimonSmart.AiUtils;
+using System.Text.Json;
 using System.Text.Json.Serialization;
-using Azure;
 
 namespace Demo.Demos.MazeRunner
 {
-    [JsonConverter(typeof(JsonStringEnumConverter))]
-    public enum Command
-    {
-        MoveLeft,
-        MoveRight,
-        MoveUp,
-        MoveDown,
-        Done
-    }
-
-    public class CommandResult
-    {
-        public Command command { get; set; }
-    }
-
     public class MazeRunnerRobotPlugin
     {
-        private readonly MazeRunnerMaze _maze;
-        private readonly string _modelId;
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public enum NextStepRobotCommand
+        {
+            MoveLeft,
+            MoveRight,
+            MoveUp,
+            MoveDown,
+            Done
+        }
 
-        // Keep track of all steps performed so far:
+        public class CommandResult
+        {
+            public NextStepRobotCommand command { get; set; }
+        }
+
+        private readonly MazeRunnerMaze _maze;
+
         private readonly List<string> _robotMoves = new();
 
-        // Optionally, store the initial maze representation (to show each time if you wish).
-        private readonly string _initialMazeView;
+        private readonly KernelBuildParameters _kernelBuildParameters;
 
-        public MazeRunnerRobotPlugin(MazeRunnerMaze maze, string modelId)
+        public MazeRunnerRobotPlugin(KernelBuildParameters kernelBuildParameters)
         {
-            _maze = maze;
-            _modelId = modelId;
-
-            // Capture the starting layout of the maze if needed:
-            _initialMazeView = _maze.MakeMazeAsTextRepresentation();
+            _maze = kernelBuildParameters.Maze;
+            _kernelBuildParameters = kernelBuildParameters;
         }
 
         [KernelFunction("PlanRobotAction")]
@@ -50,7 +43,8 @@ namespace Demo.Demos.MazeRunner
             [Description("The **full** text of the user's request containing instructions and conditions for controlling the robot.")]
             string robotMovementRequestFullText)
         {
-            var kernel = KernelFactory.BuildKernel(new KernelBuildParameters(_maze, _modelId, IncludePlugins: false));
+            var kernel = KernelFactory.BuildKernel(_kernelBuildParameters with { IncludePlugins = false });
+
             var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
 
             while (true)
@@ -58,7 +52,6 @@ namespace Demo.Demos.MazeRunner
                 // Build a fresh ChatHistory each iteration
                 var chatHistory = new ChatHistory();
 
-                // Current maze as text
                 var currentMazeView = _maze.MakeMazeAsTextRepresentation();
                 // Steps so far, to show LLM
                 var movesSoFar = string.Join("\n", _robotMoves);
@@ -128,7 +121,7 @@ INSTRUCTIONS:
                 {
                     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                     commandResult = JsonSerializer.Deserialize<CommandResult>(cleanedJson, options)
-                                   ?? new CommandResult { command = Command.Done };
+                                   ?? new CommandResult { command = NextStepRobotCommand.Done };
                 }
                 catch
                 {
@@ -136,13 +129,13 @@ INSTRUCTIONS:
                 }
 
                 // Check the command
-                if (!Enum.IsDefined(typeof(Command), commandResult.command))
+                if (!Enum.IsDefined(typeof(NextStepRobotCommand), commandResult.command))
                 {
                     return $"Invalid command returned: {commandResult.command}";
                 }
 
                 var command = commandResult.command;
-                if (command == Command.Done)
+                if (command == NextStepRobotCommand.Done)
                 {
                     // Return all performed steps as final output
                     return $"All steps done. Moves so far:\n - {string.Join("\n - ", _robotMoves)}";
@@ -150,10 +143,10 @@ INSTRUCTIONS:
 
                 var status = command switch
                 {
-                    Command.MoveUp => _maze.Robot.MoveUp(),
-                    Command.MoveDown => _maze.Robot.MoveDown(),
-                    Command.MoveLeft => _maze.Robot.MoveLeft(),
-                    Command.MoveRight => _maze.Robot.MoveRight(),
+                    NextStepRobotCommand.MoveUp => _maze.Robot.MoveUp(),
+                    NextStepRobotCommand.MoveDown => _maze.Robot.MoveDown(),
+                    NextStepRobotCommand.MoveLeft => _maze.Robot.MoveLeft(),
+                    NextStepRobotCommand.MoveRight => _maze.Robot.MoveRight(),
                     _ => "Unknown"
                 };
 
