@@ -73,11 +73,21 @@
             {
                 <div style="margin-top: 10px;">
                     <label for="openaiKey">OpenAI API Key (will be masked):</label>
-                    <input id="openaiKey" type="password" @bind="_openAIApiKey" @bind:event="oninput" placeholder="Enter OpenAI API key" />
+                    <input id="openaiKey"
+                           type="password"
+                           @bind="_openAIApiKey"
+                           @bind:event="oninput"
+                           @onblur="SaveSettings"
+                           placeholder="Enter OpenAI API key" />
                 </div>
                 <div style="margin-top: 10px;">
                     <label for="openaiModel">OpenAI Model (e.g., gpt-3.5-turbo):</label>
-                    <input id="openaiModel" type="text" @bind="_openAIModel" @bind:event="oninput" placeholder="Enter OpenAI Model" />
+                    <input id="openaiModel"
+                           type="text"
+                           @bind="_openAIModel"
+                           @bind:event="oninput"
+                           @onblur="SaveSettings"
+                           placeholder="Enter OpenAI Model" />
                 </div>
             }
 
