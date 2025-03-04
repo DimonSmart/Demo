@@ -11,22 +11,25 @@ public static class KernelFactory
 
         var builder = Kernel.CreateBuilder();
 
-        var httpClient = new HttpClient
+        var ollamaHttpClient = new HttpClient
         {
             BaseAddress = new Uri("http://localhost:11434"),
             Timeout = TimeSpan.FromMinutes(20)
         };
 
+        var openAiHttpClient = new HttpClient();
+
 #pragma warning disable SKEXP0070
 
         builder.AddOllamaChatCompletion(
             modelId: parameters.OllamaModelId,
-            httpClient: httpClient,
+            httpClient: ollamaHttpClient,
             serviceId: "ollama");
 
         builder.AddOpenAIChatCompletion(
              modelId: "gpt-4o-mini",
-             apiKey: parameters.OpenAIApiKey);
+             apiKey: parameters.OpenAIApiKey,
+             httpClient: openAiHttpClient);
 
 #pragma warning restore SKEXP0070
 

@@ -172,30 +172,21 @@
         AvailableModels = await OllamaModelService.GetLoadedModelsAsync();
 
         // Load user preferences (which includes the selected model, if any)
-        var prefs = await UserPreferencesStorageService.LoadPreferencesAsync();
-        if (prefs != null)
+        var preferences = await UserPreferencesStorageService.LoadPreferencesAsync();
+        if (preferences != null)
         {
-            if (!string.IsNullOrEmpty(prefs.SelectedModelId))
-            {
-                SelectedModelId = prefs.SelectedModelId;
-            }
-            if (!string.IsNullOrEmpty(prefs.ConnectionType))
-            {
-                _connectionType = prefs.ConnectionType;
-            }
-            if (!string.IsNullOrEmpty(prefs.OpenAIApiKey))
-            {
-                _openAIApiKey = prefs.OpenAIApiKey;
-            }
-            if (!string.IsNullOrEmpty(prefs.OpenAIModel))
-            {
-                _openAIModel = prefs.OpenAIModel;
-            }
+            if (!string.IsNullOrEmpty(preferences.SelectedModelId))
+                SelectedModelId = preferences.SelectedModelId;
+            if (!string.IsNullOrEmpty(preferences.ConnectionType))
+                _connectionType = preferences.ConnectionType;
+            if (!string.IsNullOrEmpty(preferences.OpenAIApiKey))
+                _openAIApiKey = preferences.OpenAIApiKey;
+            if (!string.IsNullOrEmpty(preferences.OpenAIModel))
+                _openAIModel = preferences.OpenAIModel;
         }
-        else if (AvailableModels.Count > 0)
-        {
+
+        if (preferences == null && AvailableModels.Count > 0)
             SelectedModelId = AvailableModels[0].ModelId;
-        }
 
         StateHasChanged();
     }
@@ -215,14 +206,13 @@
         return $"Maze size: {XSize}x{YSize}. Robot at: {_maze.Robot.X}, {_maze.Robot.Y}";
     }
 
-    // IMazePlotter requirement
-    public async Task PlotWallAsync(int x, int y)
+    async Task IMazePlotter.PlotWallAsync(int x, int y)
     {
         StateHasChanged();
         await Task.Delay(50);
     }
 
-    // Joystick event handlers
+#region Joystick event handlers
     private void OnUpClicked()
     {
         var result = _maze?.Robot.MoveUp();
@@ -254,6 +244,7 @@
         LogStore.Messages.Add($"Moved right: {result}");
         StateHasChanged();
     }
+#endregion
 
     // Called when the user enters a command and clicks "Send Command"
     private async Task ProcessUserCommand()
@@ -330,14 +321,14 @@ Current (last) Maze State:
 
     private async Task SaveSettings()
     {
-        var prefs = new MazeRunnerUserPreferences
+        var preferences = new MazeRunnerUserPreferences
             {
                 SelectedModelId = SelectedModelId,
                 ConnectionType = _connectionType,
                 OpenAIApiKey = _openAIApiKey,
                 OpenAIModel = _openAIModel
             };
-        await UserPreferencesStorageService.SavePreferencesAsync(prefs);
+        await UserPreferencesStorageService.SavePreferencesAsync(preferences);
         LogStore.Messages.Add("Settings saved.");
     }
 }
