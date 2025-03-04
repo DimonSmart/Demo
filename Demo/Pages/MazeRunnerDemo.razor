@@ -90,10 +90,6 @@
                            placeholder="Enter OpenAI Model" />
                 </div>
             }
-
-            <div style="margin-top: 10px;">
-                <button @onclick="SaveSettings">Save Settings</button>
-            </div>
         </div>
 
         @if (_maze != null)
@@ -256,7 +252,7 @@
 
         try
         {
-            var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, IncludePlugins: true, _openAIApiKey);
+            var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, IncludePlugins: true, _openAIApiKey, LogStore);
             var kernel = KernelFactory.BuildKernel(kernelBuildParameters);
 
             // Build a consolidated system prompt

@@ -33,14 +33,17 @@ public static class KernelFactory
 
 #pragma warning restore SKEXP0070
 
-        builder.Services.AddSingleton<LogStore>();
+        builder.Services.AddSingleton<LogStore>(parameters.LogStore);
         builder.Services.AddSingleton<ILoggerProvider, LogViewLoggerProvider>();
 
         builder.Services.AddLogging(logging =>
         {
             logging.ClearProviders();
+            // Directly use the passed logStore instance.
+            logging.AddProvider(new LogViewLoggerProvider(parameters.LogStore));
             logging.SetMinimumLevel(LogLevel.Trace);
         });
+
         if (parameters.IncludePlugins)
         {
             builder.Services.AddSingleton(parameters.Maze);
