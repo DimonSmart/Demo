@@ -208,12 +208,12 @@
         await Task.Delay(50);
     }
 
-#region Joystick event handlers
+    #region Joystick event handlers
     private void OnUpClicked()
     {
         var result = _maze?.Robot.MoveUp();
         RobotMoves.Add("MoveUp");
-        LogStore.Messages.Add($"Moved up: {result}");
+        LogStore.Messages.Add(new LogStore.LogMessage($"Moved up: {result}", LogStore.LogType.RobotMovements));
         StateHasChanged();
     }
 
@@ -221,7 +221,8 @@
     {
         var result = _maze?.Robot.MoveDown();
         RobotMoves.Add("MoveDown");
-        LogStore.Messages.Add($"Moved down: {result}");
+        LogStore.Messages.Add(new LogStore.LogMessage($"Moved down: {result}", LogStore.LogType.RobotMovements));
+
         StateHasChanged();
     }
 
@@ -229,7 +230,7 @@
     {
         var result = _maze?.Robot.MoveLeft();
         RobotMoves.Add("MoveLeft");
-        LogStore.Messages.Add($"Moved left: {result}");
+        LogStore.Messages.Add(new LogStore.LogMessage($"Moved left: {result}", LogStore.LogType.RobotMovements));
         StateHasChanged();
     }
 
@@ -237,10 +238,10 @@
     {
         var result = _maze?.Robot.MoveRight();
         RobotMoves.Add("MoveRight");
-        LogStore.Messages.Add($"Moved right: {result}");
+        LogStore.Messages.Add(new LogStore.LogMessage($"Moved right: {result}", LogStore.LogType.RobotMovements));
         StateHasChanged();
     }
-#endregion
+    #endregion
 
     // Called when the user enters a command and clicks "Send Command"
     private async Task ProcessUserCommand()
@@ -290,7 +291,7 @@ Current (last) Maze State:
             );
 
             ResponseMessage = chatResult.ToString();
-            LogStore.Messages.Add($"Semantic: {ResponseMessage}");
+            LogStore.Messages.Add(new LogStore.LogMessage($"Semantic: {ResponseMessage}", LogStore.LogType.SemanticKernel));
         }
         finally
         {
@@ -303,7 +304,7 @@ Current (last) Maze State:
     {
         SelectedModelId = e.Value?.ToString() ?? "";
         await SaveSettings();
-        LogStore.Messages.Add($"Selected Ollama model changed: {SelectedModelId}");
+        LogStore.Messages.Add(new LogStore.LogMessage($"Selected Ollama model changed: {SelectedModelId}", LogStore.LogType.UserInput));
         StateHasChanged();
     }
 
@@ -311,7 +312,7 @@ Current (last) Maze State:
     {
         _connectionType = e.Value?.ToString() ?? "ollama";
         await SaveSettings();
-        LogStore.Messages.Add($"Connection type changed: {_connectionType}");
+        LogStore.Messages.Add(new LogStore.LogMessage($"Connection type changed: {_connectionType}", LogStore.LogType.UserInput));
         StateHasChanged();
     }
 
@@ -325,6 +326,6 @@ Current (last) Maze State:
                 OpenAIModel = _openAIModel
             };
         await UserPreferencesStorageService.SavePreferencesAsync(preferences);
-        LogStore.Messages.Add("Settings saved.");
+        LogStore.Messages.Add(new LogStore.LogMessage("Settings saved.", LogStore.LogType.UserInput));
     }
 }

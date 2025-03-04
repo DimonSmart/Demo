@@ -1,5 +1,6 @@
 ﻿@using System.Text.RegularExpressions
 @using System.Collections.ObjectModel
+@using Demo.Demos.MazeRunner
 @inject IJSRuntime JSRuntime
 
 
@@ -58,7 +59,7 @@
 
 @code {
     [Parameter]
-    public ObservableCollection<string> LogMessages { get; set; } = new ObservableCollection<string>();
+    public ObservableCollection<LogStore.LogMessage> LogMessages { get; set; } = new ObservableCollection<LogStore.LogMessage>();
 
     [Parameter]
     public bool ShowClearButton { get; set; } = true;
@@ -77,9 +78,9 @@
     private ElementReference LogContainer;
     private string DisplayedLog =>
         CompactView
-            ? string.Join("\n", LogMessages.Select(m => Regex.Replace(m, @"\s+", " ")))
+            ? string.Join("\n", LogMessages.Select(m => Regex.Replace(m.Message, @"\s+", " ")))
             : LogContent;
-
+// TODO!!!!
     private bool _scrollRequested;
 
     protected override void OnInitialized()

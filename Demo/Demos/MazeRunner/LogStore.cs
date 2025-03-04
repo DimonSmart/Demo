@@ -4,6 +4,16 @@ namespace Demo.Demos.MazeRunner
 {
     public class LogStore
     {
-        public ObservableCollection<string> Messages { get; } = new ObservableCollection<string>();
+
+        public enum LogType
+        {
+            UserInput,
+            SemanticKernel,
+            RobotMovements
+        }
+
+        public record class LogMessage(string Message, LogType Type);
+
+        public ObservableCollection<LogMessage> Messages { get; } = new ObservableCollection<LogMessage>();
     }
 }
