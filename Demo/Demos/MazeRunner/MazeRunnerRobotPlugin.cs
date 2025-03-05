@@ -52,7 +52,7 @@ namespace Demo.Demos.MazeRunner
                 // Build a fresh ChatHistory each iteration
                 var chatHistory = new ChatHistory();
 
-                var currentMazeView = _maze.MakeMazeAsTextRepresentation();
+                var currentMazeView = _maze.MakeMazeAsSimpleCellList();
                 // Steps so far, to show LLM
                 var movesSoFar = string.Join("\n", _robotMoves);
 

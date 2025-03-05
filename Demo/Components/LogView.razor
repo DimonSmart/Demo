@@ -43,18 +43,35 @@
     <div @ref="LogContainer"
          id="logContainer"
          class="p-2"
-         style="overflow-y: scroll; min-height: 0; font-family: monospace; white-space: pre-wrap; height: 100%;">
+         style="overflow-y: scroll; min-height: 0; min-width: 0; font-family: monospace; white-space: pre-wrap; overflow-wrap: break-word; height: 100%;">
         <div>
-            @if (!string.IsNullOrEmpty(SearchQuery))
+            @foreach (var log in LogMessages)
             {
-                @((MarkupString)HighlightLog(DisplayedLog, SearchQuery))
-            }
-            else
-            {
-                @DisplayedLog
+                var messageText = CompactView ? Regex.Replace(log.Message, @"\s+", " ") : log.Message;
+                switch (log.Type)
+                {
+                    case LogStore.LogType.SemanticKernel:
+                        <div style="font-size: 0.8em; color: #666; margin-bottom: 4px;">
+                            @RenderLogMessage(messageText)
+                        </div>
+                        break;
+                    case LogStore.LogType.RobotMovements:
+                        <div style="font-size: 1em; color: blue; margin-bottom: 4px;">
+                            @RenderLogMessage(messageText)
+                        </div>
+                        break;
+                    case LogStore.LogType.UserInput:
+                    default:
+                        <div style="font-size: 1em; color: black; margin-bottom: 4px;">
+                            @RenderLogMessage(messageText)
+                        </div>
+                        break;
+                }
             }
         </div>
     </div>
+
+
 </div>
 
 @code {
@@ -80,7 +97,7 @@
         CompactView
             ? string.Join("\n", LogMessages.Select(m => Regex.Replace(m.Message, @"\s+", " ")))
             : LogContent;
-// TODO!!!!
+
     private bool _scrollRequested;
 
     protected override void OnInitialized()
@@ -126,4 +143,17 @@
             match => $"<span style=\"background-color: yellow;\">{match.Value}</span>",
             RegexOptions.IgnoreCase);
     }
+
+    private RenderFragment RenderLogMessage(string messageText) => builder =>
+    {
+        if (!string.IsNullOrEmpty(SearchQuery))
+        {
+            builder.AddMarkupContent(0, HighlightLog(messageText, SearchQuery));
+        }
+        else
+        {
+            builder.AddContent(1, messageText);
+        }
+    };
+
 }

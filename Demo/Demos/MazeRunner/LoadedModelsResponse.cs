@@ -4,6 +4,4 @@
     {
         public List<OllamaModelDto> Models { get; set; } = [];
     }
-
-
 }
