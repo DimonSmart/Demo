@@ -4,12 +4,12 @@ namespace Demo.Demos.MazeRunner
 {
     public class LogStore
     {
-
         public enum LogType
         {
             UserInput,
             SemanticKernel,
-            RobotMovements
+            RobotMovements,
+            Error
         }
 
         public record class LogMessage(string Message, LogType Type);
