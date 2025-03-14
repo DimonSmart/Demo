@@ -1,7 +1,4 @@
-using System.Net.Http;
-using System.Text;
-
-namespace Demo.Demos.MazeRunner
+﻿namespace Demo.Demos.MazeRunner
 {
     public class LoggingHttpMessageHandler : DelegatingHandler
     {
@@ -15,14 +12,20 @@ namespace Demo.Demos.MazeRunner
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var requestContent = request.Content != null ? 
+            var requestContent = request.Content != null ?
                 await request.Content.ReadAsStringAsync(cancellationToken) : string.Empty;
 
             _logStore.Messages.Add(new LogStore.LogMessage(
-                $"SK Request to {request.RequestUri}:\n{requestContent}", 
-                LogStore.LogType.SemanticKernel));
+                $"📤 Request: {requestContent}",
+                LogStore.LogType.Http));
 
             var response = await base.SendAsync(request, cancellationToken);
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logStore.Messages.Add(new LogStore.LogMessage(
+                $"📥 Response: {responseContent}",
+                LogStore.LogType.Http));
+
             return response;
         }
     }

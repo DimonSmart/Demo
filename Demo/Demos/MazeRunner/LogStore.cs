@@ -9,7 +9,8 @@ namespace Demo.Demos.MazeRunner
             UserInput,
             SemanticKernel,
             RobotMovements,
-            Error
+            Error,
+            Http
         }
 
         public record class LogMessage(string Message, LogType Type);
