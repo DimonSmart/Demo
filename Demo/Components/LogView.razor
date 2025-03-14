@@ -50,24 +50,30 @@
                 switch (log.Type)
                 {
                     case LogStore.LogType.SemanticKernel:
-                        <div style="font-size: 0.8em; color: #666; margin-bottom: 4px;">
+                        <div style="font-size: 0.8em; color: #666; margin-bottom: 4px; border-bottom: 1px solid #eee;">
                             @RenderLogMessage(messageText)
                         </div>
                         break;
                     case LogStore.LogType.RobotMovements:
-                        <div style="font-size: 1em; color: blue; margin-bottom: 4px;">
+                        <div style="font-size: 1em; color: blue; margin-bottom: 4px; border-bottom: 1px solid #eee;">
+                            @RenderLogMessage(messageText)
+                        </div>
+                        break;
+                    case LogStore.LogType.Http:
+                        <div style="font-size: 0.9em; color: #2E8B57; margin-bottom: 4px; border-bottom: 1px solid #eee;">
                             @RenderLogMessage(messageText)
                         </div>
                         break;
                     case LogStore.LogType.UserInput:
                     default:
-                        <div style="font-size: 1em; color: black; margin-bottom: 4px;">
+                        <div style="font-size: 1em; color: black; margin-bottom: 4px; border-bottom: 1px solid #eee;">
                             @RenderLogMessage(messageText)
                         </div>
                         break;
                 }
             }
         </div>
+
     </div>
 
 
