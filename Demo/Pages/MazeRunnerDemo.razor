@@ -255,7 +255,7 @@
 
         try
         {
-            var kernel = await SetupChatService();
+            var kernel = GetKernel();
             var response = await ExecuteChatCompletion(kernel);
             ResponseMessage = response;
             LogStore.Messages.Add(new LogStore.LogMessage($"Semantic: {ResponseMessage}", LogStore.LogType.SemanticKernel));
@@ -271,21 +271,13 @@
         }
     }
 
-    private async Task<Kernel> SetupChatService()
+    private Kernel GetKernel()
     {
         if (_maze == null)
             throw new InvalidOperationException("Maze is not initialized");
 
-        var kernelBuildParameters = new KernelBuildParameters(
-            _maze, 
-            _connectionType, 
-            SelectedModelId, 
-            _openAIModel, 
-            IncludePlugins: true, 
-            _openAIApiKey, 
-            LogStore
-        );
-        return await Task.FromResult(KernelFactory.BuildKernel(kernelBuildParameters));
+        var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, IncludePlugins: true, _openAIApiKey, LogStore);
+        return KernelFactory.BuildKernel(kernelBuildParameters);
     }
 
     private async Task<string> ExecuteChatCompletion(Kernel kernel)
@@ -366,6 +358,5 @@ Current (last) Maze State:
                 OpenAIModel = _openAIModel
             };
         await UserPreferencesStorageService.SavePreferencesAsync(preferences);
-        LogStore.Messages.Add(new LogStore.LogMessage("Settings saved.", LogStore.LogType.UserInput));
     }
 }
