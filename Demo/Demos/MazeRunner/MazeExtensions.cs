@@ -9,37 +9,42 @@ namespace Demo.Demos.MazeRunner
     {
         /// <summary>
         /// Generates a textual representation of the maze using single-character symbols for each cell:
-        ///  - R = Robot
+        ///  - R = Robot (coordinates are zero-based, e.g. 0,0 is top-left)
         ///  - # = Wall
         ///  - A = Apple
         ///  - P = Pear
         ///  - _ = Empty (discovered)
         ///  - ? = Undiscovered
         /// The output includes column headers, a separator line, and row indices for easy reference.
+        /// Coordinates are zero-based to match internal representation.
         /// </summary>
         /// <param name="maze">The maze environment containing the maze and the robot.</param>
         /// <param name="encloseSymbolsInQuotes">
         /// If true, each cell symbol is enclosed in quotes (e.g., 'R', '#', etc.).
         /// </param>
-        /// <returns>A string representing the maze in a single-character textual format.</returns>
+        /// <returns>A string representing the maze in a single-character textual format with zero-based coordinates.</returns>
         public static string MakeMazeAsTextRepresentation(this MazeRunnerMaze maze, bool encloseSymbolsInQuotes = false)
         {
             var sb = new StringBuilder();
             var width = maze.Width;
             var height = maze.Height;
 
+            // Add coordinate system explanation
+            sb.AppendLine("# Maze representation with zero-based coordinates (0,0 at top-left)");
+            sb.AppendLine("# Robot position: " + (maze.Robot != null ? $"({maze.Robot.X},{maze.Robot.Y})" : "not placed"));
+            sb.AppendLine();
+
             // Column headers
             sb.Append("     ");
             for (var x = 0; x < width; x++)
             {
-                // Use columns as numeric for clarity
                 var header = x.ToString().PadLeft(2);
                 sb.Append($"{header} ");
             }
             sb.AppendLine();
 
-            // Separator line
-            sb.Append("     ");
+            // Separator line with coordinate axis marker
+            sb.Append("   y\\x");
             for (var x = 0; x < width; x++)
             {
                 sb.Append("---");
@@ -49,14 +54,12 @@ namespace Demo.Demos.MazeRunner
             // Each row with row index and cells
             for (var y = 0; y < height; y++)
             {
-                // Row number
                 sb.Append(y.ToString().PadLeft(3) + " | ");
                 for (var x = 0; x < width; x++)
                 {
                     var cell = maze[x, y];
                     var symbol = GetCellSymbol(cell, x, y, maze.Robot);
 
-                    // Optionally enclose symbols in quotes
                     if (encloseSymbolsInQuotes)
                     {
                         sb.Append($"'{symbol}' ");
