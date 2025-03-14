@@ -13,10 +13,12 @@ public static class KernelFactory
 
 #pragma warning disable SKEXP0070
 
+        var loggingHandler = new LoggingHttpMessageHandler(parameters.LogStore);
+
         switch (parameters.connectionType.ToLower())
         {
             case "ollama":
-                var ollamaHttpClient = new HttpClient
+                var ollamaHttpClient = new HttpClient(loggingHandler)
                 {
                     BaseAddress = new Uri("http://localhost:11434"),
                     Timeout = TimeSpan.FromMinutes(20)
@@ -28,7 +30,7 @@ public static class KernelFactory
                 break;
 
             case "openai":
-                var openAiHttpClient = new HttpClient();
+                var openAiHttpClient = new HttpClient(loggingHandler);
                 builder.AddOpenAIChatCompletion(
                     modelId: parameters.OpenAiModelId,
                     apiKey: parameters.OpenAIApiKey,
