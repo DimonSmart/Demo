@@ -20,10 +20,6 @@
                 Try break on words
             </label>
             <br />
-            <label>
-                Minimum diff length: @MinDiffLength
-                <input type="range" min="1" max="10" @bind="MinDiffLength" />
-            </label>
         </div>
 
         <div style="margin-top: 20px;">
@@ -83,23 +79,11 @@
         }
     }
 
-    private int _minDiffLength = 1;
-    private int MinDiffLength
-    {
-        get => _minDiffLength;
-        set
-        {
-            if (_minDiffLength == value) return;
-            _minDiffLength = value;
-            CalculateDiff();
-        }
-    }
-
     private TextDiff? _stringDiffHighlightedResult;
 
     private void CalculateDiff()
     {
-        var options = new StringDiffOptions(MinDiffLength, BreakOnWords ? DefaultWordBoundaryDetector.Instance : null);
+        var options = new StringDiffOptions(BreakOnWords ? SimpleTokenBoundaryDetector.Instance : null);
         var stringDiff = new StringDiff(options);
         _stringDiffHighlightedResult = stringDiff.ComputeDiff(TextLeft, TextRight);
     }

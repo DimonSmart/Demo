@@ -13,7 +13,7 @@
     <PackageReference Include="DimonSmart.AiUtils" Version="1.25301.2132" />
     <PackageReference Include="DimonSmart.HashX" Version="1.24813.951" />
     <PackageReference Include="DimonSmart.MazeGenerator" Version="1.25218.855" />
-    <PackageReference Include="DimonSmart.StringDiff" Version="1.24725.1329" />
+    <PackageReference Include="DimonSmart.StringDiff" Version="1.25319.2041" />
     <PackageReference Include="Excubo.Blazor.Canvas" Version="3.2.66" />
     <PackageReference Include="Markdig" Version="0.39.1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.8" />
