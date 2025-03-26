@@ -15,7 +15,11 @@ using Microsoft.Extensions.Options;
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
-builder.Services.AddBlazoredLocalStorageAsSingleton();
+builder.Services.AddBlazoredLocalStorageAsSingleton(options =>
+{
+    // Swithced off NullabilityInfoContext, to workaround the issue with Blazored.LocalStorage
+    options.JsonSerializerOptions.TypeInfoResolver = null;
+});
 
 builder.Services.AddSingleton<PageTitleService>();
 builder.Services.AddSingleton<LogStore>();
