@@ -39,7 +39,6 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
         }
     }
 
-
     private int _emptiness = 0;
     protected int Emptiness
     {
@@ -76,7 +75,18 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
             try
             {
                 var pageSizes = await BrowserService.GetPageDimensionsWithoutPaddingAsync("mazegeneratordemoid");
-                XSize = ((pageSizes.Width - 24 - 24) / 20) | 1;
+                
+                var availableWidth = pageSizes.Width - (CssConstants.Spacing.Rem * 2);
+                var availableHeight = pageSizes.Height - CssConstants.Spacing.NavbarHeight 
+                                                     - CssConstants.Spacing.GlobalMargin 
+                                                     - CssConstants.Spacing.ControlsSection 
+                                                     - (CssConstants.Spacing.Rem * 2);
+
+                XSize = (availableWidth / CssConstants.Grid.CellTotal) | 1;
+                YSize = (availableHeight / CssConstants.Grid.CellTotal) | 1;
+                
+                XSize = Math.Max(11, XSize) | 1;
+                YSize = Math.Max(11, YSize) | 1;
             }
             catch (Exception ex)
             {
