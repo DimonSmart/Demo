@@ -1,0 +1,34 @@
+.stringdiff-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 1rem;
+}
+
+.stringdiff-textareas {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+    min-height: 0;
+}
+
+.stringdiff-textareas textarea {
+    width: 50%;
+    height: 100%;
+    resize: none;
+}
+
+.stringdiff-options {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 640.98px) {
+    .stringdiff-textareas {
+        flex-direction: column;
+    }
+
+    .stringdiff-textareas textarea {
+        width: 100%;
+        height: 200px;
+    }
+}
