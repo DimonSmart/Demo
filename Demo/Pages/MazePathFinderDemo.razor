@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze path finder</PageTitle>
 <div class="page-container">
-    <div style="margin-bottom: 20px;">
+    <div >
         <div class="settings-container">
             <label class="margin-right">
                 Width:
@@ -50,7 +50,7 @@
         </div>
         <p>Click once to set the start point, click again to set the target point.</p>
     </div>
-    <div id="mazegeneratordemoid" style="height:100%">
+    <div id="mazepathfinderid" style="height:100%">
         @if (_maze != null)
         {
             <MazeDisplay TCell="MazeCellModel" Maze="_maze" OnMazeCellClick="HandleCellClick">
@@ -190,4 +190,6 @@
             }
         }
     }
+
+    public override string GetMazeContainerId() => "mazepathfinderid";
 }

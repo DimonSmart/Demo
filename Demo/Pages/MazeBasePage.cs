@@ -68,13 +68,14 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
 
     protected IMaze<TCell>? _maze;
 
+    public abstract string GetMazeContainerId();
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             try
             {
-                var pageSizes = await BrowserService.GetPageDimensionsWithoutPaddingAsync("mazegeneratordemoid");
+                var pageSizes = await BrowserService.GetPageDimensionsWithoutPaddingAsync(GetMazeContainerId());
                 XSize = Math.Max(11, (pageSizes.Width - 21 * 2) / 21) | 1;
                 YSize = Math.Max(11, (pageSizes.Height - 21 * 2) / 21) | 1;
             }
