@@ -75,22 +75,11 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
             try
             {
                 var pageSizes = await BrowserService.GetPageDimensionsWithoutPaddingAsync("mazegeneratordemoid");
-                
-                var availableWidth = pageSizes.Width - (CssConstants.Spacing.Rem * 2);
-                var availableHeight = pageSizes.Height - CssConstants.Spacing.NavbarHeight 
-                                                     - CssConstants.Spacing.GlobalMargin 
-                                                     - CssConstants.Spacing.ControlsSection 
-                                                     - (CssConstants.Spacing.Rem * 2);
-
-                XSize = (availableWidth / CssConstants.Grid.CellTotal) | 1;
-                YSize = (availableHeight / CssConstants.Grid.CellTotal) | 1;
-                
-                XSize = Math.Max(11, XSize) | 1;
-                YSize = Math.Max(11, YSize) | 1;
+                XSize = Math.Max(11, (pageSizes.Width - 21 * 2) / 21) | 1;
+                YSize = Math.Max(11, (pageSizes.Height - 21 * 2) / 21) | 1;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                var x = ex.Message;
             }
         }
     }

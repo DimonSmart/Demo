@@ -16,43 +16,41 @@
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze path finder</PageTitle>
 <div class="page-container">
-    <section id="mazegeneratordemoid">
-        <div style="margin-bottom: 20px;">
-            <div class="settings-container">
-                <label class="margin-right">
-                    Width:
-                    <input type="number" min="1" max="101" step="2" @bind="XSize" />
-                </label>
-                <label class="margin-right">
-                    Height:
-                    <input type="number" min="1" max="101" step="2" @bind="YSize" />
-                </label>
-            </div>
-            <div class="settings-container">
-                <label class="slider-label">
-                    Emptiness: <span class="value-display">@Emptiness%</span>
-                    <input type="range" min="0" max="100" @bind-value="Emptiness" @bind-value:event="oninput" />
-                </label>
-            </div>
-            <div class="settings-container">
-                <label>
-                    Wall Shortness: <span class="value-display">@WallShortness%</span>
-                    <input type="range" min="0" max="100" @bind-value="WallShortness" @bind-value:event="oninput" />
-                </label>
-            </div>
-            <div class="settings-container">
-                <label>
-                    Slow Visualization
-                    <input type="checkbox" @bind="IsSlowVisualization" />
-                </label>
-            </div>
-            <div class="settings-container">
-                <button @onclick="FindPathAsync">Find path</button>
-            </div>
-            <p>Click once to set the start point, click again to set the target point.</p>
-
+    <div style="margin-bottom: 20px;">
+        <div class="settings-container">
+            <label class="margin-right">
+                Width:
+                <input type="number" min="1" max="101" step="2" @bind="XSize" />
+            </label>
+            <label class="margin-right">
+                Height:
+                <input type="number" min="1" max="101" step="2" @bind="YSize" />
+            </label>
         </div>
-
+        <div class="settings-container">
+            <label class="slider-label">
+                Emptiness: <span class="value-display">@Emptiness%</span>
+                <input type="range" min="0" max="100" @bind-value="Emptiness" @bind-value:event="oninput" />
+            </label>
+        </div>
+        <div class="settings-container">
+            <label>
+                Wall Shortness: <span class="value-display">@WallShortness%</span>
+                <input type="range" min="0" max="100" @bind-value="WallShortness" @bind-value:event="oninput" />
+            </label>
+        </div>
+        <div class="settings-container">
+            <label>
+                Slow Visualization
+                <input type="checkbox" @bind="IsSlowVisualization" />
+            </label>
+        </div>
+        <div class="settings-container">
+            <button @onclick="FindPathAsync">Find path</button>
+        </div>
+        <p>Click once to set the start point, click again to set the target point.</p>
+    </div>
+    <div id="mazegeneratordemoid" style="height:100%">
         @if (_maze != null)
         {
             <MazeDisplay TCell="MazeCellModel" Maze="_maze" OnMazeCellClick="HandleCellClick">
@@ -61,8 +59,7 @@
                 </CellTemplate>
             </MazeDisplay>
         }
-
-    </section>
+    </div>
 </div>
 
 @code {
