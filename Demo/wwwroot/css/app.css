@@ -109,7 +109,7 @@ code {
     height: calc(100vh - 3.5rem); /* Height minus top navbar */
     padding: 1rem;
     margin: 0;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 /* Mobile responsive styles */
