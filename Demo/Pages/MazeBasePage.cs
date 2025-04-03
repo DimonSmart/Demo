@@ -19,7 +19,7 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
             if (_xSize != value)
             {
                 _xSize = value;
-                if (!IsSlowVisualization) _ = GenerateMazeAsync();
+                GenerateMazeAsync();
             }
         }
     }
@@ -34,11 +34,10 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
             if (_ySize != value)
             {
                 _ySize = value;
-                if (!IsSlowVisualization) _ = GenerateMazeAsync();
+                GenerateMazeAsync();
             }
         }
     }
-
 
     private int _emptiness = 0;
     protected int Emptiness
@@ -49,7 +48,7 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
             if (_emptiness != value)
             {
                 _emptiness = value;
-                if (!IsSlowVisualization) _ = GenerateMazeAsync();
+                GenerateMazeAsync();
             }
         }
     }
@@ -61,7 +60,7 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
         set
         {
             _wallShortness = value;
-            if (!IsSlowVisualization) _ = GenerateMazeAsync();
+            GenerateMazeAsync();
         }
     }
 
@@ -75,19 +74,20 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
         {
             try
             {
-                var pageSizes = await BrowserService.GetPageDimensionsWithoutPaddingAsync("mazegeneratordemoid");
-                XSize = ((pageSizes.Width - 24 - 24) / 20) | 1;
+                var mazeArea = await BrowserService.GetElementSizeByIdAsync("MazeContainerId");
+                XSize = Math.Max(11, (mazeArea.Width - 21) / 21) | 1;
+                YSize = Math.Max(11, (mazeArea.Height - 21) / 21) | 1;
+                StateHasChanged();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                var x = ex.Message;
             }
         }
     }
 
     protected abstract Task GenerateMazeAsync();
 
-    protected CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
+    protected CancellationTokenSource CancellationTokenSource = new();
 
     protected void CancelGeneration()
     {

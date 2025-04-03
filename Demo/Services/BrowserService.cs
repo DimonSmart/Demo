@@ -4,9 +4,9 @@ namespace Demo.Services
 {
     public class BrowserService(IJSRuntime js)
     {
-        public async Task<PageDimension> GetPageDimensionsWithoutPaddingAsync(string elementId)
+        public async Task<Dimension> GetPageDimensionsWithoutPaddingAsync(string elementId)
         {
-            return await js.InvokeAsync<PageDimension>("getPageDimensionsWithoutPadding", elementId);
+            return await js.InvokeAsync<Dimension>("getPageDimensionsWithoutPadding", elementId);
         }
 
         public async Task<Dimension> GetElementSizeByIdAsync(string elementId)
