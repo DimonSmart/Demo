@@ -36,10 +36,22 @@ public class QuestionQueue
 
     public IReadOnlyCollection<QuestionStudyCard> Cards => _cards.AsReadOnly();
 
+    /// <summary>
+    /// Gets the next available question that is not marked as learned.
+    /// </summary>
     public QuestionStudyCard? GetNextQuestion()
     {
-        // Returns the first question that is not marked as learned
         return _cards.FirstOrDefault(c => !c.IsLearned);
+    }
+
+    /// <summary>
+    /// Gets the specified number of next available questions that are not marked as learned.
+    /// </summary>
+    /// <param name="count">The number of questions to retrieve.</param>
+    /// <returns>A list of study cards, may be smaller than requested count if not enough questions are available.</returns>
+    public List<QuestionStudyCard> GetNextQuestion(int count)
+    {
+        return _cards.Where(c => !c.IsLearned).Take(count).ToList();
     }
 
     public void ProcessAnswer(QuestionStudyCard card, bool isCorrect)
