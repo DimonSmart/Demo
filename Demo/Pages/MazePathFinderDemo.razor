@@ -50,7 +50,7 @@
         </div>
         <p>Click once to set the start point, click again to set the target point.</p>
     </div>
-    <div id="mazepathfinderid" style="height:100%">
+    <div id="MazeContainerId" style="height:100%">
         @if (_maze != null)
         {
             <MazeDisplay TCell="MazeCellModel" Maze="_maze" OnMazeCellClick="HandleCellClick">
@@ -64,11 +64,6 @@
 
 @code {
     private bool _generationInProgress = false;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await GenerateMazeAsync();
-    }
 
     protected override void OnInitialized()
     {
@@ -190,6 +185,4 @@
             }
         }
     }
-
-    public override string GetMazeContainerId() => "mazepathfinderid";
 }

@@ -48,7 +48,7 @@
             <button @onclick="GenerateMazeAsync">Generate Maze</button>
         </div>
     </div>
-    <div id="mazegeneratordemoid" style="height:100%">
+    <div id="MazeContainerId" style="height:100%">
         @if (_maze != null)
         {
             <MazeDisplay TCell="MazeCellModel" Maze="_maze">
@@ -101,6 +101,4 @@
         var delay = TimeSpan.FromMilliseconds(50);
         await Task.Delay(delay);
     }
-
-    public override string GetMazeContainerId() => "mazegeneratordemoid";
 }

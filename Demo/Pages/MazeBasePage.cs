@@ -19,7 +19,7 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
             if (_xSize != value)
             {
                 _xSize = value;
-                if (!IsSlowVisualization) _ = GenerateMazeAsync();
+                GenerateMazeAsync();
             }
         }
     }
@@ -34,7 +34,7 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
             if (_ySize != value)
             {
                 _ySize = value;
-                if (!IsSlowVisualization) _ = GenerateMazeAsync();
+                GenerateMazeAsync();
             }
         }
     }
@@ -48,7 +48,7 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
             if (_emptiness != value)
             {
                 _emptiness = value;
-                if (!IsSlowVisualization) _ = GenerateMazeAsync();
+                GenerateMazeAsync();
             }
         }
     }
@@ -60,7 +60,7 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
         set
         {
             _wallShortness = value;
-            if (!IsSlowVisualization) _ = GenerateMazeAsync();
+            GenerateMazeAsync();
         }
     }
 
@@ -68,18 +68,16 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
 
     protected IMaze<TCell>? _maze;
 
-    public abstract string GetMazeContainerId();
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             try
             {
-                // var pageSizes = await BrowserService.GetPageDimensionsWithoutPaddingAsync(GetMazeContainerId());
-
-                var mazeArea = await BrowserService.GetElementSizeByIdAsync(GetMazeContainerId());
-                XSize = Math.Max(11, (mazeArea.Width - 21 * 2) / 21) | 1;
-                YSize = Math.Max(11, (mazeArea.Height - 21 * 2) / 21) | 1;
+                var mazeArea = await BrowserService.GetElementSizeByIdAsync("MazeContainerId");
+                XSize = Math.Max(11, (mazeArea.Width - 21) / 21) | 1;
+                YSize = Math.Max(11, (mazeArea.Height - 21) / 21) | 1;
+                StateHasChanged();
             }
             catch (Exception)
             {
@@ -89,7 +87,7 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
 
     protected abstract Task GenerateMazeAsync();
 
-    protected CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
+    protected CancellationTokenSource CancellationTokenSource = new();
 
     protected void CancelGeneration()
     {
