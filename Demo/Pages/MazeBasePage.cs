@@ -75,9 +75,11 @@ public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICe
         {
             try
             {
-                var pageSizes = await BrowserService.GetPageDimensionsWithoutPaddingAsync(GetMazeContainerId());
-                XSize = Math.Max(11, (pageSizes.Width - 21 * 2) / 21) | 1;
-                YSize = Math.Max(11, (pageSizes.Height - 21 * 2) / 21) | 1;
+                // var pageSizes = await BrowserService.GetPageDimensionsWithoutPaddingAsync(GetMazeContainerId());
+
+                var mazeArea = await BrowserService.GetElementSizeByIdAsync(GetMazeContainerId());
+                XSize = Math.Max(11, (mazeArea.Width - 21 * 2) / 21) | 1;
+                YSize = Math.Max(11, (mazeArea.Height - 21 * 2) / 21) | 1;
             }
             catch (Exception)
             {

@@ -101,22 +101,3 @@ a, .btn-link {
 code {
     color: #c02d76;
 }
-
-/* Full screen page container styles */
-.page-container {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 3.5rem); /* Height minus top navbar */
-    padding: 1rem;
-    margin: 0;
-    overflow-y: auto;
-}
-
-/* Mobile responsive styles */
-@media (max-width: 640.98px) {
-    .page-container {
-        height: auto;
-        min-height: calc(100vh - 3.5rem);
-        overflow-y: auto;
-    }
-}
