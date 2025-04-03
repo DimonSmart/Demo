@@ -25,117 +25,126 @@
      @onpointerup="HandlePointerUp"
      tabindex="0">
 
-    @if (IsLoading)
-    {
-        <div>Please wait. Exam data is loading (around 10 seconds)</div>
-        <div class="pdd-loading-bar-container">
-            <div class="pdd-loading-bar"></div>
-        </div>
-    }
-    else if (currentBatch.Any())
-    {
-        <div class="pdd-batch-progress">
-            <span>Batch Progress: @(currentBatch.Count(q => q.HasAnswered))/@(currentBatch.Count)</span>
+    <div class="pdd-top-nav-bar fixed-top-bar">
+        <div class="pdd-stats-info">
+            <span title="Question treated as studied if answered correctly 3 times in a row">
+                Studied: @(questionQueue.LearnedQuestionCount)/@(questionQueue.TotalQuestionCount)
+            </span>
+            @if (currentBatch.Any())
+            {
+                <span class="pdd-batch-progress">
+                    Batch Progress: @(currentBatch.Count(q => q.HasAnswered))/@(currentBatch.Count)
+                </span>
+            }
         </div>
 
-        @foreach (var questionWrapper in currentBatch)
+        <div class="pdd-options">
+            <div class="pdd-highlight-toggle">
+                <input type="checkbox"
+                       id="highlightTermsToggle"
+                       checked="@highlightTerms"
+                       @onchange="OnHighlightTermsChanged"
+                       title="Highlight key terms?" />
+                <label for="highlightTermsToggle"
+                       title="Turn ON/OFF terms highlighting">
+                    Terms
+                </label>
+            </div>
+            <div class="pdd-language-selector">
+                <LanguageSelector ShowRussian="@showRussian"
+                                ShowSpanish="@showSpanish"
+                                ShowEnglish="@showEnglish"
+                                OnLanguagesChanged="@OnLanguagesChanged" />
+            </div>
+        </div>
+    </div>
+
+    <div class="pdd-content">
+        @if (IsLoading)
         {
-            var question = questionWrapper.Question;
-            <div class="pdd-question-block @(questionWrapper.HasAnswered ? "answered" : "")">
-                <div class="pdd-top-nav-bar">
-                    <div class="pdd-question-id-statistics">
-                        <span class="pdd-question-id-text">Id: @(question.Id)</span>
-                        <span class="pdd-stats-info" title="Question treated as studied if answered correctly 3 times in a row">
-                            Studied: @(questionQueue.LearnedQuestionCount)/@(questionQueue.TotalQuestionCount)
-                        </span>
-                    </div>
-
-                    <div class="pdd-options">
-                        <div class="pdd-highlight-toggle">
-                            <input type="checkbox"
-                                   id="highlightTermsToggle"
-                                   checked="@highlightTerms"
-                                   @onchange="OnHighlightTermsChanged"
-                                   title="Highlight key terms?" />
-                            <label for="highlightTermsToggle"
-                                   title="Turn ON/OFF terms highlighting">
-                                Terms
-                            </label>
-                        </div>
-                        <div class="pdd-language-selector">
-                            <LanguageSelector ShowRussian="@showRussian"
-                                            ShowSpanish="@showSpanish"
-                                            ShowEnglish="@showEnglish"
-                                            OnLanguagesChanged="@OnLanguagesChanged" />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="pdd-question-container">
-                    <div class="pdd-question-text-and-image">
-                        @if (question.Img)
-                        {
-                            <img src="@Path.Combine(ImagesBaseAddress,$"{question.Id}.jpg")"
-                                 class="pdd-question-image"
-                                 style="object-fit: scale-down" />
-                        }
-
-                        <div class="pdd-question-text">
-                            @((MarkupString)RenderLocalizedText(
-                                question.LocalizedQuestionText,
-                                question.MainTerms
-                                ))
-                        </div>
-                    </div>
-
-                    <div class="pdd-answers">
-                        @foreach (var (answer, index) in question.Answers.Select((a, i) => (a, i)))
-                        {
-                            var isDisabled = questionWrapper.HasAnswered;
-                            <button class="pdd-answer-button @(GetAnswerCssClass(answer, questionWrapper))"
-                                    @onclick="() => AnswerQuestion(questionWrapper, answer)"
-                                    disabled="@isDisabled">
-                                <div class="pdd-answer-number">@((index + 1))</div>
-                                <div class="pdd-answer-text">
-                                    @((MarkupString)RenderLocalizedText(
-                                        answer.LocalizedAnswerText,
-                                        question.MainTerms
-                                        ))
-                                </div>
-                            </button>
-                        }
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(question?.RuleDescription?.English)
-                   || !string.IsNullOrEmpty(question?.RuleDescription?.Russian)
-                   || !string.IsNullOrEmpty(question?.RuleDescription?.Spanish))
-                    {
-                        <button class="pdd-btn-show-explanation" @onclick="() => ToggleExplanation(questionWrapper)">
-                            @((questionWrapper.ShowExplanation ? "Hide" : "Show") + " explanation")
-                        </button>
-
-                        @if (questionWrapper.ShowExplanation)
-                        {
-                            <div class="pdd-rule-description mt-3">
-                                <p>@((MarkupString)RenderLocalizedText(question.RuleDescription, question.MainTerms))</p>
-                            </div>
-                        }
-                    }
-                </div>
+            <div>Please wait. Exam data is loading (around 10 seconds)</div>
+            <div class="pdd-loading-bar-container">
+                <div class="pdd-loading-bar"></div>
             </div>
         }
+        else if (currentBatch.Any())
+        {
+            @foreach (var questionWrapper in currentBatch)
+            {
+                var question = questionWrapper.Question;
+                <div class="pdd-question-block @(questionWrapper.HasAnswered ? "answered" : "")">
+                    <div class="pdd-top-nav-bar">
+                        <div class="pdd-question-id-statistics">
+                            <span class="pdd-question-id-text">Id: @(question.Id)</span>
+                        </div>
+                    </div>
 
-        <div class="navigation-buttons mt-3">
-            <button @onclick="GoToNextBatch"
-                    disabled="@(!AllQuestionsInBatchAnswered)">
-                Next Batch
-            </button>
-        </div>
-    }
-    else
-    {
-        <p>All questions have been learned! Congratulations!</p>
-    }
+                    <div class="pdd-question-container">
+                        <div class="pdd-question-text-and-image">
+                            @if (question.Img)
+                            {
+                                <img src="@Path.Combine(ImagesBaseAddress,$"{question.Id}.jpg")"
+                                     class="pdd-question-image"
+                                     style="object-fit: scale-down" />
+                            }
+
+                            <div class="pdd-question-text">
+                                @((MarkupString)RenderLocalizedText(
+                                    question.LocalizedQuestionText,
+                                    question.MainTerms
+                                    ))
+                            </div>
+                        </div>
+
+                        <div class="pdd-answers">
+                            @foreach (var (answer, index) in question.Answers.Select((a, i) => (a, i)))
+                            {
+                                var isDisabled = questionWrapper.HasAnswered;
+                                <button class="pdd-answer-button @(GetAnswerCssClass(answer, questionWrapper))"
+                                        @onclick="() => AnswerQuestion(questionWrapper, answer)"
+                                        disabled="@isDisabled">
+                                    <div class="pdd-answer-number">@((index + 1))</div>
+                                    <div class="pdd-answer-text">
+                                        @((MarkupString)RenderLocalizedText(
+                                            answer.LocalizedAnswerText,
+                                            question.MainTerms
+                                            ))
+                                    </div>
+                                </button>
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(question?.RuleDescription?.English)
+                       || !string.IsNullOrEmpty(question?.RuleDescription?.Russian)
+                       || !string.IsNullOrEmpty(question?.RuleDescription?.Spanish))
+                        {
+                            <button class="pdd-btn-show-explanation" @onclick="() => ToggleExplanation(questionWrapper)">
+                                @((questionWrapper.ShowExplanation ? "Hide" : "Show") + " explanation")
+                            </button>
+
+                            @if (questionWrapper.ShowExplanation)
+                            {
+                                <div class="pdd-rule-description mt-3">
+                                    <p>@((MarkupString)RenderLocalizedText(question.RuleDescription, question.MainTerms))</p>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="navigation-buttons mt-3">
+                <button @onclick="GoToNextBatch"
+                        disabled="@(!AllQuestionsInBatchAnswered)">
+                    Next Batch
+                </button>
+            </div>
+        }
+        else
+        {
+            <p>All questions have been learned! Congratulations!</p>
+        }
+    </div>
 </div>
 
 @code {

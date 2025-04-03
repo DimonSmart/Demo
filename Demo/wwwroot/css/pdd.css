@@ -19,6 +19,24 @@
     padding: 10px;
 }
 
+/* Fixed top navigation bar that stays in place when scrolling */
+.fixed-top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+/* Add padding to the content to prevent it from appearing under the fixed bar */
+.pdd-content {
+    padding-top: 10px;
+}
+
+/* Batch progress styling */
+.pdd-batch-progress {
+    margin-left: 20px;
+    color: #555;
+}
+
 /* Container for question ID and statistics */
 .pdd-question-id-statistics {
     display: flex;
