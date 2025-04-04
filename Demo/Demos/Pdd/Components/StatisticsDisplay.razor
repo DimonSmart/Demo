@@ -5,12 +5,6 @@
     <span title="Total progress: @_metrics.LearnedQuestions learned, @_metrics.InProgressQuestions in progress, @_metrics.NotStartedQuestions not started">
         @_metrics.LearnedQuestions/@_metrics.TotalQuestions
     </span>
-    @if (BatchProgress != null)
-    {
-        <span class="pdd-batch-progress" title="Current batch progress">
-            Batch: @BatchProgress
-        </span>
-    }
     <span title="Current session answers - Correct: @_metrics.CorrectAnswers, Incorrect: @_metrics.IncorrectAnswers">
         Session: @_metrics.CorrectAnswers/@_metrics.TotalAnswers
     </span>
@@ -19,9 +13,6 @@
 @code {
     [Parameter]
     public QuestionQueue QuestionQueue { get; set; } = null!;
-
-    [Parameter]
-    public string? BatchProgress { get; set; }
 
     private LearningMetrics _metrics = new();
 

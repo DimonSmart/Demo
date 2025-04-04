@@ -28,8 +28,7 @@
      tabindex="0">
 
     <div class="pdd-top-nav-bar fixed-top-bar">
-        <StatisticsDisplay QuestionQueue="@questionQueue"
-                          BatchProgress="@(currentBatch.Any() ? $"{currentBatch.Count(q => q.HasAnswered)}/{currentBatch.Count}" : null)" />
+        <StatisticsDisplay QuestionQueue="@questionQueue" />
 
         <div class="pdd-options">
             <div class="pdd-highlight-toggle">
