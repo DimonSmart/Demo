@@ -1,0 +1,47 @@
+@using Demo.Components
+@using Demo.Demos.Pdd
+@using Microsoft.AspNetCore.Components
+@namespace Demo.Demos.Pdd.Components
+
+<div class="pdd-answers">
+    @foreach (var (answer, index) in QuestionWrapper.Question.Answers.Select((a, i) => (a, i)))
+    {
+        var isDisabled = QuestionWrapper.HasAnswered;
+        <button class="pdd-answer-button @(GetAnswerCssClass(answer))"
+                @onclick="() => OnAnswerClicked(answer)"
+                disabled="@isDisabled">
+            <div class="pdd-answer-number">@((index + 1))</div>
+            <div class="pdd-answer-text">
+                @((MarkupString)RenderLocalizedText(answer.LocalizedAnswerText, QuestionWrapper.Question.MainTerms))
+            </div>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public QuestionWrapper QuestionWrapper { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<(QuestionWrapper, AnswerItem)> OnAnswerSelected { get; set; }
+
+    [Parameter]
+    public Func<LocalizedText, List<LocalizedText>?, string> RenderLocalizedText { get; set; } = null!;
+
+    private string GetAnswerCssClass(AnswerItem answer)
+    {
+        if (!QuestionWrapper.HasAnswered)
+            return string.Empty;
+        if (QuestionWrapper.SelectedAnswer == answer)
+            return answer.IsCorrect ? "pdd-correct-answer" : "pdd-incorrect-answer";
+        if (!QuestionWrapper.SelectedAnswer!.IsCorrect && answer.IsCorrect)
+            return "pdd-correct-answer";
+        return string.Empty;
+    }
+
+    private async Task OnAnswerClicked(AnswerItem answer)
+    {
+        if (QuestionWrapper.HasAnswered) return;
+        await OnAnswerSelected.InvokeAsync((QuestionWrapper, answer));
+    }
+}

@@ -13,6 +13,8 @@ public class QuestionQueue
 
     private readonly int _initialCount;
     private int _learnedCount;
+    private int _correctAnswers;
+    private int _incorrectAnswers;
 
     public QuestionQueue(IEnumerable<QuestionStudyCard> cards)
     {
@@ -47,7 +49,7 @@ public class QuestionQueue
     /// <returns>A list of study cards for the user to answer, may be smaller than requested count if not enough questions are available.</returns>
     public List<QuestionStudyCard> PeekNextQuestionsForStudy(int count)
     {
-        return _cards.Where(c => !c.IsLearned).Take(count).ToList();
+        return [.. _cards.Where(c => !c.IsLearned).Take(count)];
     }
 
     /// <summary>
@@ -66,11 +68,13 @@ public class QuestionQueue
 
         if (!isCorrect)
         {
+            _incorrectAnswers++;
             card.ConsecutiveCorrectCount = 0;
             RequeueQuestion(card, false);
             return;
         }
 
+        _correctAnswers++;
         card.ConsecutiveCorrectCount++;
         if (card.ConsecutiveCorrectCount < 3)
         {
@@ -85,6 +89,22 @@ public class QuestionQueue
             _cards.RemoveAt(idx);
             _learnedCount++;
         }
+    }
+
+    /// <summary>
+    /// Gets the current learning metrics including progress statistics and answer history
+    /// </summary>
+    public LearningMetrics GetMetrics()
+    {
+        return new LearningMetrics
+        {
+            TotalQuestions = _initialCount,
+            LearnedQuestions = _learnedCount,
+            InProgressQuestions = _cards.Count(c => c.ConsecutiveCorrectCount > 0),
+            NotStartedQuestions = _cards.Count(c => c.ConsecutiveCorrectCount == 0),
+            CorrectAnswers = _correctAnswers,
+            IncorrectAnswers = _incorrectAnswers
+        };
     }
 
     /// <summary>

@@ -1,0 +1,70 @@
+@using Demo.Components
+@using Demo.Demos.Pdd
+@using System.IO
+@using Microsoft.AspNetCore.Components
+@namespace Demo.Demos.Pdd.Components
+
+<div class="pdd-question-block @(QuestionWrapper.HasAnswered ? "answered" : "")">
+    <div class="pdd-top-nav-bar">
+        <div class="pdd-question-id-statistics">
+            <span class="pdd-question-id-text">Id: @(QuestionWrapper.Question.Id)</span>
+        </div>
+    </div>
+
+    <div class="pdd-question-container">
+        <div class="pdd-question-text-and-image">
+            @if (QuestionWrapper.Question.Img)
+            {
+                <img src="@Path.Combine(ImagesBaseAddress, $"{QuestionWrapper.Question.Id}.jpg")"
+                     class="pdd-question-image"
+                     style="object-fit: scale-down" />
+            }
+
+            <div class="pdd-question-text">
+                @((MarkupString)RenderLocalizedText(
+                    QuestionWrapper.Question.LocalizedQuestionText,
+                    QuestionWrapper.Question.MainTerms
+                    ))
+            </div>
+        </div>
+
+        <Demo.Demos.Pdd.Components.AnswerList 
+            QuestionWrapper="@QuestionWrapper" 
+            OnAnswerSelected="@OnAnswerSelected"
+            RenderLocalizedText="@RenderLocalizedText" />
+
+        @if (!string.IsNullOrEmpty(QuestionWrapper.Question?.RuleDescription?.English)
+           || !string.IsNullOrEmpty(QuestionWrapper.Question?.RuleDescription?.Russian)
+           || !string.IsNullOrEmpty(QuestionWrapper.Question?.RuleDescription?.Spanish))
+        {
+            <button class="pdd-btn-show-explanation" @onclick="() => ToggleExplanation()">
+                @((QuestionWrapper.ShowExplanation ? "Hide" : "Show") + " explanation")
+            </button>
+
+            @if (QuestionWrapper.ShowExplanation)
+            {
+                <div class="pdd-rule-description mt-3">
+                    <p>@((MarkupString)RenderLocalizedText(QuestionWrapper.Question.RuleDescription, QuestionWrapper.Question.MainTerms))</p>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public QuestionWrapper QuestionWrapper { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<(QuestionWrapper, AnswerItem)> OnAnswerSelected { get; set; }
+
+    [Parameter]
+    public Func<LocalizedText, List<LocalizedText>?, string> RenderLocalizedText { get; set; } = null!;
+
+    private const string ImagesBaseAddress = @"https://DimonSmart.github.io/DGT/images/";
+
+    private void ToggleExplanation()
+    {
+        QuestionWrapper.ShowExplanation = !QuestionWrapper.ShowExplanation;
+    }
+}

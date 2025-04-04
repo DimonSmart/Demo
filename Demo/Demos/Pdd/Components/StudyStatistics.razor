@@ -1,0 +1,34 @@
+@using Demo.Demos.Pdd
+@namespace Demo.Demos.Pdd.Components
+
+<div class="pdd-stats-info">
+    <span title="Question treated as studied if answered correctly 3 times in a row">
+        Studied: @(QuestionQueue.LearnedQuestionCount)/@(QuestionQueue.TotalQuestionCount)
+    </span>
+    @if (CurrentBatchProgress != null)
+    {
+        <span class="pdd-batch-progress">
+            Batch: @CurrentBatchProgress
+        </span>
+    }
+    @if (Metrics != null)
+    {
+        <span title="Questions in progress: questions that have been answered correctly at least once but not yet studied (3 times in a row)">
+            In prog: @Metrics.InProgressQuestions
+        </span>
+        <span title="Number of correct and incorrect answers in the current session">
+            Session: @Metrics.CorrectAnswers/@Metrics.TotalAnswers
+        </span>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public QuestionQueue QuestionQueue { get; set; } = null!;
+
+    [Parameter]
+    public string? CurrentBatchProgress { get; set; }
+
+    [Parameter]
+    public LearningMetrics? Metrics { get; set; }
+}
