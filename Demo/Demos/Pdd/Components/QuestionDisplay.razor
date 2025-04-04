@@ -5,20 +5,17 @@
 @namespace Demo.Demos.Pdd.Components
 
 <div class="pdd-question-block @(QuestionWrapper.HasAnswered ? "answered" : "")">
-    <div class="pdd-top-nav-bar">
-        <div class="pdd-question-id-statistics">
-            <span class="pdd-question-id-text">Id: @(QuestionWrapper.Question.Id)</span>
-        </div>
-    </div>
-
     <div class="pdd-question-container">
         <div class="pdd-question-text-and-image">
-            @if (QuestionWrapper.Question.Img)
-            {
-                <img src="@Path.Combine(ImagesBaseAddress, $"{QuestionWrapper.Question.Id}.jpg")"
-                     class="pdd-question-image"
-                     style="object-fit: scale-down" />
-            }
+            <div class="pdd-image-container @(QuestionWrapper.Question.Img ? "with-image" : "no-image")">
+                @if (QuestionWrapper.Question.Img)
+                {
+                    <img src="@Path.Combine(ImagesBaseAddress, $"{QuestionWrapper.Question.Id}.jpg")"
+                         class="pdd-question-image @(QuestionWrapper.Question.Img ? "important-image" : "")"
+                         style="object-fit: scale-down" />
+                }
+                <div class="pdd-question-id">@QuestionWrapper.Question.Id</div>
+            </div>
 
             <div class="pdd-question-text">
                 @((MarkupString)RenderLocalizedText(
