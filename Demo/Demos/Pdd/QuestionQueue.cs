@@ -2,6 +2,8 @@
 
 /// <summary>
 /// Manages the queue of study cards and processes answers.
+/// Questions remain in the queue until they are learned (answered correctly 3 times in a row).
+/// Questions are reordered based on answer correctness to optimize learning.
 /// </summary>
 public class QuestionQueue
 {
@@ -37,23 +39,27 @@ public class QuestionQueue
     public IReadOnlyCollection<QuestionStudyCard> Cards => _cards.AsReadOnly();
 
     /// <summary>
-    /// Gets the next available question that is not marked as learned.
+    /// Gets the first N available questions that are not marked as learned.
+    /// This method does not remove questions from the queue - it just returns them for study.
+    /// Questions are only reordered within the queue when ProcessAnswer is called.
     /// </summary>
-    public QuestionStudyCard? GetNextQuestion()
-    {
-        return _cards.FirstOrDefault(c => !c.IsLearned);
-    }
-
-    /// <summary>
-    /// Gets the specified number of next available questions that are not marked as learned.
-    /// </summary>
-    /// <param name="count">The number of questions to retrieve.</param>
-    /// <returns>A list of study cards, may be smaller than requested count if not enough questions are available.</returns>
-    public List<QuestionStudyCard> GetNextQuestion(int count)
+    /// <param name="count">The number of questions to peek from the queue.</param>
+    /// <returns>A list of study cards for the user to answer, may be smaller than requested count if not enough questions are available.</returns>
+    public List<QuestionStudyCard> PeekNextQuestionsForStudy(int count)
     {
         return _cards.Where(c => !c.IsLearned).Take(count).ToList();
     }
 
+    /// <summary>
+    /// Processes a user's answer to a question and updates the queue accordingly.
+    /// If the answer is correct:
+    /// - Increments the consecutive correct count
+    /// - If answered correctly 3 times, removes from queue and marks as learned
+    /// - Otherwise, moves the question further back in the queue to be reviewed later
+    /// If the answer is incorrect:
+    /// - Resets consecutive correct count
+    /// - Moves the question back to the front portion of the queue for quick review
+    /// </summary>
     public void ProcessAnswer(QuestionStudyCard card, bool isCorrect)
     {
         if (card == null) return;
@@ -81,6 +87,11 @@ public class QuestionQueue
         }
     }
 
+    /// <summary>
+    /// Requeues a question within the queue based on the answer correctness.
+    /// For correct answers (placeNearEnd=true): places the question near the end of the queue
+    /// For incorrect answers (placeNearEnd=false): places the question within the first portion (TicketSize) of the queue
+    /// </summary>
     private void RequeueQuestion(QuestionStudyCard card, bool placeNearEnd)
     {
         var index = _cards.FindIndex(c => c == card);
