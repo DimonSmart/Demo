@@ -2,11 +2,16 @@
 @using Demo.Components
 @using Demo.Demos.Common
 @using Demo.Demos.Pdd
+@using Demo.Demos.Pdd.Components
 @using System.Text.Json
 @using System.Text
 @using Demo.Services
 @using System.Text.RegularExpressions
 @using Markdig
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components
+
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
 @inject UserPreferencesStorageService<PddUserPreferences> PreferencesStorage
 @inject PageTitleService PageTitleService
@@ -16,149 +21,83 @@
 <link rel="stylesheet" href="css/pdd.css" />
 <link rel="stylesheet" href="css/demos.css" />
 
-<PageTitle>Practice DGT Spanish Driving Theory Test</PageTitle>
-
 <div class="pdd-page-container"
      @onkeydown="HandleKeyDown"
      @onpointerdown="HandlePointerDown"
      @onpointerup="HandlePointerUp"
      tabindex="0">
 
-    @if (IsLoading)
-    {
-        <div>Please wait. Exam data is loading (around 10 seconds)</div>
-        <div class="pdd-loading-bar-container">
-            <div class="pdd-loading-bar"></div>
-        </div>
-    }
-    else if (currentQuestion != null)
-    {
-        <div class="pdd-top-nav-bar">
-            <div class="pdd-question-id-statistics">
-                @if (currentQuestion != null)
-                {
-                    <span class="pdd-question-id-text">Id: @(currentQuestion.Id)</span>
-                }
-                <span class="pdd-stats-info" title="Question treated as studied if answered correctly 3 times in a row">
-                    Studied: @(questionQueue.LearnedQuestionCount)/@(questionQueue.TotalQuestionCount)
-                </span>
+    <div class="pdd-top-nav-bar fixed-top-bar">
+        <StatisticsDisplay QuestionQueue="@questionQueue" />
+
+        <div class="pdd-options">
+            <div class="pdd-highlight-toggle">
+                <input type="checkbox"
+                       id="highlightTermsToggle"
+                       checked="@highlightTerms"
+                       @onchange="@OnHighlightTermsChanged"
+                       title="Highlight key terms?" />
+                <label for="highlightTermsToggle"
+                       title="Turn ON/OFF terms highlighting">
+                    Terms
+                </label>
             </div>
-
-            <div class="pdd-options">
-                <div class="pdd-highlight-toggle">
-                    <input type="checkbox"
-                           id="highlightTermsToggle"
-                           checked="@highlightTerms"
-                           @onchange="OnHighlightTermsChanged"
-                           title="Highlight key terms?" />
-                    <label for="highlightTermsToggle"
-                           title="Turn ON/OFF terms highlighting">
-                        Terms
-                    </label>
-                </div>
-                <div class="pdd-language-selector">
-                    <LanguageSelector ShowRussian="@showRussian"
-                                      ShowSpanish="@showSpanish"
-                                      ShowEnglish="@showEnglish"
-                                      OnLanguagesChanged="@OnLanguagesChanged" />
-                </div>
-
+            <div class="pdd-language-selector">
+                <LanguageSelector ShowRussian="@showRussian"
+                                ShowSpanish="@showSpanish"
+                                ShowEnglish="@showEnglish"
+                                OnLanguagesChanged="@OnLanguagesChanged" />
             </div>
         </div>
+    </div>
 
-        <div class="pdd-question-container">
-
-            <div class="pdd-question-text-and-image">
-                @if (currentQuestion!.Img)
-                {
-                    <img src="@Path.Combine(ImagesBaseAddress,$"{currentQuestion.Id}.jpg")"
-                         class="pdd-question-image"
-                         style="object-fit: scale-down" />
-                }
-
-                <div class="pdd-question-text">
-                    @((MarkupString)RenderLocalizedText(
-                        currentQuestion.LocalizedQuestionText,
-                        currentQuestion.MainTerms
-                        ))
-                </div>
+    <div class="pdd-content">
+        @if (IsLoading)
+        {
+            <div>Please wait. Exam data is loading (around 10 seconds)</div>
+            <div class="pdd-loading-bar-container">
+                <div class="pdd-loading-bar"></div>
             </div>
-
-            <div class="pdd-answers">
-                @foreach (var (answer, index) in currentQuestion.Answers.Select((a, i) => (a, i)))
-                {
-                    <button class="pdd-answer-button @(GetAnswerCssClass(answer))"
-                            @onclick="() => AnswerQuestion(answer)"
-                            disabled="@hasAnswered">
-                        <div class="pdd-answer-number">@((index + 1))</div>
-                        <div class="pdd-answer-text">
-                            @((MarkupString)RenderLocalizedText(
-                                answer.LocalizedAnswerText,
-                                currentQuestion.MainTerms
-                                ))
-                        </div>
-                    </button>
-                }
-            </div>
-
-            @if (!string.IsNullOrEmpty(currentQuestion?.RuleDescription?.English)
-           || !string.IsNullOrEmpty(currentQuestion?.RuleDescription?.Russian)
-           || !string.IsNullOrEmpty(currentQuestion?.RuleDescription?.Spanish))
+        }
+        else if (currentBatch.Any())
+        {
+            @foreach (var questionWrapper in currentBatch)
             {
-                <button class="pdd-btn-show-explanation" @onclick="ToggleExplanation">
-                    @((ShowExplanation ? "Hide" : "Show") + " explanation")
-                </button>
-
-                @if (ShowExplanation)
-                {
-                    <div class="pdd-rule-description mt-3">
-                        <p>@((MarkupString)RenderLocalizedText(currentQuestion.RuleDescription, currentQuestion.MainTerms))</p>
-                    </div>
-                }
+                <QuestionDisplay 
+                    QuestionWrapper="@questionWrapper"
+                    OnAnswerSelected="@AnswerQuestion"
+                    RenderLocalizedText="@RenderLocalizedText" />
             }
 
-            <div class="navigation-buttons mt-3">
-                <button @onclick="GoToNextQuestion"
-                        disabled="@(!hasAnswered)">
-                    Next
-                </button>
-            </div>
-
-        </div>
-    }
-    else
-    {
-        <p>All questions have been learned! Congratulations!</p>
-    }
+            <BatchNavigation 
+                AllQuestionsAnswered="@AllQuestionsInBatchAnswered"
+                OnNextBatchClicked="@GoToNextBatch" />
+        }
+        else
+        {
+            <p>All questions have been learned! Congratulations!</p>
+        }
+    </div>
 </div>
 
 @code {
+    private const int BATCH_SIZE = 10;
+    private List<QuestionWrapper> currentBatch = new();
+    private bool AllQuestionsInBatchAnswered => currentBatch.All(q => q.HasAnswered);
+
     private IReadOnlyCollection<QuestionItem> allQuestions = new List<QuestionItem>();
     const string ExamDataBaseAddress = @"https://DimonSmart.github.io/DGT/";
-    const string ImagesBaseAddress = @"https://DimonSmart.github.io/DGT/images/";
     private readonly MarkdownPipeline markdownPipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
         .Build();
 
     private bool IsLoading = true;
-    private bool isCorrect;
-    private string? feedback;
-    private bool hasAnswered = false;
-    private bool ShowExplanation = false;
-
     private bool highlightTerms = false;
-
-    // Language selection flags
     private bool showRussian = false;
     private bool showSpanish = true;
     private bool showEnglish = false;
 
-    private Dictionary<int, int> questionProgress = new Dictionary<int, int>();
     private QuestionQueue questionQueue = new QuestionQueue(new List<QuestionStudyCard>());
-    private QuestionStudyCard? questionStudyCard = null;
-    private QuestionItem? currentQuestion;
-    private AnswerItem? userSelectedAnswer = null;
-
     private double pointerDownX;
     private double pointerDownY;
 
@@ -187,7 +126,7 @@
 
         allQuestions = await LoadQuestions();
         questionQueue = await LoadQuestionsQueue(allQuestions);
-        LoadNextQuestion();
+        LoadNextBatch();
         IsLoading = false;
     }
 
@@ -200,19 +139,24 @@
         await SaveUserPreferencesAsync();
     }
 
-
-    // A set of dark colors used for highlighting different terms
-    private static readonly string[] termColors = new[]
+    private async Task OnHighlightTermsChanged(ChangeEventArgs e)
     {
-        "#8B008B", // DarkMagenta
-        "#800000", // Maroon
-        "#004080", // Dark blue
-        "#808000", // Olive
-        "#400080"  // Another dark shade
-    };
+        if (e.Value is bool boolValue)
+        {
+            highlightTerms = boolValue;
+        }
+        else if (bool.TryParse(e.Value?.ToString(), out var parsed))
+        {
+            highlightTerms = parsed;
+        }
+        else
+        {
+            highlightTerms = false;
+        }
 
-    // Renders localized text for each selected language.
-    // If highlighting is enabled, it calls HighlightAllTerms.
+        await SaveUserPreferencesAsync();
+    }
+
     private string RenderLocalizedText(LocalizedText text, List<LocalizedText>? questionTerms = null)
     {
         var sb = new StringBuilder();
@@ -246,7 +190,6 @@
             firstBlock = false;
         }
 
-
         if (showRussian && !string.IsNullOrWhiteSpace(text.Russian))
         {
             AppendWithSeparator("pdd-russian", "Русский", text.Russian);
@@ -265,26 +208,6 @@
         return sb.ToString();
     }
 
-
-    private async Task OnHighlightTermsChanged(ChangeEventArgs e)
-    {
-        if (e.Value is bool boolValue)
-        {
-            highlightTerms = boolValue;
-        }
-        else if (bool.TryParse(e.Value?.ToString(), out var parsed))
-        {
-            highlightTerms = parsed;
-        }
-        else
-        {
-            highlightTerms = false;
-        }
-
-        await SaveUserPreferencesAsync();
-    }
-
-    // Performs a case-insensitive replacement of each term with a colored, bolded version.
     private string HighlightAllTerms(
         string originalText,
         List<LocalizedText> terms,
@@ -314,21 +237,17 @@
 
     private void HandleKeyDown(KeyboardEventArgs e)
     {
-        if (currentQuestion == null) return;
-
-        // Attempt to parse the key as an integer (1..4)
-        if (int.TryParse(e.Key, out int answerIndex))
+        if (int.TryParse(e.Key, out int answerIndex) && answerIndex >= 1 && answerIndex <= 4)
         {
-            answerIndex -= 1;
-            if (answerIndex >= 0 && answerIndex < currentQuestion.Answers.Count && !hasAnswered)
+            var targetQuestion = currentBatch.FirstOrDefault(q => !q.HasAnswered);
+            if (targetQuestion != null && answerIndex <= targetQuestion.Question.Answers.Count)
             {
-                var chosenAnswer = currentQuestion.Answers[answerIndex];
-                _ = AnswerQuestion(chosenAnswer);
+                var chosenAnswer = targetQuestion.Question.Answers[answerIndex - 1];
+                _ = AnswerQuestion((targetQuestion, chosenAnswer));
             }
         }
     }
 
-    // Swipe detection
     private void HandlePointerDown(PointerEventArgs e)
     {
         pointerDownX = e.ClientX;
@@ -340,10 +259,9 @@
         var deltaX = e.ClientX - pointerDownX;
         var deltaY = e.ClientY - pointerDownY;
 
-        // Simple threshold check
-        if (Math.Abs(deltaX) > 100 && Math.Abs(deltaY) < 50 && hasAnswered)
+        if (Math.Abs(deltaX) > 100 && Math.Abs(deltaY) < 50 && AllQuestionsInBatchAnswered)
         {
-            GoToNextQuestion();
+            GoToNextBatch();
         }
     }
 
@@ -371,57 +289,44 @@
         return new QuestionQueue(questions.Select(q => new QuestionStudyCard { Id = q.Id }));
     }
 
-    private void LoadNextQuestion()
+    private void LoadNextBatch()
     {
-        questionStudyCard = questionQueue.GetNextQuestion();
-        if (questionStudyCard == null)
+        currentBatch.Clear();
+        var nextCards = questionQueue.PeekNextQuestionsForStudy(BATCH_SIZE);
+        
+        foreach (var studyCard in nextCards)
         {
-            currentQuestion = null;
-            return;
+            var question = allQuestions.FirstOrDefault(q => q.Id == studyCard.Id);
+            if (question != null)
+            {
+                currentBatch.Add(new QuestionWrapper
+                {
+                    Question = question,
+                    StudyCard = studyCard,
+                    HasAnswered = false,
+                    ShowExplanation = false
+                });
+            }
         }
-        currentQuestion = allQuestions.FirstOrDefault(q => q.Id == questionStudyCard.Id);
     }
 
-    private async Task AnswerQuestion(AnswerItem selectedAnswer)
+    private async Task AnswerQuestion((QuestionWrapper wrapper, AnswerItem selectedAnswer) answer)
     {
-        if (currentQuestion == null || questionStudyCard == null) return;
-        userSelectedAnswer = selectedAnswer;
-        isCorrect = selectedAnswer.IsCorrect;
-        hasAnswered = true;
-        questionQueue.ProcessAnswer(questionStudyCard, isCorrect);
+        var (wrapper, selectedAnswer) = answer;
+        if (wrapper.HasAnswered) return;
+
+        wrapper.SelectedAnswer = selectedAnswer;
+        wrapper.HasAnswered = true;
+        questionQueue.ProcessAnswer(wrapper.StudyCard, wrapper.SelectedAnswer.IsCorrect);
         await CardStorage.SaveCardsAsync(new StoredCardsSet() { Cards = questionQueue.Cards, Version = "1.0" });
 
         StateHasChanged();
-        // No automatic transition here
     }
 
-    private void GoToNextQuestion()
+    private void GoToNextBatch()
     {
-        if (currentQuestion == null || questionStudyCard == null || userSelectedAnswer == null)
-            return;
-
-        questionQueue.ProcessAnswer(questionStudyCard, userSelectedAnswer.IsCorrect);
-        userSelectedAnswer = null;
-        ShowExplanation = false;
-        hasAnswered = false;
-        LoadNextQuestion();
-        StateHasChanged();
-    }
-
-    private void ToggleExplanation()
-    {
-        ShowExplanation = !ShowExplanation;
-    }
-
-    private string GetAnswerCssClass(AnswerItem answer)
-    {
-        if (userSelectedAnswer == null)
-            return string.Empty;
-        if (userSelectedAnswer == answer)
-            return answer.IsCorrect ? "pdd-correct-answer" : "pdd-incorrect-answer";
-        if (!userSelectedAnswer.IsCorrect && answer.IsCorrect)
-            return "correct-answer";
-        return string.Empty;
+        if (!AllQuestionsInBatchAnswered) return;
+        LoadNextBatch();
     }
 
     private async Task SaveUserPreferencesAsync()
@@ -436,4 +341,13 @@
         await PreferencesStorage.SavePreferencesAsync(preferences);
     }
 
+    // A set of dark colors used for highlighting different terms
+    private static readonly string[] termColors = new[]
+    {
+        "#8B008B", // DarkMagenta
+        "#800000", // Maroon
+        "#004080", // Dark blue
+        "#808000", // Olive
+        "#400080"  // Another dark shade
+    };
 }

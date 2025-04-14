@@ -1,0 +1,27 @@
+@using Demo.Demos.Pdd
+@namespace Demo.Demos.Pdd.Components
+
+<div class="pdd-stats-info">
+    <span title="Total progress: @_metrics.LearnedQuestions learned, @_metrics.InProgressQuestions in progress, @_metrics.NotStartedQuestions not started">
+        @_metrics.LearnedQuestions/@_metrics.TotalQuestions
+    </span>
+    <span title="Current session answers - Correct: @_metrics.CorrectAnswers, Incorrect: @_metrics.IncorrectAnswers">
+        Session: @_metrics.CorrectAnswers/@_metrics.TotalAnswers
+    </span>
+</div>
+
+@code {
+    [Parameter]
+    public QuestionQueue QuestionQueue { get; set; } = null!;
+
+    private LearningMetrics _metrics = new();
+
+    protected override void OnParametersSet()
+    {
+        if (QuestionQueue != null)
+        {
+            _metrics = QuestionQueue.GetMetrics();
+        }
+        base.OnParametersSet();
+    }
+}

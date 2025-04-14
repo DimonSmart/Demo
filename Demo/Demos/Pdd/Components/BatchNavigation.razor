@@ -1,0 +1,17 @@
+@using Demo.Components
+@namespace Demo.Demos.Pdd.Components
+
+<div class="navigation-buttons mt-3">
+    <button @onclick="OnNextBatchClicked"
+            disabled="@(!AllQuestionsAnswered)">
+        Next Batch
+    </button>
+</div>
+
+@code {
+    [Parameter]
+    public bool AllQuestionsAnswered { get; set; }
+
+    [Parameter]
+    public EventCallback OnNextBatchClicked { get; set; }
+}
