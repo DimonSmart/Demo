@@ -12,7 +12,7 @@
                 disabled="@isDisabled">
             <div class="pdd-answer-number">@((index + 1))</div>
             <div class="pdd-answer-text">
-                @((MarkupString)RenderLocalizedText(answer.LocalizedAnswerText, QuestionWrapper.Question.MainTerms))
+                @((MarkupString)RenderLocalizedText(answer.LocalizedAnswerText, QuestionWrapper.Question.MainTerms, QuestionWrapper))
             </div>
         </button>
     }
@@ -26,7 +26,7 @@
     public EventCallback<(QuestionWrapper, AnswerItem)> OnAnswerSelected { get; set; }
 
     [Parameter]
-    public Func<LocalizedText, List<LocalizedText>?, string> RenderLocalizedText { get; set; } = null!;
+    public Func<LocalizedText, List<LocalizedText>?, QuestionWrapper?, string> RenderLocalizedText { get; set; } = null!;
 
     private string GetAnswerCssClass(AnswerItem answer)
     {
