@@ -1,0 +1,35 @@
+@namespace Demo.Demos.Pdd.Components
+
+<div class="pdd-language-selector">
+    <div class="primary-language-selector">
+        <label>Main language:</label>
+        <select @bind="PrimaryLanguage" @bind:after="HandleLanguageChanged" class="primary-language-dropdown">
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="ru">Russian</option>
+        </select>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string PrimaryLanguage { get; set; } = "es";
+
+    [Parameter]
+    public EventCallback<(string Primary, string Secondary1, string Secondary2)> OnLanguageChanged { get; set; }
+
+    private static readonly string[] AllLanguages = new[] { "en", "es", "ru" };
+
+    private async Task HandleLanguageChanged()
+    {
+        // Get the two languages not selected as the primary language
+        var secondaryLanguages = AllLanguages.Where(lang => lang != PrimaryLanguage).ToArray();
+        await OnLanguageChanged.InvokeAsync((
+            Primary: PrimaryLanguage,
+            Secondary1: secondaryLanguages[0],
+            Secondary2: secondaryLanguages[1]
+        ));
+    }
+}
+
+

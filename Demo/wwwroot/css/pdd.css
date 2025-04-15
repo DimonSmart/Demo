@@ -61,9 +61,9 @@
     justify-content: center;
 }
 
-.pdd-reset-button:hover {
-    background-color: #e2e6ea;
-}
+    .pdd-reset-button:hover {
+        background-color: #e2e6ea;
+    }
 
 /* Container for question ID and statistics */
 .pdd-question-id-statistics {
@@ -123,18 +123,13 @@
 .pdd-question-text-and-image {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 20px;
+    align-items: flex-start;
 }
 
 .pdd-question-image {
-    max-width: 25%;
-    min-width: 300px;
-}
-
-.pdd-question-text {
-    font-size: 1em;
-    font-weight: normal;
-    min-width: 300px;
+    max-width: 100%;
+    height: auto;
 }
 
 /* Responsive adjustments for smaller screens */
@@ -187,14 +182,17 @@
     gap: 1rem;
     padding: 10px;
     background-color: #f8f9fa;
-    border: 1px solid #ced4da;
+    border: none;
     border-radius: 5px;
     cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 5px;
 }
 
     /* Hover effect for answer buttons */
     .pdd-answer-button:hover {
-        background-color: #e2e6ea;
+        background-color: #e9ecef;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
     }
 
 
@@ -220,7 +218,7 @@
     }
 
     .pdd-language-block.pdd-english {
-        color: navy;
+        color: black;
     }
 
 /* Separator line between different language blocks */
@@ -341,9 +339,34 @@
     }
 
     .pdd-language-line.english {
-        color: navy;
+        color: black;
     }
 
+
+/* -------------------------
+   Explanation Button
+   Purpose: Styles for the Show/Hide explanation button to make it look like a link
+------------------------- */
+.pdd-btn-show-explanation {
+    background: none;
+    border: none;
+    color: #0066cc;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    margin-top: 10px;
+    display: inline-block;
+}
+
+    .pdd-btn-show-explanation:hover {
+        text-decoration: underline;
+    }
+
+    .pdd-btn-show-explanation:focus {
+        outline: thin dotted;
+        color: #0056b3;
+    }
 
 /* -------------------------
    Page Container
@@ -359,9 +382,10 @@
 
 .pdd-image-container {
     position: relative;
-    min-width: 60px;
-    min-height: 60px;
-    max-width: 25%;
+    width: 220px;
+    height: auto;
+    flex-shrink: 1;
+    margin-right: 0;
 }
 
 .pdd-question-id {
@@ -377,13 +401,100 @@
 }
 
 .pdd-question-image {
-    width: 100%;
+    width: 100%; /* 100% ширины контейнера */
+    height: auto; /* Высота подстраивается автоматически */
+    max-width: 220px; /* Соответствует ширине контейнера */
     border-radius: 8px;
-    border: 3px solid #cccccc;  /* Default gray border for all images */
+    border: 3px solid #cccccc; /* Default gray border for all images */
     box-shadow: 0 0 0 1px rgba(204, 204, 204, 0.5);
-    box-sizing: border-box;  /* Ensure border is included in element dimensions */
+    box-sizing: border-box; /* Ensure border is included in element dimensions */
     margin: 0;
     padding: 0;
-    display: block;  /* Consistent display behavior */
-    position: relative;  /* Consistent positioning */
+    display: block; /* Consistent display behavior */
+}
+
+/* -------------------------
+   Language Selection and Translation
+   Purpose: Styles for the new language selection approach with translation buttons
+------------------------- */
+.primary-language-dropdown {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+    background-color: #fff;
+    font-size: 0.9rem;
+}
+
+.primary-language-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.primary-language-selector label {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.pdd-translation-buttons {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 5px;
+    justify-content: flex-end;
+}
+
+.pdd-trans-btn {
+    padding: 2px 6px;
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    color: #666;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.pdd-trans-btn:hover {
+    background-color: #e9ecef;
+}
+
+.pdd-translation-content {
+    display: none;
+    padding-left: 0.5rem;
+    border-left: 3px solid #dee2e6;
+    background-color: #f8f9fa;
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
+}
+
+.pdd-translation-content.show {
+    display: block;
+}
+
+/* Styling for language blocks */
+.pdd-language-block {
+    margin-bottom: 10px;
+    position: relative;
+}
+
+/* Different styling for each language */
+.pdd-spanish {
+    color: #333;
+}
+
+.pdd-english {
+    color: #333;
+}
+
+.pdd-russian {
+    color: #333;
+}
+
+/* When shown as translation, use lighter styling */
+.pdd-translation-content.pdd-spanish,
+.pdd-translation-content.pdd-english,
+.pdd-translation-content.pdd-russian {
+    color: #666;
 }

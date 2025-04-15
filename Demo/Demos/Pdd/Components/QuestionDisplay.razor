@@ -1,40 +1,58 @@
-@using Demo.Components
 @using Demo.Demos.Pdd
 @using System.IO
 @using Microsoft.AspNetCore.Components
+@using Demo.Services
 @namespace Demo.Demos.Pdd.Components
 
-<div class="pdd-question-block @(QuestionWrapper.HasAnswered ? "answered" : "")">
+<div class="pdd-question-block @(QuestionWrapper?.HasAnswered == true ? "answered" : "")">
     <div class="pdd-question-container">
         <div class="pdd-question-text-and-image">
             <div class="pdd-image-container">
-                <img src="@Path.Combine(ImagesBaseAddress, $"{QuestionWrapper.Question.Id}.jpg")"
+                <img src="@Path.Combine(ImagesBaseAddress, $"{CurrentQuestion?.Id}.jpg")"
                      class="pdd-question-image"
                      style="object-fit: scale-down" />
-                <div class="pdd-question-id">@QuestionWrapper.Question.Id</div>
+                <div class="pdd-question-id">@CurrentQuestion?.Id</div>
             </div>
-
             <div class="pdd-question-text">
-                @((MarkupString)RenderLocalizedText(QuestionWrapper.Question.LocalizedQuestionText, QuestionWrapper.Question.MainTerms))
+                <MultiLanguageText Text="@CurrentQuestion?.LocalizedQuestionText"
+                                   PrimaryLanguage="@PrimaryLanguage"
+                                   SecondaryLanguage1="@SecondaryLanguage1"
+                                   SecondaryLanguage2="@SecondaryLanguage2"
+                                   PrimaryLanguageContent="@TranslationService.GetLocalizedContent(CurrentQuestion?.LocalizedQuestionText, PrimaryLanguage, CurrentQuestion?.MainTerms, HighlightTerms)"
+                                   SecondaryLanguage1Content="@TranslationService.GetLocalizedContent(CurrentQuestion?.LocalizedQuestionText, SecondaryLanguage1, CurrentQuestion?.MainTerms, HighlightTerms)"
+                                   SecondaryLanguage2Content="@TranslationService.GetLocalizedContent(CurrentQuestion?.LocalizedQuestionText, SecondaryLanguage2, CurrentQuestion?.MainTerms, HighlightTerms)"
+                                   Terms="@CurrentQuestion?.MainTerms"
+                                   HighlightTerms="@HighlightTerms" />
             </div>
         </div>
 
         <Demo.Demos.Pdd.Components.AnswerList QuestionWrapper="@QuestionWrapper"
                                               OnAnswerSelected="@OnAnswerSelected"
-                                              RenderLocalizedText="@RenderLocalizedText" />
+                                              PrimaryLanguage="@PrimaryLanguage"
+                                              SecondaryLanguage1="@SecondaryLanguage1"
+                                              SecondaryLanguage2="@SecondaryLanguage2"
+                                              HighlightTerms="@HighlightTerms" />
 
-        @if (!string.IsNullOrEmpty(QuestionWrapper.Question?.RuleDescription?.English)
-        || !string.IsNullOrEmpty(QuestionWrapper.Question?.RuleDescription?.Russian)
-        || !string.IsNullOrEmpty(QuestionWrapper.Question?.RuleDescription?.Spanish))
+        @if (CurrentQuestion?.RuleDescription != null &&
+        (!string.IsNullOrEmpty(CurrentQuestion.RuleDescription.English) ||
+        !string.IsNullOrEmpty(CurrentQuestion.RuleDescription.Russian) ||
+        !string.IsNullOrEmpty(CurrentQuestion.RuleDescription.Spanish)))
         {
-            <button class="pdd-btn-show-explanation" @onclick="() => ToggleExplanation()">
+            <button class="pdd-btn-show-explanation" @onclick="ToggleExplanation">
                 @((QuestionWrapper.ShowExplanation ? "Hide" : "Show") + " explanation")
             </button>
-
             @if (QuestionWrapper.ShowExplanation)
             {
                 <div class="pdd-rule-description mt-3">
-                    <p>@((MarkupString)RenderLocalizedText(QuestionWrapper.Question.RuleDescription, QuestionWrapper.Question.MainTerms))</p>
+                    <MultiLanguageText Text="@CurrentQuestion.RuleDescription"
+                                       PrimaryLanguage="@PrimaryLanguage"
+                                       SecondaryLanguage1="@SecondaryLanguage1"
+                                       SecondaryLanguage2="@SecondaryLanguage2"
+                                       PrimaryLanguageContent="@TranslationService.GetLocalizedContent(CurrentQuestion.RuleDescription, PrimaryLanguage, CurrentQuestion.MainTerms, HighlightTerms)"
+                                       SecondaryLanguage1Content="@TranslationService.GetLocalizedContent(CurrentQuestion.RuleDescription, SecondaryLanguage1, CurrentQuestion.MainTerms, HighlightTerms)"
+                                       SecondaryLanguage2Content="@TranslationService.GetLocalizedContent(CurrentQuestion.RuleDescription, SecondaryLanguage2, CurrentQuestion.MainTerms, HighlightTerms)"
+                                       Terms="@CurrentQuestion.MainTerms"
+                                       HighlightTerms="@HighlightTerms" />
                 </div>
             }
         }
@@ -43,18 +61,35 @@
 
 @code {
     [Parameter]
-    public QuestionWrapper QuestionWrapper { get; set; } = null!;
+    public required QuestionWrapper QuestionWrapper { get; init; }
 
     [Parameter]
-    public EventCallback<(QuestionWrapper, AnswerItem)> OnAnswerSelected { get; set; }
+    public EventCallback<(Demo.Demos.Pdd.QuestionWrapper, Demo.Demos.Pdd.AnswerItem)> OnAnswerSelected { get; set; }
 
     [Parameter]
-    public Func<LocalizedText, List<LocalizedText>?, string> RenderLocalizedText { get; set; } = null!;
+    public string PrimaryLanguage { get; set; } = "es";
+
+    [Parameter]
+    public string SecondaryLanguage1 { get; set; } = "en";
+
+    [Parameter]
+    public string SecondaryLanguage2 { get; set; } = "ru";
+
+    [Parameter]
+    public bool HighlightTerms { get; set; } = false;
+
+    [Inject]
+    public TextTranslationService TranslationService { get; set; } = null!;
 
     private const string ImagesBaseAddress = @"https://DimonSmart.github.io/DGT/images/";
+    
+    private QuestionItem? CurrentQuestion => QuestionWrapper?.Question;
 
     private void ToggleExplanation()
     {
-        QuestionWrapper.ShowExplanation = !QuestionWrapper.ShowExplanation;
+        if (QuestionWrapper != null)
+        {
+            QuestionWrapper.ShowExplanation = !QuestionWrapper.ShowExplanation;
+        }
     }
 }

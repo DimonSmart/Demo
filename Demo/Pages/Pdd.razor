@@ -1,25 +1,22 @@
 ﻿@page "/pdd"
-@using Demo.Components
 @using Demo.Demos.Common
 @using Demo.Demos.Pdd
 @using Demo.Demos.Pdd.Components
 @using System.Text.Json
-@using System.Text
 @using Demo.Services
-@using System.Text.RegularExpressions
-@using Markdig
 @using Microsoft.AspNetCore.Components.Web
-@using Microsoft.AspNetCore.Components.Routing
-@using Microsoft.AspNetCore.Components
 
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
 @inject UserPreferencesStorageService<PddUserPreferences> PreferencesStorage
 @inject PageTitleService PageTitleService
 @inject CardStorageService CardStorage
 @inject HttpClient HttpClient
+@inject IJSRuntime JSRuntime
+@inject TextTranslationService TranslationService
 
 <link rel="stylesheet" href="css/pdd.css" />
 <link rel="stylesheet" href="css/demos.css" />
+<link rel="stylesheet" href="css/multilanguage.css" />
 
 <div class="pdd-page-container"
      @onkeydown="HandleKeyDown"
@@ -42,10 +39,8 @@
                 </label>
             </div>
             <div class="pdd-language-selector">
-                <LanguageSelector ShowRussian="@showRussian"
-                                  ShowSpanish="@showSpanish"
-                                  ShowEnglish="@showEnglish"
-                                  OnLanguagesChanged="@OnLanguagesChanged" />
+                <LanguagePicker PrimaryLanguage="@primaryLanguage"
+                                OnLanguageChanged="@OnLanguageChanged" />
             </div>
         </div>
     </div>
@@ -59,12 +54,14 @@
             </div>
         }
         else if (currentBatch.Any())
-        {
-            @foreach (var questionWrapper in currentBatch)
+        {            @foreach (var questionWrapper in currentBatch)
             {
                 <QuestionDisplay QuestionWrapper="@questionWrapper"
                                  OnAnswerSelected="@AnswerQuestion"
-                                 RenderLocalizedText="@RenderLocalizedText" />
+                                 PrimaryLanguage="@primaryLanguage"
+                                 SecondaryLanguage1="@secondaryLanguage1"
+                                 SecondaryLanguage2="@secondaryLanguage2"
+                                 HighlightTerms="@highlightTerms" />
             }
 
             <BatchNavigation AllQuestionsAnswered="@AllQuestionsInBatchAnswered"
@@ -84,15 +81,14 @@
 
     private IReadOnlyCollection<QuestionItem> allQuestions = new List<QuestionItem>();
     const string ExamDataBaseAddress = @"https://DimonSmart.github.io/DGT/";
-    private readonly MarkdownPipeline markdownPipeline = new MarkdownPipelineBuilder()
-        .UseAdvancedExtensions()
-        .Build();
-
+    
     private bool IsLoading = true;
     private bool highlightTerms = false;
-    private bool showRussian = false;
-    private bool showSpanish = true;
-    private bool showEnglish = false;
+
+    // Language selection model
+    private string primaryLanguage = "es";
+    private string secondaryLanguage1 = "en";
+    private string secondaryLanguage2 = "ru";
 
     private QuestionQueue questionQueue = new QuestionQueue(new List<QuestionStudyCard>());
     private double pointerDownX;
@@ -112,28 +108,14 @@
         if (savedPreferences != null)
         {
             highlightTerms = savedPreferences.HighlightTerms;
-            if (savedPreferences.ShowRussian) showRussian = true;
-            if (savedPreferences.ShowSpanish) showSpanish = true;
-            if (savedPreferences.ShowEnglish) showEnglish = true;
-
-            if (!savedPreferences.ShowRussian) showRussian = false;
-            if (!savedPreferences.ShowSpanish) showSpanish = false;
-            if (!savedPreferences.ShowEnglish) showEnglish = false;
+            primaryLanguage = savedPreferences.PrimaryLanguage;
+            UpdateSecondaryLanguages();
         }
 
         allQuestions = await LoadQuestions();
         questionQueue = await LoadQuestionsQueue(allQuestions);
         LoadNextBatch();
         IsLoading = false;
-    }
-
-    private async Task OnLanguagesChanged((bool Russian, bool Spanish, bool English) newValues)
-    {
-        showRussian = newValues.Russian;
-        showSpanish = newValues.Spanish;
-        showEnglish = newValues.English;
-        StateHasChanged();
-        await SaveUserPreferencesAsync();
     }
 
     private async Task OnHighlightTermsChanged(ChangeEventArgs e)
@@ -152,84 +134,6 @@
         }
 
         await SaveUserPreferencesAsync();
-    }
-
-    private string RenderLocalizedText(LocalizedText text, List<LocalizedText>? questionTerms = null)
-    {
-        var sb = new StringBuilder();
-        bool firstBlock = true;
-
-        void AppendWithSeparator(string languageClass, string title, string content)
-        {
-            if (highlightTerms && questionTerms != null && questionTerms.Any())
-            {
-                if (languageClass == "pdd-russian")
-                {
-                    content = HighlightAllTerms(content, questionTerms, term => term.Russian);
-                }
-                else if (languageClass == "pdd-spanish")
-                {
-                    content = HighlightAllTerms(content, questionTerms, term => term.Spanish);
-                }
-                else if (languageClass == "pdd-english")
-                {
-                    content = HighlightAllTerms(content, questionTerms, term => term.English);
-                }
-            }
-
-            if (!firstBlock)
-            {
-                sb.AppendLine("<hr class='pdd-language-separator' />");
-            }
-            sb.AppendLine($"<div class='pdd-language-block {languageClass}'>");
-            sb.AppendLine(Markdown.ToHtml(content, markdownPipeline));
-            sb.AppendLine("</div>");
-            firstBlock = false;
-        }
-
-        if (showRussian && !string.IsNullOrWhiteSpace(text.Russian))
-        {
-            AppendWithSeparator("pdd-russian", "Русский", text.Russian);
-        }
-
-        if (showSpanish && !string.IsNullOrWhiteSpace(text.Spanish))
-        {
-            AppendWithSeparator("pdd-spanish", "Español", text.Spanish);
-        }
-
-        if (showEnglish && !string.IsNullOrWhiteSpace(text.English))
-        {
-            AppendWithSeparator("pdd-english", "English", text.English);
-        }
-
-        return sb.ToString();
-    }
-
-    private string HighlightAllTerms(
-        string originalText,
-        List<LocalizedText> terms,
-        Func<LocalizedText, string> selectTermText)
-    {
-        var result = originalText;
-
-        for (int i = 0; i < terms.Count && i < termColors.Length; i++)
-        {
-            var term = selectTermText(terms[i]);
-            if (string.IsNullOrWhiteSpace(term))
-                continue;
-
-            var pattern = $"\\b{Regex.Escape(term)}\\b";
-            var color = termColors[i];
-
-            result = Regex.Replace(
-                result,
-                pattern,
-                match => $"<span style=\"font-weight:bold; color:{color}\">{match.Value}</span>",
-                RegexOptions.IgnoreCase
-            );
-        }
-
-        return result;
     }
 
     private void HandleKeyDown(KeyboardEventArgs e)
@@ -319,6 +223,7 @@
 
         StateHasChanged();
     }
+
     private void GoToNextBatch()
     {
         if (!AllQuestionsInBatchAnswered) return;
@@ -339,20 +244,29 @@
         var preferences = new PddUserPreferences
             {
                 HighlightTerms = highlightTerms,
-                ShowRussian = showRussian,
-                ShowSpanish = showSpanish,
-                ShowEnglish = showEnglish
+                PrimaryLanguage = primaryLanguage
             };
         await PreferencesStorage.SavePreferencesAsync(preferences);
     }
 
-    // A set of dark colors used for highlighting different terms
-    private static readonly string[] termColors = new[]
+    private void UpdateSecondaryLanguages()
     {
-        "#8B008B", // DarkMagenta
-        "#800000", // Maroon
-        "#004080", // Dark blue
-        "#808000", // Olive
-        "#400080"  // Another dark shade
-    };
+        // Get the two languages not selected as the primary language
+        var secondaryLanguages = new[] { "en", "es", "ru" }
+            .Where(lang => lang != primaryLanguage)
+            .ToArray();
+        
+        secondaryLanguage1 = secondaryLanguages[0];
+        secondaryLanguage2 = secondaryLanguages[1];
+    }
+
+    private async Task OnLanguageChanged((string Primary, string Secondary1, string Secondary2) languages)
+    {
+        primaryLanguage = languages.Primary;
+        secondaryLanguage1 = languages.Secondary1;
+        secondaryLanguage2 = languages.Secondary2;
+
+        StateHasChanged();
+        await SaveUserPreferencesAsync();
+    }
 }

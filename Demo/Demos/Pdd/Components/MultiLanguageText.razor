@@ -1,0 +1,87 @@
+@using Demo.Demos.Pdd
+@namespace Demo.Demos.Pdd.Components
+
+<div class="multilanguage-text-container">
+    <!-- Primary language content -->
+    <div class="primary-language-content">
+        @((MarkupString)PrimaryLanguageContent)
+    </div>
+
+    <!-- Translation buttons -->
+    <div class="translation-buttons">
+        @if (!string.IsNullOrEmpty(SecondaryLanguage1) && !string.IsNullOrEmpty(SecondaryLanguage1Content))
+        {
+            <button class="translation-button @(ShowSecondaryLanguage1 ? "active" : "")"
+                    @onclick="ToggleSecondaryLanguage1"
+                    @onclick:stopPropagation="true">
+                @SecondaryLanguage1.ToUpper()
+            </button>
+        }
+
+        @if (!string.IsNullOrEmpty(SecondaryLanguage2) && !string.IsNullOrEmpty(SecondaryLanguage2Content))
+        {
+            <button class="translation-button @(ShowSecondaryLanguage2 ? "active" : "")"
+                    @onclick="ToggleSecondaryLanguage2"
+                    @onclick:stopPropagation="true">
+                @SecondaryLanguage2.ToUpper()
+            </button>
+        }
+    </div>
+
+    <!-- Secondary language content (conditionally displayed) -->
+    @if (ShowSecondaryLanguage1 && !string.IsNullOrEmpty(SecondaryLanguage1Content))
+    {
+        <div class="secondary-language-content secondary-1">
+            @((MarkupString)SecondaryLanguage1Content)
+        </div>
+    }
+
+    @if (ShowSecondaryLanguage2 && !string.IsNullOrEmpty(SecondaryLanguage2Content))
+    {
+        <div class="secondary-language-content secondary-2">
+            @((MarkupString)SecondaryLanguage2Content)
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public LocalizedText Text { get; set; } = null!;
+
+    [Parameter]
+    public string PrimaryLanguage { get; set; } = "es";
+
+    [Parameter]
+    public string SecondaryLanguage1 { get; set; } = "en";
+
+    [Parameter]
+    public string SecondaryLanguage2 { get; set; } = "ru";
+
+    [Parameter]
+    public string PrimaryLanguageContent { get; set; } = "";
+
+    [Parameter]
+    public string SecondaryLanguage1Content { get; set; } = "";
+
+    [Parameter]
+    public string SecondaryLanguage2Content { get; set; } = "";
+
+    [Parameter]
+    public List<LocalizedText>? Terms { get; set; }
+
+    [Parameter]
+    public bool HighlightTerms { get; set; } = false;
+
+    private bool ShowSecondaryLanguage1 { get; set; } = false;
+    private bool ShowSecondaryLanguage2 { get; set; } = false;
+
+    private void ToggleSecondaryLanguage1()
+    {
+        ShowSecondaryLanguage1 = !ShowSecondaryLanguage1;
+    }
+
+    private void ToggleSecondaryLanguage2()
+    {
+        ShowSecondaryLanguage2 = !ShowSecondaryLanguage2;
+    }
+}

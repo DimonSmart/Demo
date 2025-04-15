@@ -10,7 +10,7 @@ public class LearningMetrics
     public int LearnedQuestions { get; internal set; }
     public int InProgressQuestions { get; internal set; }
     public int NotStartedQuestions { get; internal set; }
-    
+
     // Current session
     public int CorrectAnswers { get; internal set; }
     public int IncorrectAnswers { get; internal set; }

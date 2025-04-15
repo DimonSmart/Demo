@@ -47,8 +47,8 @@ namespace Demo.Demos.MazeRunner
             _kernelBuildParameters = kernelBuildParameters;
         }
 
-     //   [KernelFunction("PlanRobotAction")]
-     //   [Description("Handle user request commands to the robot to take action in a maze. Return full robot movement history.")]
+        //   [KernelFunction("PlanRobotAction")]
+        //   [Description("Handle user request commands to the robot to take action in a maze. Return full robot movement history.")]
         public async Task<string> PlanRobotAction(
             [Description("The **full** text of the user's request containing instructions and conditions for controlling the robot.")]
             string robotMovementRequestFullText)
@@ -96,7 +96,7 @@ INSTRUCTIONS:
                 chatHistory.AddUserMessage(robotMovementRequestFullText);
 
 #pragma warning disable SKEXP0070
-                var settings = _kernelBuildParameters.connectionType.ToLower() == "ollama" 
+                var settings = _kernelBuildParameters.connectionType.ToLower() == "ollama"
                     ? new OllamaPromptExecutionSettings { Temperature = 0.1f, FunctionChoiceBehavior = FunctionChoiceBehavior.None() }
                     : new PromptExecutionSettings { FunctionChoiceBehavior = FunctionChoiceBehavior.None() };
 #pragma warning restore SKEXP0070
@@ -171,7 +171,7 @@ INSTRUCTIONS:
                 var currentMazeView = _maze.MakeMazeAsTextRepresentation();
                 //.MakeMazeAsSimpleCellList();
                 var movesSoFar = string.Join("\n", _robotMoves);
-                
+
                 // Get current position and possible moves
                 var canUp = _maze.Robot.CanMoveUp();
                 var canDown = _maze.Robot.CanMoveDown();
@@ -216,7 +216,7 @@ Think strategically about achieving the goal efficiently.
                 chatHistory.AddUserMessage($"Based on the current state and goal: {userGoal}, what should be the next move?");
 
 #pragma warning disable SKEXP0070
-                var settings = _kernelBuildParameters.connectionType.ToLower() == "ollama" 
+                var settings = _kernelBuildParameters.connectionType.ToLower() == "ollama"
                     ? new OllamaPromptExecutionSettings { Temperature = 0.1f, FunctionChoiceBehavior = FunctionChoiceBehavior.None() }
                     : new PromptExecutionSettings { FunctionChoiceBehavior = FunctionChoiceBehavior.None() };
 #pragma warning restore SKEXP0070
