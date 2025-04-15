@@ -1,4 +1,5 @@
 @using Demo.Demos.Pdd
+@using Microsoft.JSInterop
 @namespace Demo.Demos.Pdd.Components
 
 <div class="pdd-stats-container">
@@ -10,8 +11,8 @@
             Session: @_metrics.CorrectAnswers/@_metrics.TotalAnswers
         </span>
     </div>
-    <button class="pdd-reset-button" 
-            title="Reset learning progress" 
+    <button class="pdd-reset-button"
+            title="Reset learning progress"
             @onclick="OnResetProgressClicked">
         ↺
     </button>
@@ -22,7 +23,12 @@
     public QuestionQueue QuestionQueue { get; set; } = null!;
 
     [Parameter]
-    public EventCallback OnResetProgress { get; set; }    private LearningMetrics _metrics = new();
+    public EventCallback OnResetProgress { get; set; }
+
+    [Inject]
+    private IJSRuntime JS { get; set; } = null!;
+
+    private LearningMetrics _metrics = new();
 
     protected override void OnParametersSet()
     {
@@ -32,9 +38,13 @@
         }
         base.OnParametersSet();
     }
-
     private async Task OnResetProgressClicked()
     {
-        await OnResetProgress.InvokeAsync();
+        var confirmed = await JS.InvokeAsync<bool>("confirm", "Are you sure you want to reset your learning progress?");
+        if (confirmed)
+        {
+            await OnResetProgress.InvokeAsync();
+            await JS.InvokeVoidAsync("location.reload");
+        }
     }
 }
