@@ -344,6 +344,31 @@
 
 
 /* -------------------------
+   Explanation Button
+   Purpose: Styles for the Show/Hide explanation button to make it look like a link
+------------------------- */
+.pdd-btn-show-explanation {
+    background: none;
+    border: none;
+    color: #0066cc;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    margin-top: 10px;
+    display: inline-block;
+}
+
+    .pdd-btn-show-explanation:hover {
+        text-decoration: underline;
+    }
+
+    .pdd-btn-show-explanation:focus {
+        outline: thin dotted;
+        color: #0056b3;
+    }
+
+/* -------------------------
    Page Container
    Purpose: Defines the main container for the page layout.
 ------------------------- */
