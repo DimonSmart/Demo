@@ -17,7 +17,7 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddBlazoredLocalStorageAsSingleton(options =>
 {
-    // Swithced off NullabilityInfoContext, to workaround the issue with Blazored.LocalStorage
+    // Switched off NullabilityInfoContext, to workaround the issue with Blazored.LocalStorage
     options.JsonSerializerOptions.TypeInfoResolver = null;
 });
 
@@ -33,6 +33,7 @@ builder.Services.AddScoped<IHashAlgorithm, JsMd5Algorithm>();
 // Pdd demo
 builder.Services.AddScoped<CardStorageService>();
 builder.Services.AddScoped<UserPreferencesStorageService<PddUserPreferences>>();
+builder.Services.AddScoped<TextTranslationService>();
 
 // MazeRunner demo
 builder.Services.Configure<OllamaOptions>(options =>

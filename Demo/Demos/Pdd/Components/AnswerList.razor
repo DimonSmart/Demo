@@ -1,6 +1,6 @@
-@using Demo.Components
 @using Demo.Demos.Pdd
 @using Microsoft.AspNetCore.Components
+@using Demo.Services
 @namespace Demo.Demos.Pdd.Components
 
 <div class="pdd-answers">
@@ -12,7 +12,15 @@
                 disabled="@isDisabled">
             <div class="pdd-answer-number">@((index + 1))</div>
             <div class="pdd-answer-text">
-                @((MarkupString)RenderLocalizedText(answer.LocalizedAnswerText, QuestionWrapper.Question.MainTerms, QuestionWrapper))
+                <MultiLanguageText Text="@answer.LocalizedAnswerText"
+                                   PrimaryLanguage="@PrimaryLanguage"
+                                   SecondaryLanguage1="@SecondaryLanguage1"
+                                   SecondaryLanguage2="@SecondaryLanguage2"
+                                   PrimaryLanguageContent="@TranslationService.GetLocalizedContent(answer.LocalizedAnswerText, PrimaryLanguage, QuestionWrapper.Question.MainTerms, HighlightTerms)"
+                                   SecondaryLanguage1Content="@TranslationService.GetLocalizedContent(answer.LocalizedAnswerText, SecondaryLanguage1, QuestionWrapper.Question.MainTerms, HighlightTerms)"
+                                   SecondaryLanguage2Content="@TranslationService.GetLocalizedContent(answer.LocalizedAnswerText, SecondaryLanguage2, QuestionWrapper.Question.MainTerms, HighlightTerms)"
+                                   Terms="@QuestionWrapper.Question.MainTerms"
+                                   HighlightTerms="@HighlightTerms" />
             </div>
         </button>
     }
@@ -26,7 +34,19 @@
     public EventCallback<(QuestionWrapper, AnswerItem)> OnAnswerSelected { get; set; }
 
     [Parameter]
-    public Func<LocalizedText, List<LocalizedText>?, QuestionWrapper?, string> RenderLocalizedText { get; set; } = null!;
+    public string PrimaryLanguage { get; set; } = "es";
+
+    [Parameter]
+    public string SecondaryLanguage1 { get; set; } = "en";
+
+    [Parameter]
+    public string SecondaryLanguage2 { get; set; } = "ru";
+
+    [Parameter]
+    public bool HighlightTerms { get; set; } = false;
+
+    [Inject]
+    public TextTranslationService TranslationService { get; set; } = null!;
 
     private string GetAnswerCssClass(AnswerItem answer)
     {

@@ -1,16 +1,10 @@
 ﻿@page "/pdd"
-@using Demo.Components
 @using Demo.Demos.Common
 @using Demo.Demos.Pdd
 @using Demo.Demos.Pdd.Components
 @using System.Text.Json
-@using System.Text
 @using Demo.Services
-@using System.Text.RegularExpressions
-@using Markdig
 @using Microsoft.AspNetCore.Components.Web
-@using Microsoft.AspNetCore.Components.Routing
-@using Microsoft.AspNetCore.Components
 
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
 @inject UserPreferencesStorageService<PddUserPreferences> PreferencesStorage
@@ -18,10 +12,11 @@
 @inject CardStorageService CardStorage
 @inject HttpClient HttpClient
 @inject IJSRuntime JSRuntime
+@inject TextTranslationService TranslationService
 
 <link rel="stylesheet" href="css/pdd.css" />
 <link rel="stylesheet" href="css/demos.css" />
-<script src="js/pdd-translations.js"></script>
+<link rel="stylesheet" href="css/multilanguage.css" />
 
 <div class="pdd-page-container"
      @onkeydown="HandleKeyDown"
@@ -42,9 +37,10 @@
                        title="Turn ON/OFF terms highlighting">
                     Terms
                 </label>
-            </div>            <div class="pdd-language-selector">
-                <LanguagePicker Language="@primaryLanguage"
-                                OnLanguageChanged="@OnPrimaryLanguageChanged" />
+            </div>
+            <div class="pdd-language-selector">
+                <LanguagePicker PrimaryLanguage="@primaryLanguage"
+                                OnLanguageChanged="@OnLanguageChanged" />
             </div>
         </div>
     </div>
@@ -58,12 +54,14 @@
             </div>
         }
         else if (currentBatch.Any())
-        {
-            @foreach (var questionWrapper in currentBatch)
+        {            @foreach (var questionWrapper in currentBatch)
             {
                 <QuestionDisplay QuestionWrapper="@questionWrapper"
                                  OnAnswerSelected="@AnswerQuestion"
-                                 RenderLocalizedText="@RenderLocalizedText" />
+                                 PrimaryLanguage="@primaryLanguage"
+                                 SecondaryLanguage1="@secondaryLanguage1"
+                                 SecondaryLanguage2="@secondaryLanguage2"
+                                 HighlightTerms="@highlightTerms" />
             }
 
             <BatchNavigation AllQuestionsAnswered="@AllQuestionsInBatchAnswered"
@@ -83,10 +81,7 @@
 
     private IReadOnlyCollection<QuestionItem> allQuestions = new List<QuestionItem>();
     const string ExamDataBaseAddress = @"https://DimonSmart.github.io/DGT/";
-    private readonly MarkdownPipeline markdownPipeline = new MarkdownPipelineBuilder()
-        .UseAdvancedExtensions()
-        .Build();
-
+    
     private bool IsLoading = true;
     private bool highlightTerms = false;
 
@@ -104,6 +99,7 @@
         base.OnInitialized();
         PageTitleService.SetTitle("Practice DGT Spanish Driving Theory Test");
     }
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -113,7 +109,7 @@
         {
             highlightTerms = savedPreferences.HighlightTerms;
             primaryLanguage = savedPreferences.PrimaryLanguage;
-            UpdateTranslationLanguages();
+            UpdateSecondaryLanguages();
         }
 
         allQuestions = await LoadQuestions();
@@ -138,140 +134,6 @@
         }
 
         await SaveUserPreferencesAsync();
-    }
-    private string RenderLocalizedText(LocalizedText text, List<LocalizedText>? questionTerms = null, QuestionWrapper? questionWrapper = null)
-    {
-        var sb = new StringBuilder();
-
-        // Get the primary language content
-        string primaryContent = GetLocalizedContent(text, primaryLanguage, questionTerms);
-        if (string.IsNullOrEmpty(primaryContent))
-            return string.Empty;
-
-        // Add the primary content
-        sb.AppendLine($"<div class='pdd-language-block pdd-{primaryLanguage}'>");
-        sb.AppendLine(primaryContent);
-        sb.AppendLine("</div>");
-
-        // Add translation buttons for secondary languages
-        if (!string.IsNullOrEmpty(secondaryLanguage1) || !string.IsNullOrEmpty(secondaryLanguage2))
-        {
-            sb.AppendLine("<div class='pdd-translation-buttons'>");
-            if (!string.IsNullOrEmpty(secondaryLanguage1))
-            {
-                // Generate consistent IDs based on a hash of the content to ensure they match
-                string contentHash1 = Convert.ToBase64String(Encoding.UTF8.GetBytes(text.GetHashCode().ToString() + secondaryLanguage1)).Replace("+", "").Replace("/", "").Replace("=", "");
-                string btnId1 = $"btn-{contentHash1}";
-                string transId1 = $"trans-{contentHash1}";
-
-                // Add the translation button with onclick to call our JS function
-                sb.AppendLine($"<button id='{btnId1}' class='pdd-trans-btn' onclick=\"window.toggleTranslation('{transId1}', '{btnId1}')\">{secondaryLanguage1.ToUpper()}</button>");
-            }
-
-            if (!string.IsNullOrEmpty(secondaryLanguage2))
-            {
-                // Generate consistent IDs based on a hash of the content to ensure they match
-                string contentHash2 = Convert.ToBase64String(Encoding.UTF8.GetBytes(text.GetHashCode().ToString() + secondaryLanguage2)).Replace("+", "").Replace("/", "").Replace("=", "");
-                string btnId2 = $"btn-{contentHash2}";
-                string transId2 = $"trans-{contentHash2}";
-
-                // Add the translation button with onclick to call our JS function
-                sb.AppendLine($"<button id='{btnId2}' class='pdd-trans-btn' onclick=\"window.toggleTranslation('{transId2}', '{btnId2}')\">{secondaryLanguage2.ToUpper()}</button>");
-            }
-
-            sb.AppendLine("</div>");
-
-            // Add secondary language 1 content (initially hidden or shown based on question wrapper state)
-            if (!string.IsNullOrEmpty(secondaryLanguage1))
-            {
-                string translationContent1 = GetLocalizedContent(text, secondaryLanguage1, questionTerms);
-                if (!string.IsNullOrEmpty(translationContent1))
-                {
-                    string contentHash1 = Convert.ToBase64String(Encoding.UTF8.GetBytes(text.GetHashCode().ToString() + secondaryLanguage1)).Replace("+", "").Replace("/", "").Replace("=", "");
-                    string transId1 = $"trans-{contentHash1}";
-
-                    bool showTranslation1 = questionWrapper?.ShowSecondaryLanguage1 ?? showSecondaryLanguage1;
-                    sb.AppendLine($"<div id='{transId1}' class='pdd-translation-content pdd-{secondaryLanguage1} {(showTranslation1 ? "show" : "")}'>");
-                    sb.AppendLine(translationContent1);
-                    sb.AppendLine("</div>");
-                }
-            }
-
-            // Add secondary language 2 content (initially hidden or shown based on question wrapper state)
-            if (!string.IsNullOrEmpty(secondaryLanguage2))
-            {
-                string translationContent2 = GetLocalizedContent(text, secondaryLanguage2, questionTerms);
-                if (!string.IsNullOrEmpty(translationContent2))
-                {
-                    string contentHash2 = Convert.ToBase64String(Encoding.UTF8.GetBytes(text.GetHashCode().ToString() + secondaryLanguage2)).Replace("+", "").Replace("/", "").Replace("=", "");
-                    string transId2 = $"trans-{contentHash2}";
-
-                    bool showTranslation2 = questionWrapper?.ShowSecondaryLanguage2 ?? showSecondaryLanguage2;
-                    sb.AppendLine($"<div id='{transId2}' class='pdd-translation-content pdd-{secondaryLanguage2} {(showTranslation2 ? "show" : "")}'>");
-                    sb.AppendLine(translationContent2);
-                    sb.AppendLine("</div>");
-                }
-            }
-        }
-
-        return sb.ToString();
-    }
-
-    private string GetLocalizedContent(LocalizedText text, string languageCode, List<LocalizedText>? questionTerms)
-    {
-        string content = "";
-
-        // Get content for the requested language
-        if (languageCode == "en" && !string.IsNullOrWhiteSpace(text.English))
-            content = text.English;
-        else if (languageCode == "es" && !string.IsNullOrWhiteSpace(text.Spanish))
-            content = text.Spanish;
-        else if (languageCode == "ru" && !string.IsNullOrWhiteSpace(text.Russian))
-            content = text.Russian;
-
-        if (string.IsNullOrEmpty(content))
-            return string.Empty;
-
-        // Apply term highlighting if needed
-        if (highlightTerms && questionTerms != null && questionTerms.Any())
-        {
-            if (languageCode == "ru")
-                content = HighlightAllTerms(content, questionTerms, term => term.Russian);
-            else if (languageCode == "es")
-                content = HighlightAllTerms(content, questionTerms, term => term.Spanish);
-            else if (languageCode == "en")
-                content = HighlightAllTerms(content, questionTerms, term => term.English);
-        }
-
-        // Convert markdown to HTML
-        return Markdown.ToHtml(content, markdownPipeline);
-    }
-
-    private string HighlightAllTerms(
-        string originalText,
-        List<LocalizedText> terms,
-        Func<LocalizedText, string> selectTermText)
-    {
-        var result = originalText;
-
-        for (int i = 0; i < terms.Count && i < termColors.Length; i++)
-        {
-            var term = selectTermText(terms[i]);
-            if (string.IsNullOrWhiteSpace(term))
-                continue;
-
-            var pattern = $"\\b{Regex.Escape(term)}\\b";
-            var color = termColors[i];
-
-            result = Regex.Replace(
-                result,
-                pattern,
-                match => $"<span style=\"font-weight:bold; color:{color}\">{match.Value}</span>",
-                RegexOptions.IgnoreCase
-            );
-        }
-
-        return result;
     }
 
     private void HandleKeyDown(KeyboardEventArgs e)
@@ -361,6 +223,7 @@
 
         StateHasChanged();
     }
+
     private void GoToNextBatch()
     {
         if (!AllQuestionsInBatchAnswered) return;
@@ -375,6 +238,7 @@
         LoadNextBatch();
         StateHasChanged();
     }
+
     private async Task SaveUserPreferencesAsync()
     {
         var preferences = new PddUserPreferences
@@ -385,37 +249,18 @@
         await PreferencesStorage.SavePreferencesAsync(preferences);
     }
 
-    // A set of dark colors used for highlighting different terms
-    private static readonly string[] termColors = new[]
+    private void UpdateSecondaryLanguages()
     {
-        "#8B008B", // DarkMagenta
-        "#800000", // Maroon
-        "#004080", // Dark blue
-        "#808000", // Olive
-        "#400080"  // Another dark shade
-    };
-
-    // Bridge method that forwards language selections to OnPrimaryLanguageChanged
-    private Task OnLanguagesUpdated((string Primary, string Secondary1, string Secondary2) languages)
-    {
-        return OnPrimaryLanguageChanged(languages);
+        // Get the two languages not selected as the primary language
+        var secondaryLanguages = new[] { "en", "es", "ru" }
+            .Where(lang => lang != primaryLanguage)
+            .ToArray();
+        
+        secondaryLanguage1 = secondaryLanguages[0];
+        secondaryLanguage2 = secondaryLanguages[1];
     }
 
-    private void UpdateTranslationLanguages()
-    {
-        // Determine which languages are available for translation based on primary language
-        var availableLanguages = new List<string>();
-
-        if (primaryLanguage != "en") availableLanguages.Add("en");
-        if (primaryLanguage != "es") availableLanguages.Add("es");
-        if (primaryLanguage != "ru") availableLanguages.Add("ru");
-
-        // Set secondary languages
-        secondaryLanguage1 = availableLanguages.Count > 0 ? availableLanguages[0] : "";
-        secondaryLanguage2 = availableLanguages.Count > 1 ? availableLanguages[1] : "";
-    }
-
-    private async Task OnPrimaryLanguageChanged((string Primary, string Secondary1, string Secondary2) languages)
+    private async Task OnLanguageChanged((string Primary, string Secondary1, string Secondary2) languages)
     {
         primaryLanguage = languages.Primary;
         secondaryLanguage1 = languages.Secondary1;
