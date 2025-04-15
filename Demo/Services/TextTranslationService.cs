@@ -1,7 +1,5 @@
 using Demo.Demos.Pdd;
 using Markdig;
-using System;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace Demo.Services
@@ -9,7 +7,7 @@ namespace Demo.Services
     public class TextTranslationService
     {
         private readonly MarkdownPipeline _markdownPipeline;
-        
+
         // A set of dark colors used for highlighting different terms
         private static readonly string[] TermColors = new[]
         {
@@ -29,7 +27,7 @@ namespace Demo.Services
 
         public string GetLocalizedContent(LocalizedText text, string languageCode, List<LocalizedText>? terms = null, bool highlightTerms = false)
         {
-            string content = "";
+            var content = "";
 
             // Get content for the requested language
             if (languageCode == "en" && !string.IsNullOrWhiteSpace(text.English))
@@ -64,7 +62,7 @@ namespace Demo.Services
         {
             var result = originalText;
 
-            for (int i = 0; i < terms.Count && i < TermColors.Length; i++)
+            for (var i = 0; i < terms.Count && i < TermColors.Length; i++)
             {
                 var term = selectTermText(terms[i]);
                 if (string.IsNullOrWhiteSpace(term))

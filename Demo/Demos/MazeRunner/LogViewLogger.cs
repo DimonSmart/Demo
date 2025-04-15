@@ -23,7 +23,7 @@
 
             var message = formatter(state, exception);
             var formattedMessage = $"[{DateTime.Now:HH:mm:ss}] {_categoryName} {logLevel}: {message}";
-            _logStore.Messages.Add(new LogStore.LogMessage (formattedMessage, LogStore.LogType.SemanticKernel));
+            _logStore.Messages.Add(new LogStore.LogMessage(formattedMessage, LogStore.LogType.SemanticKernel));
         }
     }
 }

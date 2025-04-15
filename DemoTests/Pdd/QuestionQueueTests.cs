@@ -54,14 +54,14 @@ public class QuestionQueueTests
         // Peek at first question and verify it's still in queue
         var firstPeek = queue.PeekNextQuestionsForStudy(1).First();
         Assert.Equal(3, queue.Cards.Count); // Still all cards in queue
-        
+
         // Second peek should return same question since it wasn't processed yet
         var secondPeek = queue.PeekNextQuestionsForStudy(1).First();
         Assert.Equal(firstPeek.Id, secondPeek.Id);
-        
+
         // Process answer to move first question back in queue
         queue.ProcessAnswer(firstPeek, true);
-        
+
         // Next peek should now return a different question
         var thirdPeek = queue.PeekNextQuestionsForStudy(1).First();
         Assert.NotEqual(firstPeek.Id, thirdPeek.Id);
@@ -107,10 +107,10 @@ public class QuestionQueueTests
 
         // Without processing answers, subsequent peeks should return same questions
         Assert.Equal(firstBatch.Select(q => q.Id), secondBatch.Select(q => q.Id));
-        
+
         // Process first question
         queue.ProcessAnswer(firstBatch[0], true);
-        
+
         var thirdBatch = queue.PeekNextQuestionsForStudy(3);
         // After processing first question:
         // - First question should now be different (old first question moved back in queue)
