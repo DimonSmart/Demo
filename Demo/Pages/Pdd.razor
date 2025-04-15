@@ -17,6 +17,7 @@
 @inject PageTitleService PageTitleService
 @inject CardStorageService CardStorage
 @inject HttpClient HttpClient
+@inject IJSRuntime JSRuntime
 
 <link rel="stylesheet" href="css/pdd.css" />
 <link rel="stylesheet" href="css/demos.css" />
@@ -40,12 +41,10 @@
                        title="Turn ON/OFF terms highlighting">
                     Terms
                 </label>
-            </div>
-            <div class="pdd-language-selector">
-                <LanguageSelector ShowRussian="@showRussian"
-                                  ShowSpanish="@showSpanish"
-                                  ShowEnglish="@showEnglish"
-                                  OnLanguagesChanged="@OnLanguagesChanged" />
+            </div>            <div class="pdd-language-selector">
+                <LanguagePicker 
+                    Language="@primaryLanguage"
+                    OnLanguageChanged="@OnPrimaryLanguageChanged" />
             </div>
         </div>
     </div>
@@ -86,13 +85,15 @@
     const string ExamDataBaseAddress = @"https://DimonSmart.github.io/DGT/";
     private readonly MarkdownPipeline markdownPipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
-        .Build();
-
-    private bool IsLoading = true;
+        .Build();    private bool IsLoading = true;
     private bool highlightTerms = false;
-    private bool showRussian = false;
-    private bool showSpanish = true;
-    private bool showEnglish = false;
+    
+    // Language selection model
+    private string primaryLanguage = "es"; // Default to Spanish
+    private string secondaryLanguage1 = "en";
+    private string secondaryLanguage2 = "ru";
+    private bool showSecondaryLanguage1 = false;
+    private bool showSecondaryLanguage2 = false;
 
     private QuestionQueue questionQueue = new QuestionQueue(new List<QuestionStudyCard>());
     private double pointerDownX;
@@ -102,9 +103,7 @@
     {
         base.OnInitialized();
         PageTitleService.SetTitle("Practice DGT Spanish Driving Theory Test");
-    }
-
-    protected override async Task OnInitializedAsync()
+    }    protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
@@ -112,28 +111,18 @@
         if (savedPreferences != null)
         {
             highlightTerms = savedPreferences.HighlightTerms;
-            if (savedPreferences.ShowRussian) showRussian = true;
-            if (savedPreferences.ShowSpanish) showSpanish = true;
-            if (savedPreferences.ShowEnglish) showEnglish = true;
-
-            if (!savedPreferences.ShowRussian) showRussian = false;
-            if (!savedPreferences.ShowSpanish) showSpanish = false;
-            if (!savedPreferences.ShowEnglish) showEnglish = false;
+            primaryLanguage = savedPreferences.PrimaryLanguage;
+            UpdateTranslationLanguages();
         }
 
         allQuestions = await LoadQuestions();
         questionQueue = await LoadQuestionsQueue(allQuestions);
         LoadNextBatch();
         IsLoading = false;
-    }
-
-    private async Task OnLanguagesChanged((bool Russian, bool Spanish, bool English) newValues)
+    }    private async Task OnLanguagesChanged((bool Russian, bool Spanish, bool English) newValues)
     {
-        showRussian = newValues.Russian;
-        showSpanish = newValues.Spanish;
-        showEnglish = newValues.English;
-        StateHasChanged();
-        await SaveUserPreferencesAsync();
+        // Этот метод больше не используется, но оставлен для совместимости
+        await Task.CompletedTask;
     }
 
     private async Task OnHighlightTermsChanged(ChangeEventArgs e)
@@ -152,57 +141,108 @@
         }
 
         await SaveUserPreferencesAsync();
-    }
-
-    private string RenderLocalizedText(LocalizedText text, List<LocalizedText>? questionTerms = null)
+    }    private string RenderLocalizedText(LocalizedText text, List<LocalizedText>? questionTerms = null)
     {
         var sb = new StringBuilder();
-        bool firstBlock = true;
 
-        void AppendWithSeparator(string languageClass, string title, string content)
+        // Get the primary language content
+        string primaryContent = GetLocalizedContent(text, primaryLanguage, questionTerms);
+        if (string.IsNullOrEmpty(primaryContent))
+            return string.Empty;
+
+        // Add the primary content
+        sb.AppendLine($"<div class='pdd-language-block pdd-{primaryLanguage}'>");
+        sb.AppendLine(primaryContent);
+        sb.AppendLine("</div>");
+        
+        // Add translation buttons for secondary languages
+        if (!string.IsNullOrEmpty(secondaryLanguage1) || !string.IsNullOrEmpty(secondaryLanguage2))
         {
-            if (highlightTerms && questionTerms != null && questionTerms.Any())
+            sb.AppendLine("<div class='pdd-translation-buttons'>");
+              if (!string.IsNullOrEmpty(secondaryLanguage1))
             {
-                if (languageClass == "pdd-russian")
-                {
-                    content = HighlightAllTerms(content, questionTerms, term => term.Russian);
-                }
-                else if (languageClass == "pdd-spanish")
-                {
-                    content = HighlightAllTerms(content, questionTerms, term => term.Spanish);
-                }
-                else if (languageClass == "pdd-english")
-                {
-                    content = HighlightAllTerms(content, questionTerms, term => term.English);
-                }
+                // Use a common ID for button and translation div
+                string uniqueId1 = $"lang-{Guid.NewGuid():N}";
+                string btnId1 = $"btn-{uniqueId1}";
+                string transId1 = $"trans-{uniqueId1}";
+                
+                // Add the translation button
+                sb.AppendLine($"<button id='{btnId1}' class='pdd-trans-btn' onclick=\"document.getElementById('{btnId1}').classList.toggle('active'); document.getElementById('{transId1}').classList.toggle('show')\">{secondaryLanguage1.ToUpper()}</button>");
             }
-
-            if (!firstBlock)
+            
+            if (!string.IsNullOrEmpty(secondaryLanguage2))
             {
-                sb.AppendLine("<hr class='pdd-language-separator' />");
+                // Use a common ID for button and translation div
+                string uniqueId2 = $"lang-{Guid.NewGuid():N}";
+                string btnId2 = $"btn-{uniqueId2}";
+                string transId2 = $"trans-{uniqueId2}";
+                
+                // Add the translation button
+                sb.AppendLine($"<button id='{btnId2}' class='pdd-trans-btn' onclick=\"document.getElementById('{btnId2}').classList.toggle('active'); document.getElementById('{transId2}').classList.toggle('show')\">{secondaryLanguage2.ToUpper()}</button>");
             }
-            sb.AppendLine($"<div class='pdd-language-block {languageClass}'>");
-            sb.AppendLine(Markdown.ToHtml(content, markdownPipeline));
+            
             sb.AppendLine("</div>");
-            firstBlock = false;
+            
+            // Add secondary language 1 content (initially hidden)
+            if (!string.IsNullOrEmpty(secondaryLanguage1))
+            {
+                string translationContent1 = GetLocalizedContent(text, secondaryLanguage1, questionTerms);
+                if (!string.IsNullOrEmpty(translationContent1))
+                {
+                    string uniqueId1 = $"lang-{Guid.NewGuid():N}";
+                    string transId1 = $"trans-{uniqueId1}";
+                    sb.AppendLine($"<div id='{transId1}' class='pdd-translation-content pdd-{secondaryLanguage1} {(showSecondaryLanguage1 ? "show" : "")}'>");
+                    sb.AppendLine(translationContent1);
+                    sb.AppendLine("</div>");
+                }
+            }
+            
+            // Add secondary language 2 content (initially hidden)
+            if (!string.IsNullOrEmpty(secondaryLanguage2))
+            {
+                string translationContent2 = GetLocalizedContent(text, secondaryLanguage2, questionTerms);
+                if (!string.IsNullOrEmpty(translationContent2))
+                {
+                    string uniqueId2 = $"lang-{Guid.NewGuid():N}";
+                    string transId2 = $"trans-{uniqueId2}";
+                    sb.AppendLine($"<div id='{transId2}' class='pdd-translation-content pdd-{secondaryLanguage2} {(showSecondaryLanguage2 ? "show" : "")}'>");
+                    sb.AppendLine(translationContent2);
+                    sb.AppendLine("</div>");
+                }
+            }
         }
-
-        if (showRussian && !string.IsNullOrWhiteSpace(text.Russian))
-        {
-            AppendWithSeparator("pdd-russian", "Русский", text.Russian);
-        }
-
-        if (showSpanish && !string.IsNullOrWhiteSpace(text.Spanish))
-        {
-            AppendWithSeparator("pdd-spanish", "Español", text.Spanish);
-        }
-
-        if (showEnglish && !string.IsNullOrWhiteSpace(text.English))
-        {
-            AppendWithSeparator("pdd-english", "English", text.English);
-        }
-
+        
         return sb.ToString();
+    }
+    
+    private string GetLocalizedContent(LocalizedText text, string languageCode, List<LocalizedText>? questionTerms)
+    {
+        string content = "";
+        
+        // Get content for the requested language
+        if (languageCode == "en" && !string.IsNullOrWhiteSpace(text.English))
+            content = text.English;
+        else if (languageCode == "es" && !string.IsNullOrWhiteSpace(text.Spanish))
+            content = text.Spanish;
+        else if (languageCode == "ru" && !string.IsNullOrWhiteSpace(text.Russian))
+            content = text.Russian;
+            
+        if (string.IsNullOrEmpty(content))
+            return string.Empty;
+            
+        // Apply term highlighting if needed
+        if (highlightTerms && questionTerms != null && questionTerms.Any())
+        {
+            if (languageCode == "ru")
+                content = HighlightAllTerms(content, questionTerms, term => term.Russian);
+            else if (languageCode == "es")
+                content = HighlightAllTerms(content, questionTerms, term => term.Spanish);
+            else if (languageCode == "en")
+                content = HighlightAllTerms(content, questionTerms, term => term.English);
+        }
+        
+        // Convert markdown to HTML
+        return Markdown.ToHtml(content, markdownPipeline);
     }
 
     private string HighlightAllTerms(
@@ -332,17 +372,13 @@
         questionQueue = await LoadQuestionsQueue(allQuestions);
         LoadNextBatch();
         StateHasChanged();
-    }
-
-    private async Task SaveUserPreferencesAsync()
+    }    private async Task SaveUserPreferencesAsync()
     {
         var preferences = new PddUserPreferences
-            {
-                HighlightTerms = highlightTerms,
-                ShowRussian = showRussian,
-                ShowSpanish = showSpanish,
-                ShowEnglish = showEnglish
-            };
+        {
+            HighlightTerms = highlightTerms,
+            PrimaryLanguage = primaryLanguage
+        };
         await PreferencesStorage.SavePreferencesAsync(preferences);
     }
 
@@ -355,4 +391,66 @@
         "#808000", // Olive
         "#400080"  // Another dark shade
     };
+    
+    // Bridge method that forwards language selections to OnPrimaryLanguageChanged
+    private Task OnLanguagesUpdated((string Primary, string Secondary1, string Secondary2) languages)
+    {
+        return OnPrimaryLanguageChanged(languages);
+    }
+    
+    private void UpdateTranslationLanguages()
+    {
+        // Determine which languages are available for translation based on primary language
+        var availableLanguages = new List<string>();
+        
+        if (primaryLanguage != "en") availableLanguages.Add("en");
+        if (primaryLanguage != "es") availableLanguages.Add("es");
+        if (primaryLanguage != "ru") availableLanguages.Add("ru");
+        
+        // Set secondary languages
+        secondaryLanguage1 = availableLanguages.Count > 0 ? availableLanguages[0] : "";
+        secondaryLanguage2 = availableLanguages.Count > 1 ? availableLanguages[1] : "";
+    }
+    
+    private async Task OnPrimaryLanguageChanged((string Primary, string Secondary1, string Secondary2) languages)
+    {
+        primaryLanguage = languages.Primary;
+        secondaryLanguage1 = languages.Secondary1;
+        secondaryLanguage2 = languages.Secondary2;
+        
+        // Reset translation toggles when primary language changes
+        showSecondaryLanguage1 = false;
+        showSecondaryLanguage2 = false;
+        
+        StateHasChanged();
+        await SaveUserPreferencesAsync();
+    }    private Task OnShowTranslation1Changed(bool value)
+    {
+        showSecondaryLanguage1 = value;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnShowTranslation2Changed(bool value)
+    {
+        showSecondaryLanguage2 = value;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialize JavaScript for the translation buttons
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                window.toggleTranslation = function(contentId) {
+                    const content = document.getElementById(contentId);
+                    if (content) {
+                        content.classList.toggle('show');
+                    }
+                }
+            ");
+        }
+    }
 }

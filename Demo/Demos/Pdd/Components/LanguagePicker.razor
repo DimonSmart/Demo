@@ -1,0 +1,54 @@
+@namespace Demo.Demos.Pdd.Components
+
+<div class="pdd-language-selector">
+    <div class="primary-language-selector">
+        <label>Primary language:</label>
+        <select @bind="_primaryLanguage" @bind:after="HandleLanguageChanged" class="primary-language-dropdown">
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="ru">Russian</option>
+        </select>
+    </div>
+</div>
+
+@code {
+    private string _primaryLanguage = "es"; // Default to Spanish
+
+    [Parameter]
+    public string Language { get; set; } = "es";
+
+    [Parameter]
+    public EventCallback<(string Primary, string Secondary1, string Secondary2)> OnLanguageChanged { get; set; }
+
+    private static readonly string[] AllLanguages = new[] { "en", "es", "ru" };
+
+    protected override void OnInitialized()
+    {
+        _primaryLanguage = Language;
+    }
+
+    private async Task HandleLanguageChanged()
+    {
+        string secondary1 = GetSecondaryLanguage1();
+        string secondary2 = GetSecondaryLanguage2();
+
+        await OnLanguageChanged.InvokeAsync((
+            Primary: _primaryLanguage,
+            Secondary1: secondary1,
+            Secondary2: secondary2
+        ));
+    }
+
+    private string GetSecondaryLanguage1() => AllLanguages.Where(lang => lang != _primaryLanguage).First();
+
+    private string GetSecondaryLanguage2() => AllLanguages.Where(lang => lang != _primaryLanguage).Skip(1).First();
+
+    private static readonly Dictionary<string, string> LanguageNames = new()
+    {
+        { "en", "English" },
+        { "es", "Spanish" },
+        { "ru", "Russian" }
+    };
+
+    public static string GetLanguageFullName(string code) => LanguageNames[code];
+}
