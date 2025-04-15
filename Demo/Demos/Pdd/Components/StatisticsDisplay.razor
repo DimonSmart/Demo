@@ -1,20 +1,28 @@
 @using Demo.Demos.Pdd
 @namespace Demo.Demos.Pdd.Components
 
-<div class="pdd-stats-info">
-    <span title="Total progress: @_metrics.LearnedQuestions learned, @_metrics.InProgressQuestions in progress, @_metrics.NotStartedQuestions not started">
-        @_metrics.LearnedQuestions/@_metrics.TotalQuestions
-    </span>
-    <span title="Current session answers - Correct: @_metrics.CorrectAnswers, Incorrect: @_metrics.IncorrectAnswers">
-        Session: @_metrics.CorrectAnswers/@_metrics.TotalAnswers
-    </span>
+<div class="pdd-stats-container">
+    <div class="pdd-stats-info">
+        <span title="Total progress: @_metrics.LearnedQuestions learned, @_metrics.InProgressQuestions in progress, @_metrics.NotStartedQuestions not started">
+            @_metrics.LearnedQuestions/@_metrics.TotalQuestions
+        </span>
+        <span title="Current session answers - Correct: @_metrics.CorrectAnswers, Incorrect: @_metrics.IncorrectAnswers">
+            Session: @_metrics.CorrectAnswers/@_metrics.TotalAnswers
+        </span>
+    </div>
+    <button class="pdd-reset-button" 
+            title="Reset learning progress" 
+            @onclick="OnResetProgressClicked">
+        ↺
+    </button>
 </div>
 
 @code {
     [Parameter]
     public QuestionQueue QuestionQueue { get; set; } = null!;
 
-    private LearningMetrics _metrics = new();
+    [Parameter]
+    public EventCallback OnResetProgress { get; set; }    private LearningMetrics _metrics = new();
 
     protected override void OnParametersSet()
     {
@@ -23,5 +31,10 @@
             _metrics = QuestionQueue.GetMetrics();
         }
         base.OnParametersSet();
+    }
+
+    private async Task OnResetProgressClicked()
+    {
+        await OnResetProgress.InvokeAsync();
     }
 }

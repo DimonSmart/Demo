@@ -18,5 +18,10 @@ namespace Demo.Demos.Pdd
             if (compact is null || string.IsNullOrWhiteSpace(compact.V)) return null;
             return compact.ToDomain();
         }
+
+        public async Task ResetProgressAsync()
+        {
+            await localStorage.RemoveItemAsync(StorageKey);
+        }
     }
 }

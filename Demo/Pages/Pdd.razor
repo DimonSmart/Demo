@@ -26,9 +26,8 @@
      @onpointerdown="HandlePointerDown"
      @onpointerup="HandlePointerUp"
      tabindex="0">
-
     <div class="pdd-top-nav-bar fixed-top-bar">
-        <StatisticsDisplay QuestionQueue="@questionQueue" />
+        <StatisticsDisplay QuestionQueue="@questionQueue" OnResetProgress="ResetProgress" />
 
         <div class="pdd-options">
             <div class="pdd-highlight-toggle">
@@ -44,9 +43,9 @@
             </div>
             <div class="pdd-language-selector">
                 <LanguageSelector ShowRussian="@showRussian"
-                                ShowSpanish="@showSpanish"
-                                ShowEnglish="@showEnglish"
-                                OnLanguagesChanged="@OnLanguagesChanged" />
+                                  ShowSpanish="@showSpanish"
+                                  ShowEnglish="@showEnglish"
+                                  OnLanguagesChanged="@OnLanguagesChanged" />
             </div>
         </div>
     </div>
@@ -63,15 +62,13 @@
         {
             @foreach (var questionWrapper in currentBatch)
             {
-                <QuestionDisplay 
-                    QuestionWrapper="@questionWrapper"
-                    OnAnswerSelected="@AnswerQuestion"
-                    RenderLocalizedText="@RenderLocalizedText" />
+                <QuestionDisplay QuestionWrapper="@questionWrapper"
+                                 OnAnswerSelected="@AnswerQuestion"
+                                 RenderLocalizedText="@RenderLocalizedText" />
             }
 
-            <BatchNavigation 
-                AllQuestionsAnswered="@AllQuestionsInBatchAnswered"
-                OnNextBatchClicked="@GoToNextBatch" />
+            <BatchNavigation AllQuestionsAnswered="@AllQuestionsInBatchAnswered"
+                             OnNextBatchClicked="@GoToNextBatch" />
         }
         else
         {
@@ -293,19 +290,19 @@
     {
         currentBatch.Clear();
         var nextCards = questionQueue.PeekNextQuestionsForStudy(BATCH_SIZE);
-        
+
         foreach (var studyCard in nextCards)
         {
             var question = allQuestions.FirstOrDefault(q => q.Id == studyCard.Id);
             if (question != null)
             {
                 currentBatch.Add(new QuestionWrapper
-                {
-                    Question = question,
-                    StudyCard = studyCard,
-                    HasAnswered = false,
-                    ShowExplanation = false
-                });
+                    {
+                        Question = question,
+                        StudyCard = studyCard,
+                        HasAnswered = false,
+                        ShowExplanation = false
+                    });
             }
         }
     }
@@ -322,11 +319,19 @@
 
         StateHasChanged();
     }
-
     private void GoToNextBatch()
     {
         if (!AllQuestionsInBatchAnswered) return;
         LoadNextBatch();
+    }
+
+    private async Task ResetProgress()
+    {
+        await CardStorage.ResetProgressAsync();
+        allQuestions = await LoadQuestions();
+        questionQueue = await LoadQuestionsQueue(allQuestions);
+        LoadNextBatch();
+        StateHasChanged();
     }
 
     private async Task SaveUserPreferencesAsync()
