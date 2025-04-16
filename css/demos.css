@@ -37,6 +37,10 @@
     overflow-y: auto;
 }
 
+.maze-runner-container {
+    flex-direction: row;
+}
+
 /* Mobile responsive styles */
 @media (max-width: 640.98px) {
     .page-container {
