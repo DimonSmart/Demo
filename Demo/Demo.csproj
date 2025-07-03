@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
-    <PackageReference Include="DimonSmart.AiUtils" Version="1.25301.2132" />
+    <PackageReference Include="DimonSmart.AiUtils" Version="1.25624.1027" />
     <PackageReference Include="DimonSmart.HashX" Version="1.24813.951" />
     <PackageReference Include="DimonSmart.MazeGenerator" Version="1.25218.855" />
     <PackageReference Include="DimonSmart.StringDiff" Version="1.25319.2041" />
@@ -21,9 +21,10 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.3" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.3" />
     <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="9.0.3" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.41.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Ollama" Version="1.41.0-alpha" />
     <PackageReference Include="SkiaSharp.Views.Blazor" Version="3.116.1" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.58.0" /> 
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Ollama" Version="1.58.0-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.58.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -12,7 +12,6 @@
         public void PutIntoMaze(MazeRunnerMaze maze)
         {
             Maze = maze;
-            LookAround();
         }
 
         // --- New helper methods for checking if the robot can move in each direction ---
@@ -43,7 +42,6 @@
             if (CanMoveUp())
             {
                 Y -= 1;
-                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -54,7 +52,6 @@
             if (CanMoveLeft())
             {
                 X -= 1;
-                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -65,7 +62,6 @@
             if (CanMoveRight())
             {
                 X += 1;
-                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -76,7 +72,6 @@
             if (CanMoveDown())
             {
                 Y += 1;
-                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -92,25 +87,11 @@
             return !M.IsWall(newX, newY);
         }
 
-        private void LookAround()
+        // Public method to look around - simplified version without cell discovery
+        public void LookAround()
         {
-            if (Maze == null)
-            {
-                throw new InvalidOperationException("Robot is not in a maze");
-            }
-
-            for (var dx = -1; dx <= 1; dx++)
-            {
-                for (var dy = -1; dy <= 1; dy++)
-                {
-                    var newX = X + dx;
-                    var newY = Y + dy;
-                    if (newX >= 0 && newX < Maze.Width && newY >= 0 && newY < Maze.Height)
-                    {
-                        Maze[newX, newY].SetDiscovered();
-                    }
-                }
-            }
+            // Method kept for compatibility but no longer does cell discovery
+            // since the entire maze is now visible from the start
         }
 
         private MazeRunnerMaze M

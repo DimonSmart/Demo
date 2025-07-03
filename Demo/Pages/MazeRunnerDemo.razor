@@ -8,6 +8,7 @@
 @using Microsoft.SemanticKernel
 @using Microsoft.SemanticKernel.Services
 @using Microsoft.SemanticKernel.ChatCompletion
+@using Microsoft.SemanticKernel.Agents
 @using Microsoft.Extensions.DependencyInjection
 @inject PageTitleService PageTitleService
 @inject LogStore LogStore
@@ -150,9 +151,6 @@
     private string UserCommand { get; set; } = "";
     private string ResponseMessage { get; set; } = "";
 
-    // List to store the moves that the robot has made.
-    private List<string> RobotMoves { get; set; } = new List<string>();
-
     // The available LLM models found by the IOllamaModelService
     private IReadOnlyList<OllamaModelInfo> AvailableModels { get; set; } = new List<OllamaModelInfo>();
     private string SelectedModelId { get; set; } = "";
@@ -214,33 +212,28 @@
     private void OnUpClicked()
     {
         var result = _maze?.Robot.MoveUp();
-        RobotMoves.Add("MoveUp");
-        LogStore.Messages.Add(new LogStore.LogMessage($"Moved up: {result}", LogStore.LogType.RobotMovements));
+        LogStore.Messages.Add(new LogStore.LogMessage($"Manual move up: {result}", LogStore.LogType.RobotMovements));
         StateHasChanged();
     }
 
     private void OnDownClicked()
     {
         var result = _maze?.Robot.MoveDown();
-        RobotMoves.Add("MoveDown");
-        LogStore.Messages.Add(new LogStore.LogMessage($"Moved down: {result}", LogStore.LogType.RobotMovements));
-
+        LogStore.Messages.Add(new LogStore.LogMessage($"Manual move down: {result}", LogStore.LogType.RobotMovements));
         StateHasChanged();
     }
 
     private void OnLeftClicked()
     {
         var result = _maze?.Robot.MoveLeft();
-        RobotMoves.Add("MoveLeft");
-        LogStore.Messages.Add(new LogStore.LogMessage($"Moved left: {result}", LogStore.LogType.RobotMovements));
+        LogStore.Messages.Add(new LogStore.LogMessage($"Manual move left: {result}", LogStore.LogType.RobotMovements));
         StateHasChanged();
     }
 
     private void OnRightClicked()
     {
         var result = _maze?.Robot.MoveRight();
-        RobotMoves.Add("MoveRight");
-        LogStore.Messages.Add(new LogStore.LogMessage($"Moved right: {result}", LogStore.LogType.RobotMovements));
+        LogStore.Messages.Add(new LogStore.LogMessage($"Manual move right: {result}", LogStore.LogType.RobotMovements));
         StateHasChanged();
     }
     #endregion
@@ -283,43 +276,67 @@
     private async Task<string> ExecuteChatCompletion(Kernel kernel)
     {
         var systemPrompt = BuildSystemPrompt();
-        var chatHistory = new ChatHistory();
-        chatHistory.AddSystemMessage(systemPrompt);
-        chatHistory.AddUserMessage(UserCommand);
+        
+        // Настройка выполнения промпта с автоматическим вызовом функций
+        var executionSettings = new PromptExecutionSettings 
+        { 
+            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() 
+        };
+        
+        // ⭐ НАСТОЯЩИЙ РЕЖИМ АГЕНТА - ChatCompletionAgent ⭐
+        // Это и есть правильный "режим агента" как в примере OllamaChat
+        var agent = new ChatCompletionAgent
+        {
+            Kernel = kernel,
+            Name = "MazeRunnerAgent",
+            Instructions = systemPrompt,
+            Description = "AI Assistant that controls a robot in a maze",
+            Arguments = new KernelArguments(executionSettings)
+        };
 
-        var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
-        var chatResult = await chatCompletionService.GetChatMessageContentAsync(
-            chatHistory,
-            new PromptExecutionSettings
+        // Создаем список сообщений
+        var messages = new List<ChatMessageContent>
+        {
+            new(AuthorRole.User, UserCommand)
+        };
+        
+        // Получаем ответ от агента
+        var responses = agent.InvokeAsync(messages);
+        await foreach (var responseItem in responses)
+        {
+            // Получаем ChatMessageContent из AgentResponseItem
+            if (responseItem.Message != null && !string.IsNullOrEmpty(responseItem.Message.Content))
             {
-                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-            },
-            kernel
-        );
+                return responseItem.Message.Content;
+            }
+        }
 
-        return chatResult.ToString();
+        return "No response from agent";
     }
 
     private string BuildSystemPrompt()
     {
-        string initialPrompt = "You are a chatbot capable of controlling a robot in a maze.";
-        string movesSoFar = string.Join(", ", RobotMoves);
-        string currentMazeState = GetMazeStateString();
+        var initialPrompt = @"You are a helpful assistant that can control a robot in a maze. 
 
-        return $@"
-{initialPrompt}
+You have access to the following functions to control the robot:
+- MoveUp: Move the robot up one cell
+- MoveDown: Move the robot down one cell  
+- MoveLeft: Move the robot left one cell
+- MoveRight: Move the robot right one cell
+- LookAround: Get a visual representation of the complete maze state
 
-Here is the conversation context:
+The maze uses the following symbols:
+- R = Robot position
+- # = Wall (impassable)
+- A = Apple
+- P = Pear  
+- _ = Empty space
 
-Initial Maze State:
-{currentMazeState}
+The entire maze is visible from the start. When the user asks you to control the robot, use the available functions to move the robot and look around the maze as needed. You can see the complete maze layout at any time using LookAround.
 
-Moves so far:
-{movesSoFar}
-
-Current (last) Maze State:
-{currentMazeState}
-";
+Coordinates are zero-based with (0,0) at the top-left corner. X increases going right, Y increases going down.";
+        
+        return initialPrompt;
     }
 
     private void HandleError(string userMessage, Exception ex)
