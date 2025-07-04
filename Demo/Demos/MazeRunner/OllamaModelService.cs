@@ -2,9 +2,8 @@
 
 namespace Demo.Demos.MazeRunner
 {
-    public class OllamaModelService(HttpClient httpClient) : IOllamaModelService
+    public class OllamaModelService(IOllamaHttpClientProvider httpClientProvider) : IOllamaModelService
     {
-        private readonly HttpClient _httpClient = httpClient;
 
         /// <summary>
         /// Gets a list of loaded models from Ollama.
@@ -14,7 +13,8 @@ namespace Demo.Demos.MazeRunner
         {
             try
             {
-                var response = await _httpClient.GetAsync("/api/tags");
+                using var httpClient = await httpClientProvider.CreateConfiguredHttpClientAsync();
+                var response = await httpClient.GetAsync("/api/tags");
                 response.EnsureSuccessStatusCode();
 
                 var json = await response.Content.ReadAsStringAsync();

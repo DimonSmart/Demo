@@ -1,11 +1,8 @@
-﻿namespace Demo.Demos.MazeRunner
+﻿namespace Demo.Demos.MazeRunner;
+
+public class OllamaModelDto
 {
-    public class OllamaModelDto
-    {
-        public string name { get; set; }
-        public long size { get; set; }
-        public ModelDetailsDto details { get; set; }
-    }
-
-
+    public string name { get; set; }
+    public long size { get; set; }
+    public ModelDetailsDto details { get; set; }
 }

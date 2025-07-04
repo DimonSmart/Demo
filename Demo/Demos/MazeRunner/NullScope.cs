@@ -1,9 +1,8 @@
-﻿namespace Demo.Demos.MazeRunner
+﻿namespace Demo.Demos.MazeRunner;
+
+// A simple scope that does nothing.
+public class NullScope : IDisposable
 {
-    // A simple scope that does nothing.
-    public class NullScope : IDisposable
-    {
-        public static NullScope Instance { get; } = new NullScope();
-        public void Dispose() { }
-    }
+    public static NullScope Instance { get; } = new NullScope();
+    public void Dispose() { }
 }
