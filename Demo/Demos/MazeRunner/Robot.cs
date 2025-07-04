@@ -12,10 +12,8 @@
         public void PutIntoMaze(MazeRunnerMaze maze)
         {
             Maze = maze;
-            LookAround();
         }
 
-        // --- New helper methods for checking if the robot can move in each direction ---
         public bool CanMoveUp()
         {
             return CanMoveTo(X, Y - 1);
@@ -35,7 +33,6 @@
         {
             return CanMoveTo(X + 1, Y);
         }
-        // ------------------------------------------------------------------------------
 
         // Methods for moving the robot one cell
         public string MoveUp()
@@ -43,7 +40,6 @@
             if (CanMoveUp())
             {
                 Y -= 1;
-                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -54,7 +50,6 @@
             if (CanMoveLeft())
             {
                 X -= 1;
-                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -65,7 +60,6 @@
             if (CanMoveRight())
             {
                 X += 1;
-                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -76,7 +70,6 @@
             if (CanMoveDown())
             {
                 Y += 1;
-                LookAround();
                 return "Ok";
             }
             return "Err";
@@ -90,27 +83,6 @@
                 return false;
             }
             return !M.IsWall(newX, newY);
-        }
-
-        private void LookAround()
-        {
-            if (Maze == null)
-            {
-                throw new InvalidOperationException("Robot is not in a maze");
-            }
-
-            for (var dx = -1; dx <= 1; dx++)
-            {
-                for (var dy = -1; dy <= 1; dy++)
-                {
-                    var newX = X + dx;
-                    var newY = Y + dy;
-                    if (newX >= 0 && newX < Maze.Width && newY >= 0 && newY < Maze.Height)
-                    {
-                        Maze[newX, newY].SetDiscovered();
-                    }
-                }
-            }
         }
 
         private MazeRunnerMaze M

@@ -44,13 +44,7 @@
 
     private string GetCellColor()
     {
-        if (!Cell.IsDiscovered())
-        {
-            // Undiscovered: dark gray for walls, lighter gray for passes.
-            return Cell.IsWall() ? "#444" : "#ccc";
-        }
-
-        // Discovered: black for walls, white for passes.
+        // All cells are visible: black for walls, white for passages
         return Cell.IsWall() ? "black" : "white";
     }
 
