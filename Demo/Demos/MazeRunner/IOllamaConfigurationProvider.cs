@@ -6,7 +6,7 @@ namespace Demo.Demos.MazeRunner
     public interface IOllamaConfigurationProvider
     {
         Task<string> GetServerUrlAsync();
-        
+
         Task<string?> GetPasswordAsync();
     }
 }
