@@ -1,9 +1,6 @@
-﻿namespace Demo.Demos.MazeRunner
+﻿namespace Demo.Demos.MazeRunner;
+
+public class ModelDetailsDto
 {
-    public class ModelDetailsDto
-    {
-        public string parameter_size { get; set; }
-    }
-
-
+    public string parameter_size { get; set; }
 }

@@ -13,6 +13,7 @@
 @inject PageTitleService PageTitleService
 @inject LogStore LogStore
 @inject IOllamaModelService OllamaModelService
+@inject IOllamaConfigurationProvider OllamaConfigurationProvider
 @inject UserPreferencesStorageService<MazeRunnerUserPreferences> UserPreferencesStorageService
 
 @implements IMazePlotter
@@ -25,7 +26,7 @@
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze Generator Demo</PageTitle>
 
-    <div class="page-container maze-runner-container" style="display: flex;">
+<div class="page-container maze-runner-container" style="display: flex;">
     <!-- Left container: Maze, Joystick, Settings and Chat -->
     <section style="flex: 1; overflow-y: auto; padding: 20px;">
         <div style="text-align: center; border: 1px solid #ccc; padding: 10px;">
@@ -39,6 +40,25 @@
 
             @if (_connectionType == "ollama")
             {
+                <div style="margin-top: 10px;">
+                    <label for="ollamaServerUrl">Ollama Server URL:</label>
+                    <input id="ollamaServerUrl"
+                           type="text"
+                           @bind="_ollamaServerUrl"
+                           @bind:event="oninput"
+                           @onblur="OnOllamaConfigChanged"
+                           placeholder="http://localhost:11434" />
+                </div>
+                <div style="margin-top: 10px;">
+                    <label for="ollamaPassword">Ollama Password (optional):</label>
+                    <input id="ollamaPassword"
+                           type="password"
+                           @bind="_ollamaPassword"
+                           @bind:event="oninput"
+                           @onblur="OnOllamaConfigChanged"
+                           placeholder="Enter password if required" />
+                </div>
+
                 @if (AvailableModels != null && AvailableModels.Count > 0)
                 {
                     <div style="margin-top:10px;">
@@ -67,6 +87,7 @@
                                 Run ollama and download the required models (for example, using the command
                                 <code>ollama pull &lt;model-id&gt;</code>).
                             </li>
+                            <li>Make sure the server URL and password (if required) are correct.</li>
                             <li>Restart the application to apply the changes.</li>
                         </ol>
                     </div>
@@ -158,14 +179,13 @@
     private string _connectionType = "ollama"; // default to ollama
     private string _openAIApiKey = "";
     private string _openAIModel = "gpt-4.0-mini";
+    private string _ollamaServerUrl = "http://localhost:11434";
+    private string _ollamaPassword = "";
 
     protected override async Task OnInitializedAsync()
     {
         PageTitleService.SetTitle("Maze runner");
         GenerateMaze();
-
-        // Load all available models from the service
-        AvailableModels = await OllamaModelService.GetLoadedModelsAsync();
 
         // Load user preferences (which includes the selected model, if any)
         var preferences = await UserPreferencesStorageService.LoadPreferencesAsync();
@@ -179,7 +199,13 @@
                 _openAIApiKey = preferences.OpenAIApiKey;
             if (!string.IsNullOrEmpty(preferences.OpenAIModel))
                 _openAIModel = preferences.OpenAIModel;
-        }
+            if (!string.IsNullOrEmpty(preferences.OllamaServerUrl))
+                _ollamaServerUrl = preferences.OllamaServerUrl;        
+            if (!string.IsNullOrEmpty(preferences.OllamaPassword))
+                _ollamaPassword = preferences.OllamaPassword;
+    }
+
+    AvailableModels = await OllamaModelService.GetLoadedModelsAsync();
 
         if (preferences == null && AvailableModels.Count > 0)
             SelectedModelId = AvailableModels[0].ModelId;
@@ -188,14 +214,14 @@
     }
 
     // Generates the initial maze
-    protected void GenerateMaze()
+    private void GenerateMaze()
     {
         _maze = new MazeRunnerMaze(XSize, YSize);
-        var mazeBuilder = new MazeBuilder<MazeRunnerCellModel>(_maze);
+        var options = new DimonSmart.MazeGenerator.MazeBuildOptions(0, 0); // Default values
+        var mazeBuilder = new MazeBuilder<MazeRunnerCellModel>(_maze, options);
         mazeBuilder.Build(this, CancellationToken.None);
     }
 
-    // Example method to convert the current maze state into a string (text/ASCII).
     private string GetMazeStateString()
     {
         if (_maze == null) return "No maze found.";
@@ -238,7 +264,6 @@
     }
     #endregion
 
-    // Called when the user enters a command and clicks "Send Command"
     private async Task ProcessUserCommand()
     {
         if (IsProcessingCommand) return;
@@ -269,22 +294,19 @@
         if (_maze == null)
             throw new InvalidOperationException("Maze is not initialized");
 
-        var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, IncludePlugins: true, _openAIApiKey, LogStore);
+        var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, IncludePlugins: true, _openAIApiKey, LogStore, _ollamaServerUrl, _ollamaPassword, async () => await InvokeAsync(StateHasChanged));
         return KernelFactory.BuildKernel(kernelBuildParameters);
     }
 
     private async Task<string> ExecuteChatCompletion(Kernel kernel)
     {
         var systemPrompt = BuildSystemPrompt();
-        
-        // Настройка выполнения промпта с автоматическим вызовом функций
-        var executionSettings = new PromptExecutionSettings 
-        { 
-            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() 
+
+        var executionSettings = new PromptExecutionSettings
+        {
+            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
         };
-        
-        // ⭐ НАСТОЯЩИЙ РЕЖИМ АГЕНТА - ChatCompletionAgent ⭐
-        // Это и есть правильный "режим агента" как в примере OllamaChat
+
         var agent = new ChatCompletionAgent
         {
             Kernel = kernel,
@@ -294,17 +316,14 @@
             Arguments = new KernelArguments(executionSettings)
         };
 
-        // Создаем список сообщений
         var messages = new List<ChatMessageContent>
         {
             new(AuthorRole.User, UserCommand)
         };
-        
-        // Получаем ответ от агента
+
         var responses = agent.InvokeAsync(messages);
         await foreach (var responseItem in responses)
         {
-            // Получаем ChatMessageContent из AgentResponseItem
             if (responseItem.Message != null && !string.IsNullOrEmpty(responseItem.Message.Content))
             {
                 return responseItem.Message.Content;
@@ -316,26 +335,25 @@
 
     private string BuildSystemPrompt()
     {
-        var initialPrompt = @"You are a helpful assistant that can control a robot in a maze. 
+        var initialPrompt = @"You are a Robot in a maze.
 
 You have access to the following functions to control the robot:
 - MoveUp: Move the robot up one cell
-- MoveDown: Move the robot down one cell  
+- MoveDown: Move the robot down one cell
 - MoveLeft: Move the robot left one cell
 - MoveRight: Move the robot right one cell
-- LookAround: Get a visual representation of the complete maze state
+- LookAround: Get a visual representation of the complete maze state (call it befor moving))
+    The maze uses the following symbols:
+    - R = Robot position
+    - # = Wall (impassable)
+    - A = Apple
+    - P = Pear
+    - _ = Empty space
 
-The maze uses the following symbols:
-- R = Robot position
-- # = Wall (impassable)
-- A = Apple
-- P = Pear  
-- _ = Empty space
-
-The entire maze is visible from the start. When the user asks you to control the robot, use the available functions to move the robot and look around the maze as needed. You can see the complete maze layout at any time using LookAround.
+When the user asks you to control the robot, use the available functions to move the robot and LookAround the maze as needed.
 
 Coordinates are zero-based with (0,0) at the top-left corner. X increases going right, Y increases going down.";
-        
+
         return initialPrompt;
     }
 
@@ -365,15 +383,26 @@ Coordinates are zero-based with (0,0) at the top-left corner. X increases going 
         StateHasChanged();
     }
 
+    private async Task OnOllamaConfigChanged()
+    {
+        AvailableModels = await OllamaModelService.GetLoadedModelsAsync();
+        
+        await SaveSettings();
+        LogStore.Messages.Add(new LogStore.LogMessage($"Ollama configuration updated: {_ollamaServerUrl}", LogStore.LogType.UserInput));
+        StateHasChanged();
+    }
+
     private async Task SaveSettings()
     {
         var preferences = new MazeRunnerUserPreferences
-            {
-                SelectedModelId = SelectedModelId,
-                ConnectionType = _connectionType,
-                OpenAIApiKey = _openAIApiKey,
-                OpenAIModel = _openAIModel
-            };
+        {
+            SelectedModelId = SelectedModelId,
+            ConnectionType = _connectionType,
+            OpenAIApiKey = _openAIApiKey,
+            OpenAIModel = _openAIModel,
+            OllamaServerUrl = _ollamaServerUrl,
+            OllamaPassword = _ollamaPassword
+        };
         await UserPreferencesStorageService.SavePreferencesAsync(preferences);
     }
 }

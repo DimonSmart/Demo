@@ -14,7 +14,6 @@
             Maze = maze;
         }
 
-        // --- New helper methods for checking if the robot can move in each direction ---
         public bool CanMoveUp()
         {
             return CanMoveTo(X, Y - 1);
@@ -34,7 +33,6 @@
         {
             return CanMoveTo(X + 1, Y);
         }
-        // ------------------------------------------------------------------------------
 
         // Methods for moving the robot one cell
         public string MoveUp()
@@ -85,13 +83,6 @@
                 return false;
             }
             return !M.IsWall(newX, newY);
-        }
-
-        // Public method to look around - simplified version without cell discovery
-        public void LookAround()
-        {
-            // Method kept for compatibility but no longer does cell discovery
-            // since the entire maze is now visible from the start
         }
 
         private MazeRunnerMaze M

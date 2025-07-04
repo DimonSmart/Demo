@@ -20,9 +20,16 @@ public static class KernelFactory
             case "ollama":
                 var ollamaHttpClient = new HttpClient(loggingHandler)
                 {
-                    BaseAddress = new Uri("http://localhost:11434"),
+                    BaseAddress = new Uri(parameters.OllamaServerUrl),
                     Timeout = TimeSpan.FromMinutes(20)
                 };
+
+                if (!string.IsNullOrEmpty(parameters.OllamaPassword))
+                {
+                    var authString = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($":{parameters.OllamaPassword}"));
+                    ollamaHttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authString);
+                }
+
                 builder.AddOllamaChatCompletion(
                     modelId: parameters.OllamaModelId,
                     httpClient: ollamaHttpClient,
