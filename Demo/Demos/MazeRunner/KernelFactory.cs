@@ -13,12 +13,16 @@ public static class KernelFactory
 
 #pragma warning disable SKEXP0070
 
-        var loggingHandler = new LoggingHttpMessageHandler(parameters.LogStore);
-
         switch (parameters.connectionType.ToLower())
         {
             case "ollama":
-                var ollamaHttpClient = new HttpClient(loggingHandler)
+                var ollamaHandler = new HttpClientHandler();
+                if (parameters.IgnoreSslErrors && !OperatingSystem.IsBrowser())
+                {
+                    ollamaHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+                }
+
+                var ollamaHttpClient = new HttpClient(new LoggingHttpMessageHandler(parameters.LogStore, ollamaHandler))
                 {
                     BaseAddress = new Uri(parameters.OllamaServerUrl),
                     Timeout = TimeSpan.FromMinutes(20)
@@ -37,7 +41,13 @@ public static class KernelFactory
                 break;
 
             case "openai":
-                var openAiHttpClient = new HttpClient(loggingHandler);
+                var openAiHandler = new HttpClientHandler();
+                if (parameters.IgnoreSslErrors && !OperatingSystem.IsBrowser())
+                {
+                    openAiHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+                }
+
+                var openAiHttpClient = new HttpClient(new LoggingHttpMessageHandler(parameters.LogStore, openAiHandler));
                 builder.AddOpenAIChatCompletion(
                     modelId: parameters.OpenAiModelId,
                     apiKey: parameters.OpenAIApiKey,

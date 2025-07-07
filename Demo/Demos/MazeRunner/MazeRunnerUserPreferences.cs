@@ -8,4 +8,5 @@ public class MazeRunnerUserPreferences
     public string? OpenAIModel { get; set; }
     public string? OllamaServerUrl { get; set; } = "http://localhost:11434";
     public string? OllamaPassword { get; set; } = string.Empty;
+    public bool IgnoreSslErrors { get; set; } = false;
 }

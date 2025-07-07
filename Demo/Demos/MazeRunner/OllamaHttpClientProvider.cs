@@ -6,8 +6,23 @@ namespace Demo.Demos.MazeRunner
         {
             var serverUrl = await configProvider.GetServerUrlAsync();
             var password = await configProvider.GetPasswordAsync();
+            var ignoreSslErrors = await configProvider.GetIgnoreSslErrorsAsync();
 
-            var client = httpClientFactory.CreateClient();
+            HttpClient client;
+
+            if (ignoreSslErrors && !OperatingSystem.IsBrowser())
+            {
+                // Create HttpClientHandler with SSL validation disabled
+                var handler = new HttpClientHandler();
+                handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+                
+                client = new HttpClient(handler);
+            }
+            else
+            {
+                client = httpClientFactory.CreateClient();
+            }
+
             client.BaseAddress = new Uri(serverUrl ?? "http://localhost:11434");
             client.Timeout = TimeSpan.FromMinutes(20);
 
