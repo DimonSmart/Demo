@@ -58,6 +58,13 @@
                            @onblur="OnOllamaConfigChanged"
                            placeholder="Enter password if required" />
                 </div>
+                <div style="margin-top: 10px;">
+                    <input id="ignoreSslErrors"
+                           type="checkbox"
+                           @bind="_ignoreSslErrors"
+                           @bind:after="OnSslSettingChanged" />
+                    <label for="ignoreSslErrors">Ignore SSL certificate errors</label>
+                </div>
 
                 @if (AvailableModels != null && AvailableModels.Count > 0)
                 {
@@ -112,6 +119,13 @@
                            @bind:event="oninput"
                            @onblur="SaveSettings"
                            placeholder="Enter OpenAI Model" />
+                </div>
+                <div style="margin-top: 10px;">
+                    <input id="ignoreSslErrorsOpenAI"
+                           type="checkbox"
+                           @bind="_ignoreSslErrors"
+                           @bind:after="OnSslSettingChanged" />
+                    <label for="ignoreSslErrorsOpenAI">Ignore SSL certificate errors</label>
                 </div>
             }
         </div>
@@ -181,6 +195,7 @@
     private string _openAIModel = "gpt-4.0-mini";
     private string _ollamaServerUrl = "http://localhost:11434";
     private string _ollamaPassword = "";
+    private bool _ignoreSslErrors = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -203,6 +218,7 @@
                 _ollamaServerUrl = preferences.OllamaServerUrl;        
             if (!string.IsNullOrEmpty(preferences.OllamaPassword))
                 _ollamaPassword = preferences.OllamaPassword;
+            _ignoreSslErrors = preferences.IgnoreSslErrors;
     }
 
     AvailableModels = await OllamaModelService.GetLoadedModelsAsync();
@@ -294,7 +310,7 @@
         if (_maze == null)
             throw new InvalidOperationException("Maze is not initialized");
 
-        var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, IncludePlugins: true, _openAIApiKey, LogStore, _ollamaServerUrl, _ollamaPassword, async () => await InvokeAsync(StateHasChanged));
+        var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, IncludePlugins: true, _openAIApiKey, LogStore, _ollamaServerUrl, _ollamaPassword, _ignoreSslErrors, async () => await InvokeAsync(StateHasChanged));
         return KernelFactory.BuildKernel(kernelBuildParameters);
     }
 
@@ -392,6 +408,13 @@ Coordinates are zero-based with (0,0) at the top-left corner. X increases going 
         StateHasChanged();
     }
 
+    private async Task OnSslSettingChanged()
+    {
+        await SaveSettings();
+        LogStore.Messages.Add(new LogStore.LogMessage($"SSL setting changed: Ignore SSL errors = {_ignoreSslErrors}", LogStore.LogType.UserInput));
+        StateHasChanged();
+    }
+
     private async Task SaveSettings()
     {
         var preferences = new MazeRunnerUserPreferences
@@ -401,7 +424,8 @@ Coordinates are zero-based with (0,0) at the top-left corner. X increases going 
             OpenAIApiKey = _openAIApiKey,
             OpenAIModel = _openAIModel,
             OllamaServerUrl = _ollamaServerUrl,
-            OllamaPassword = _ollamaPassword
+            OllamaPassword = _ollamaPassword,
+            IgnoreSslErrors = _ignoreSslErrors
         };
         await UserPreferencesStorageService.SavePreferencesAsync(preferences);
     }

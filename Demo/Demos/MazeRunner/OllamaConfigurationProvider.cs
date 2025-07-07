@@ -16,6 +16,12 @@ namespace Demo.Demos.MazeRunner
             return preferences?.OllamaPassword;
         }
 
+        public async Task<bool> GetIgnoreSslErrorsAsync()
+        {
+            var preferences = await GetPreferencesAsync();
+            return preferences?.IgnoreSslErrors ?? false;
+        }
+
         private async Task<MazeRunnerUserPreferences?> GetPreferencesAsync()
         {
             try

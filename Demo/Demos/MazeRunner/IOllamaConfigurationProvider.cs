@@ -8,5 +8,7 @@ namespace Demo.Demos.MazeRunner
         Task<string> GetServerUrlAsync();
 
         Task<string?> GetPasswordAsync();
+        
+        Task<bool> GetIgnoreSslErrorsAsync();
     }
 }

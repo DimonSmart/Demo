@@ -10,6 +10,12 @@
             InnerHandler = new HttpClientHandler();
         }
 
+        public LoggingHttpMessageHandler(LogStore logStore, HttpMessageHandler innerHandler)
+        {
+            _logStore = logStore;
+            InnerHandler = innerHandler;
+        }
+
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var requestContent = request.Content != null ?
