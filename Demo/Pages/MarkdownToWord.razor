@@ -34,18 +34,9 @@
     flex: 1;
 }
 
-.cleaning-report {
-    background: #d4edda;
-    border: 1px solid #c3e6cb;
-    border-radius: 4px;
-    padding: 8px 12px;
-    margin: 8px 0;
-    font-size: 0.9em;
-}
-
-.cleaning-report.error {
-    background: #f8d7da;
-    border-color: #f5c6cb;
+.btn-clean {
+    white-space: normal;
+    line-height: 1.2;
 }
 </style>
 
@@ -123,22 +114,11 @@
         
         <div class="row mb-3">
             <div class="col-12 col-md-6 col-lg-4">
-                <button class="btn btn-warning w-100" @onclick="DeleteInvisibleCharacters" disabled="@(!HasCharactersToClean)">
+                <button class="btn btn-warning w-100 btn-clean" @onclick="DeleteInvisibleCharacters" disabled="@(!HasCharactersToClean)">
                     Clean Selected (@CharactersToCleanCount)
                 </button>
             </div>
         </div>
-
-        @if (!string.IsNullOrEmpty(LastCleaningReport))
-        {
-            <div class="cleaning-report @(LastCleaningHasError ? "error" : "")">
-                @LastCleaningReport
-                @if (CanUndo)
-                {
-                    <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="UndoLastCleaning">Undo</button>
-                }
-            </div>
-        }
     </div>
 
     <!-- Existing Controls -->
@@ -309,11 +289,6 @@
         ? 0
         : LatestDetectionResult.DetectedCharacters.Count(dc => EnabledCategories.Contains(dc.Category));
     
-    private string LastCleaningReport { get; set; } = string.Empty;
-    private bool LastCleaningHasError { get; set; } = false;
-    private bool CanUndo { get; set; } = false;
-    private string? UndoContent { get; set; }
-
     // Visualization options
     private VisualizationOptions VisualizationOptions => new()
     {
@@ -342,22 +317,6 @@
         else
         {
             EnabledCategories = new HashSet<InvisibleCharacterCategory>(Enum.GetValues<InvisibleCharacterCategory>());
-        }
-    }
-
-    private async Task UndoLastCleaning()
-    {
-        if (CanUndo && UndoContent != null)
-        {
-            MarkdownContent = UndoContent;
-            UndoContent = null;
-            CanUndo = false;
-            LastCleaningReport = "Cleaning undone.";
-            LastCleaningHasError = false;
-            
-            await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
-            await UpdatePreview();
-            StateHasChanged();
         }
     }
 
@@ -449,58 +408,84 @@
         if (!HasCharactersToClean)
             return;
 
-        try
+        var detectionResult = CharacterDetector.DetectInvisibleCharacters(MarkdownContent);
+
+        var charactersToProcess = detectionResult.DetectedCharacters
+            .Where(dc => EnabledCategories.Contains(dc.Category))
+            .OrderByDescending(dc => dc.Position)
+            .ToList();
+
+        if (charactersToProcess.Count == 0)
+            return;
+
+        var builder = new StringBuilder(MarkdownContent);
+        var hasChanges = false;
+
+        foreach (var detection in charactersToProcess)
         {
-            // Cache content for undo
-            UndoContent = MarkdownContent;
-
-            // Detect invisible characters in the current content
-            var detectionResult = CharacterDetector.DetectInvisibleCharacters(MarkdownContent);
-
-            // Collect characters from enabled categories only
-            var charactersToRemove = detectionResult.DetectedCharacters
-                .Where(dc => EnabledCategories.Contains(dc.Category))
-                .OrderByDescending(dc => dc.Position) // Remove from the end to preserve positions
-                .ToList();
-
-            // Remove characters
-            var cleanedText = MarkdownContent;
-            int removedCount = 0;
-            var removedCategories = new Dictionary<InvisibleCharacterCategory, int>();
-            
-            foreach (var charToRemove in charactersToRemove)
+            if (TryApplyCleaning(builder, detection))
             {
-                if (charToRemove.Position < cleanedText.Length)
-                {
-                    cleanedText = cleanedText.Remove(charToRemove.Position, 1);
-                    removedCount++;
-                    
-                    if (!removedCategories.ContainsKey(charToRemove.Category))
-                        removedCategories[charToRemove.Category] = 0;
-                    removedCategories[charToRemove.Category]++;
-                }
+                hasChanges = true;
             }
-            
-            MarkdownContent = cleanedText;
-            
-            await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
-            await UpdatePreview();
-            
-            // Form report
-            var categoryReports = removedCategories.Select(kvp => 
-                $"{GetCategoryDisplayName(kvp.Key)}: {kvp.Value}");
-            LastCleaningReport = $"Removed {removedCount} characters. {string.Join(", ", categoryReports)}";
-            LastCleaningHasError = false;
-            CanUndo = true;
         }
-        catch (Exception ex)
-        {
-            LastCleaningReport = $"Error during removal: {ex.Message}";
-            LastCleaningHasError = true;
-            CanUndo = false;
-        }
-        
+
+        if (!hasChanges)
+            return;
+
+        MarkdownContent = builder.ToString();
+
+        await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
+        await UpdatePreview();
+
         StateHasChanged();
+    }
+
+    private static bool TryApplyCleaning(StringBuilder builder, CharacterDetection detection)
+    {
+        var index = detection.Position;
+
+        if (index < 0 || index >= builder.Length)
+        {
+            return false;
+        }
+
+        if (detection.Category == InvisibleCharacterCategory.LineBreaks)
+        {
+            return NormalizeLineBreak(builder, detection, index);
+        }
+
+        builder.Remove(index, 1);
+        return true;
+    }
+
+    private static bool NormalizeLineBreak(StringBuilder builder, CharacterDetection detection, int index)
+    {
+        if (detection.CodePoint == 0x000D)
+        {
+            if (builder[index] != '\r')
+            {
+                return false;
+            }
+
+            if (index + 1 < builder.Length && builder[index + 1] == '\n')
+            {
+                builder.Remove(index, 1);
+            }
+            else
+            {
+                builder[index] = '\n';
+            }
+
+            return true;
+        }
+
+        if (builder[index] == (char)detection.CodePoint)
+        {
+            builder[index] = '\n';
+            return true;
+        }
+
+        return false;
     }
 
     private string GetCategoryDisplayName(InvisibleCharacterCategory category)
@@ -508,7 +493,7 @@
         return category switch
         {
             InvisibleCharacterCategory.C0C1Controls => "C0/C1 Controls",
-            InvisibleCharacterCategory.LineBreaks => "Line Breaks", 
+            InvisibleCharacterCategory.LineBreaks => "Line Breaks",
             InvisibleCharacterCategory.Tab => "Tab",
             InvisibleCharacterCategory.WideSpaces => "Wide Spaces",
             InvisibleCharacterCategory.NoBreakSpaces => "No-Break Spaces",
@@ -526,23 +511,12 @@
 
     private async Task LoadExample()
     {
-        // Store current content for undo if there's content
-        if (!string.IsNullOrEmpty(MarkdownContent))
-        {
-            UndoContent = MarkdownContent;
-            CanUndo = true;
-        }
-
-        // Generate demo text with various invisible characters
         var demoContent = InvisibleUnicodeDemoGenerator.BuildMarkdown();
         MarkdownContent = demoContent;
 
         await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
         await UpdatePreview();
-        
-        LastCleaningReport = "Compact demo text loaded with invisible characters for testing.";
-        LastCleaningHasError = false;
-        
+
         StateHasChanged();
     }
 }
