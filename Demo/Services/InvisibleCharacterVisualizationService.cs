@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text;
 using System.Web;
 
@@ -23,47 +24,86 @@ namespace Demo.Services
             var sb = new StringBuilder();
             var detectionsByPosition = detection.DetectedCharacters.ToDictionary(d => d.Position, d => d);
             var codeBlockRanges = options.SkipCodeBlocks ? FindCodeBlockRanges(input) : new List<(int start, int end)>();
-            
+
             int position = 0;
-            int runeIndex = 0;
-            
+
             foreach (var rune in input.EnumerateRunes())
             {
-                // Skip visualization if in code block but still HTML encode
                 if (options.SkipCodeBlocks && IsInCodeBlock(position, codeBlockRanges))
                 {
                     sb.Append(HttpUtility.HtmlEncode(rune.ToString()));
                     position += rune.Utf16SequenceLength;
-                    runeIndex++;
                     continue;
                 }
 
                 if (detectionsByPosition.TryGetValue(position, out var charDetection))
                 {
-                    var visualized = VisualizeCharacter(charDetection, rune, options);
-                    sb.Append(visualized);
+                    if (ShouldVisualizeDetection(charDetection, options))
+                    {
+                        var visualized = VisualizeCharacter(charDetection, rune, options);
+                        sb.Append(visualized);
+                    }
+                    else
+                    {
+                        sb.Append(HttpUtility.HtmlEncode(rune.ToString()));
+                    }
                 }
-                else if (options.ShowLineBreaks && rune.Value == 0x000A) // LF
+                else if (ShouldRenderLineFeed(rune, options))
                 {
                     var cssClass = GetCssClass(InvisibleCharacterCategory.LineBreaks);
                     var marker = "¶";
                     var tooltip = "Line Feed (LF)";
                     var codePoint = "U+000A";
                     var name = "LINE FEED";
-                    
+
                     sb.Append($"<span class=\"{cssClass}\" data-code=\"{codePoint}\" data-name=\"{name}\" title=\"{tooltip}\">{marker}</span>\n");
                 }
                 else
                 {
-                    // Regular character - HTML encode for safety
                     sb.Append(HttpUtility.HtmlEncode(rune.ToString()));
                 }
 
                 position += rune.Utf16SequenceLength;
-                runeIndex++;
             }
 
             return sb.ToString();
+        }
+
+        private static bool ShouldVisualizeDetection(CharacterDetection detection, VisualizationOptions options)
+        {
+            if (!IsCategoryEnabled(detection.Category, options))
+            {
+                return false;
+            }
+
+            if (detection.Category == InvisibleCharacterCategory.LineBreaks)
+            {
+                return options.ShowLineBreaks || options.ShowInvisibleCharacters;
+            }
+
+            return options.ShowInvisibleCharacters;
+        }
+
+        private static bool ShouldRenderLineFeed(Rune rune, VisualizationOptions options)
+        {
+            return rune.Value == 0x000A &&
+                   options.ShowLineBreaks &&
+                   IsCategoryEnabled(InvisibleCharacterCategory.LineBreaks, options);
+        }
+
+        private static bool IsCategoryEnabled(InvisibleCharacterCategory category, VisualizationOptions options)
+        {
+            if (options.EnabledCategories is null)
+            {
+                return true;
+            }
+
+            if (options.EnabledCategories.Count == 0)
+            {
+                return false;
+            }
+
+            return options.EnabledCategories.Contains(category);
         }
 
         private string VisualizeCharacter(CharacterDetection detection, Rune rune, VisualizationOptions options)
@@ -244,11 +284,9 @@ namespace Demo.Services
         public bool ShowInvisibleCharacters { get; set; } = false;
         public bool SkipCodeBlocks { get; set; } = true;
         public bool ShowLineBreaks { get; set; } = true;
-        public HashSet<InvisibleCharacterCategory> EnabledCategories { get; set; } = new();
+        public HashSet<InvisibleCharacterCategory> EnabledCategories { get; set; } =
+            Enum.GetValues<InvisibleCharacterCategory>().ToHashSet();
 
-        public static VisualizationOptions Default => new()
-        {
-            EnabledCategories = Enum.GetValues<InvisibleCharacterCategory>().ToHashSet()
-        };
+        public static VisualizationOptions Default => new();
     }
 }

@@ -122,13 +122,10 @@
         }
         
         <div class="row mb-3">
-            <div class="col-md-6">
-                <button class="btn btn-warning w-100" @onclick="DeleteInvisibleCharacters" disabled="@(!HasInvisibleCharactersInEnabledCategories)">
-                    Clean Selected (@InvisibleCharacterCount)
+            <div class="col-12 col-md-6 col-lg-4">
+                <button class="btn btn-warning w-100" @onclick="DeleteInvisibleCharacters" disabled="@(!HasCharactersToClean)">
+                    Clean Selected (@CharactersToCleanCount)
                 </button>
-            </div>
-            <div class="col-md-6 d-flex align-items-center justify-content-md-end">
-                <span class="text-muted small">Highlights are color-coded by category.</span>
             </div>
         </div>
 
@@ -194,6 +191,7 @@
     private string MarkdownPreview { get; set; } = string.Empty;
     private string VisualizedPreview { get; set; } = string.Empty;
     private string DownloadUrl { get; set; } = string.Empty;
+    private DetectionResult LatestDetectionResult { get; set; } = new();
     private Markdig.MarkdownPipeline MarkdownPipeline =
         new Markdig.MarkdownPipelineBuilder()
         .UseEmphasisExtras()
@@ -304,29 +302,12 @@
         }
     }
 
-    private bool HasInvisibleCharactersInEnabledCategories
-    {
-        get
-        {
-            if (string.IsNullOrEmpty(MarkdownContent) || EnabledCategories.Count == 0)
-                return false;
+    private bool HasCharactersToClean => EnabledCategories.Count > 0 &&
+        LatestDetectionResult.DetectedCharacters.Any(dc => EnabledCategories.Contains(dc.Category));
 
-            var detectionResult = CharacterDetector.DetectInvisibleCharacters(MarkdownContent);
-            return detectionResult.DetectedCharacters.Any(dc => EnabledCategories.Contains(dc.Category));
-        }
-    }
-    
-    private int InvisibleCharacterCount
-    {
-        get
-        {
-            if (string.IsNullOrEmpty(MarkdownContent) || EnabledCategories.Count == 0)
-                return 0;
-
-            var detectionResult = CharacterDetector.DetectInvisibleCharacters(MarkdownContent);
-            return detectionResult.DetectedCharacters.Count(dc => EnabledCategories.Contains(dc.Category));
-        }
-    }
+    private int CharactersToCleanCount => EnabledCategories.Count == 0
+        ? 0
+        : LatestDetectionResult.DetectedCharacters.Count(dc => EnabledCategories.Contains(dc.Category));
     
     private string LastCleaningReport { get; set; } = string.Empty;
     private bool LastCleaningHasError { get; set; } = false;
@@ -405,19 +386,21 @@
 
     private Task UpdatePreview()
     {
-        MarkdownPreview = Markdig.Markdown.ToHtml(MarkdownContent, MarkdownPipeline);
-        
+        var content = MarkdownContent ?? string.Empty;
+        LatestDetectionResult = CharacterDetector.DetectInvisibleCharacters(content);
+        MarkdownPreview = Markdig.Markdown.ToHtml(content, MarkdownPipeline);
+
         if (CurrentViewMode == ViewMode.InvisibleCharacters)
         {
             // Generate visualized preview with only enabled categories
-            var visualizedMarkdown = CharacterVisualizer.VisualizeInvisibleCharacters(MarkdownContent, VisualizationOptions);
+            var visualizedMarkdown = CharacterVisualizer.VisualizeInvisibleCharacters(content, VisualizationOptions);
             VisualizedPreview = Markdig.Markdown.ToHtml(visualizedMarkdown, MarkdownPipeline);
         }
         else
         {
             VisualizedPreview = MarkdownPreview;
         }
-        
+
         GenerateDownloadUrl();
         return Task.CompletedTask;
     }
@@ -463,7 +446,7 @@
 
     private async Task DeleteInvisibleCharacters()
     {
-        if (!HasInvisibleCharactersInEnabledCategories)
+        if (!HasCharactersToClean)
             return;
 
         try
