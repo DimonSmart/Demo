@@ -7,7 +7,6 @@
 @inject PageTitleService PageTitleService
 @inject IJSRuntime JSRuntime
 @inject InvisibleCharacterDetectorService CharacterDetector
-@inject InvisibleCharacterCleanerService CharacterCleaner
 @inject InvisibleCharacterVisualizationService CharacterVisualizer
 <link rel="stylesheet" href="css/demos.css" />
 <style>
@@ -86,7 +85,6 @@
                         <option value="@CleaningPreset.RTLSafe">RTL-Safe</option>
                         <option value="@CleaningPreset.SEOPlain">SEO/Plain</option>
                     </select>
-                    <button type="button" class="btn btn-outline-secondary" @onclick="CleanText">Apply</button>
                 </div>
             </div>
         </div>
@@ -205,6 +203,107 @@
     private bool ShowInvisibleCharacters => CurrentViewMode == ViewMode.InvisibleCharacters;
     private HashSet<InvisibleCharacterCategory> EnabledCategories { get; set; } = new();
 
+    private static readonly IReadOnlyDictionary<CleaningPreset, InvisibleCharacterCategory[]> PresetCategoryMap =
+        new Dictionary<CleaningPreset, InvisibleCharacterCategory[]>
+        {
+            [CleaningPreset.Safe] = new[]
+            {
+                InvisibleCharacterCategory.C0C1Controls,
+                InvisibleCharacterCategory.LineBreaks,
+                InvisibleCharacterCategory.Tab,
+                InvisibleCharacterCategory.WideSpaces,
+                InvisibleCharacterCategory.ZeroWidthFormat,
+                InvisibleCharacterCategory.BiDiControls,
+                InvisibleCharacterCategory.SoftHyphen,
+                InvisibleCharacterCategory.InvisibleMath
+            },
+            [CleaningPreset.Aggressive] = new[]
+            {
+                InvisibleCharacterCategory.C0C1Controls,
+                InvisibleCharacterCategory.LineBreaks,
+                InvisibleCharacterCategory.Tab,
+                InvisibleCharacterCategory.WideSpaces,
+                InvisibleCharacterCategory.NoBreakSpaces,
+                InvisibleCharacterCategory.ZeroWidthFormat,
+                InvisibleCharacterCategory.BiDiControls,
+                InvisibleCharacterCategory.SoftHyphen,
+                InvisibleCharacterCategory.InvisibleMath,
+                InvisibleCharacterCategory.VariationSelectors,
+                InvisibleCharacterCategory.EmojiTags,
+                InvisibleCharacterCategory.Confusables
+            },
+            [CleaningPreset.ASCIIStrict] = new[]
+            {
+                InvisibleCharacterCategory.C0C1Controls,
+                InvisibleCharacterCategory.LineBreaks,
+                InvisibleCharacterCategory.Tab,
+                InvisibleCharacterCategory.WideSpaces,
+                InvisibleCharacterCategory.NoBreakSpaces,
+                InvisibleCharacterCategory.ZeroWidthFormat,
+                InvisibleCharacterCategory.BiDiControls,
+                InvisibleCharacterCategory.SoftHyphen,
+                InvisibleCharacterCategory.InvisibleMath,
+                InvisibleCharacterCategory.VariationSelectors,
+                InvisibleCharacterCategory.EmojiTags,
+                InvisibleCharacterCategory.Confusables
+            },
+            [CleaningPreset.TypographySoft] = new[]
+            {
+                InvisibleCharacterCategory.C0C1Controls,
+                InvisibleCharacterCategory.LineBreaks,
+                InvisibleCharacterCategory.Tab,
+                InvisibleCharacterCategory.WideSpaces,
+                InvisibleCharacterCategory.ZeroWidthFormat,
+                InvisibleCharacterCategory.BiDiControls,
+                InvisibleCharacterCategory.SoftHyphen,
+                InvisibleCharacterCategory.InvisibleMath
+            },
+            [CleaningPreset.RTLSafe] = new[]
+            {
+                InvisibleCharacterCategory.C0C1Controls,
+                InvisibleCharacterCategory.LineBreaks,
+                InvisibleCharacterCategory.Tab,
+                InvisibleCharacterCategory.WideSpaces,
+                InvisibleCharacterCategory.ZeroWidthFormat,
+                InvisibleCharacterCategory.SoftHyphen,
+                InvisibleCharacterCategory.InvisibleMath
+            },
+            [CleaningPreset.SEOPlain] = new[]
+            {
+                InvisibleCharacterCategory.C0C1Controls,
+                InvisibleCharacterCategory.LineBreaks,
+                InvisibleCharacterCategory.Tab,
+                InvisibleCharacterCategory.WideSpaces,
+                InvisibleCharacterCategory.NoBreakSpaces,
+                InvisibleCharacterCategory.ZeroWidthFormat,
+                InvisibleCharacterCategory.BiDiControls,
+                InvisibleCharacterCategory.SoftHyphen,
+                InvisibleCharacterCategory.InvisibleMath,
+                InvisibleCharacterCategory.VariationSelectors,
+                InvisibleCharacterCategory.EmojiTags,
+                InvisibleCharacterCategory.Confusables
+            }
+        };
+
+    private CleaningPreset selectedPreset = CleaningPreset.Safe;
+    private CleaningPreset SelectedPreset
+    {
+        get => selectedPreset;
+        set
+        {
+            if (selectedPreset != value)
+            {
+                selectedPreset = value;
+                _ = InvokeAsync(async () =>
+                {
+                    ApplyPresetCategories(selectedPreset);
+                    await UpdatePreview();
+                    StateHasChanged();
+                });
+            }
+        }
+    }
+
     private bool HasInvisibleCharactersInEnabledCategories
     {
         get
@@ -229,7 +328,6 @@
         }
     }
     
-    private CleaningPreset SelectedPreset { get; set; } = CleaningPreset.Safe;
     private string LastCleaningReport { get; set; } = string.Empty;
     private bool LastCleaningHasError { get; set; } = false;
     private bool CanUndo { get; set; } = false;
@@ -248,49 +346,22 @@
     {
         base.OnInitialized();
         PageTitleService.SetTitle("Markdown to Word");
-        
-        EnabledCategories = Enum.GetValues<InvisibleCharacterCategory>().ToHashSet();
-        
+
+        ApplyPresetCategories(SelectedPreset);
+
         await UpdatePreview();
     }
 
-    private async Task CleanText()
+    private void ApplyPresetCategories(CleaningPreset preset)
     {
-        try
+        if (PresetCategoryMap.TryGetValue(preset, out var categories))
         {
-            var cleaningResult = CharacterCleaner.CleanText(MarkdownContent, SelectedPreset);
-            
-            if (cleaningResult.HasChanges)
-            {
-                // Cache content for undo
-                UndoContent = MarkdownContent;
-                CanUndo = true;
-
-                // Apply cleaned text
-                MarkdownContent = cleaningResult.CleanedText;
-                LastCleaningReport = cleaningResult.Summary;
-                LastCleaningHasError = false;
-
-                // Update the textarea
-                await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
-
-                await UpdatePreview();
-            }
-            else
-            {
-                LastCleaningReport = "No invisible characters found to clean.";
-                LastCleaningHasError = false;
-                CanUndo = false;
-            }
+            EnabledCategories = new HashSet<InvisibleCharacterCategory>(categories);
         }
-        catch (Exception ex)
+        else
         {
-            LastCleaningReport = $"Error during cleaning: {ex.Message}";
-            LastCleaningHasError = true;
-            CanUndo = false;
+            EnabledCategories = new HashSet<InvisibleCharacterCategory>(Enum.GetValues<InvisibleCharacterCategory>());
         }
-        
-        StateHasChanged();
     }
 
     private async Task UndoLastCleaning()
