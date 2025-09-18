@@ -1,5 +1,4 @@
 ﻿@page "/markdown-to-word"
-@using System.IO
 @using System.Text
 @using Demo.Demos.MarkdownToWord
 @using Demo.Services
@@ -32,9 +31,8 @@
     gap: 8px;
 }
 
-.dropdown-toggle-split {
-    padding-left: 0.375rem;
-    padding-right: 0.375rem;
+.control-group select {
+    flex: 1;
 }
 
 .cleaning-report {
@@ -58,48 +56,41 @@
     <div class="invisible-char-controls">
         <div class="row mb-3">
             <div class="col-md-6">
-                <!-- Mode toggle -->
                 <div class="btn-group d-flex" role="group">
-                    <input type="radio" 
-                           class="btn-check" 
-                           name="viewMode" 
-                           id="preview" 
+                    <input type="radio"
+                           class="btn-check"
+                           name="viewMode"
+                           id="preview"
                            checked="@(CurrentViewMode == ViewMode.Preview)"
                            @onchange="@(() => SetViewMode(ViewMode.Preview))" />
                     <label class="btn btn-outline-primary flex-fill" for="preview">Preview</label>
 
-                    <input type="radio" 
-                           class="btn-check" 
-                           name="viewMode" 
-                           id="invisibleChars" 
+                    <input type="radio"
+                           class="btn-check"
+                           name="viewMode"
+                           id="invisibleChars"
                            checked="@(CurrentViewMode == ViewMode.InvisibleCharacters)"
                            @onchange="@(() => SetViewMode(ViewMode.InvisibleCharacters))" />
                     <label class="btn btn-outline-primary flex-fill" for="invisibleChars">Invisible Characters</label>
                 </div>
             </div>
-            
+
             <div class="col-md-6">
-                <!-- Additional cleaning presets -->
-                <div class="btn-group w-100">
-                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                        Presets (@SelectedPreset)
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><h6 class="dropdown-header">Cleaning Presets</h6></li>
-                        <li><button class="dropdown-item" @onclick="() => SelectPreset(CleaningPreset.Safe)">Safe</button></li>
-                        <li><button class="dropdown-item" @onclick="() => SelectPreset(CleaningPreset.Aggressive)">Aggressive</button></li>
-                        <li><button class="dropdown-item" @onclick="() => SelectPreset(CleaningPreset.ASCIIStrict)">ASCII-Strict</button></li>
-                        <li><button class="dropdown-item" @onclick="() => SelectPreset(CleaningPreset.TypographySoft)">Typography-Soft</button></li>
-                        <li><button class="dropdown-item" @onclick="() => SelectPreset(CleaningPreset.RTLSafe)">RTL-Safe</button></li>
-                        <li><button class="dropdown-item" @onclick="() => SelectPreset(CleaningPreset.SEOPlain)">SEO/Plain</button></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><button class="dropdown-item" @onclick="CleanText">Apply Preset</button></li>
-                    </ul>
+                <div class="control-group w-100">
+                    <label class="form-label mb-0" for="presetSelect">Cleaning preset</label>
+                    <select id="presetSelect" class="form-select" @bind="SelectedPreset">
+                        <option value="@CleaningPreset.Safe">Safe</option>
+                        <option value="@CleaningPreset.Aggressive">Aggressive</option>
+                        <option value="@CleaningPreset.ASCIIStrict">ASCII-Strict</option>
+                        <option value="@CleaningPreset.TypographySoft">Typography-Soft</option>
+                        <option value="@CleaningPreset.RTLSafe">RTL-Safe</option>
+                        <option value="@CleaningPreset.SEOPlain">SEO/Plain</option>
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CleanText">Apply</button>
                 </div>
             </div>
         </div>
-        
-        <!-- Селекторы категорий (показываем только в режиме невидимых символов) -->
+
         @if (CurrentViewMode == ViewMode.InvisibleCharacters)
         {
             <div class="row mb-3">
@@ -134,17 +125,12 @@
         
         <div class="row mb-3">
             <div class="col-md-6">
-                <!-- Clean selected categories button -->
                 <button class="btn btn-warning w-100" @onclick="DeleteInvisibleCharacters" disabled="@(!HasInvisibleCharactersInEnabledCategories)">
                     Clean Selected (@InvisibleCharacterCount)
                 </button>
             </div>
-            <div class="col-md-6">
-                <!-- Highlight mode -->
-                <select class="form-select" @bind="CurrentHighlightMode" @bind:after="OnHighlightModeChanged">
-                    <option value="@HighlightMode.ByCategory">By Category</option>
-                    <option value="@HighlightMode.AllSame">All Same</option>
-                </select>
+            <div class="col-md-6 d-flex align-items-center justify-content-md-end">
+                <span class="text-muted small">Highlights are color-coded by category.</span>
             </div>
         </div>
 
@@ -167,7 +153,7 @@
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("_")' style="font-style: italic;">I</button>
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("~~")' style="text-decoration: line-through;">S</button>
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("`")' style="font-family: monospace;">`code`</button>
-            <button class="btn btn-info ms-3" @onclick="LoadExample" title="Load Russian text with invisible characters for testing">Show Example</button>
+            <button class="btn btn-info ms-3" @onclick="LoadExample" title="Load compact text with invisible characters for testing">Show Example</button>
         </div>
     </div>
 
@@ -199,7 +185,6 @@
 </div>
 
 @code {
-    // Enum для режимов просмотра
     private enum ViewMode
     {
         Preview,
@@ -216,12 +201,10 @@
         .UseEmphasisExtras()
         .Build();
 
-    // Invisible character feature properties
     private ViewMode CurrentViewMode { get; set; } = ViewMode.Preview;
     private bool ShowInvisibleCharacters => CurrentViewMode == ViewMode.InvisibleCharacters;
     private HashSet<InvisibleCharacterCategory> EnabledCategories { get; set; } = new();
-    
-    // Computed properties for UI
+
     private bool HasInvisibleCharactersInEnabledCategories
     {
         get
@@ -247,7 +230,6 @@
     }
     
     private CleaningPreset SelectedPreset { get; set; } = CleaningPreset.Safe;
-    private HighlightMode CurrentHighlightMode { get; set; } = HighlightMode.ByCategory;
     private string LastCleaningReport { get; set; } = string.Empty;
     private bool LastCleaningHasError { get; set; } = false;
     private bool CanUndo { get; set; } = false;
@@ -259,7 +241,6 @@
         ShowInvisibleCharacters = ShowInvisibleCharacters,
         SkipCodeBlocks = true,
         ShowLineBreaks = true,
-        HighlightMode = CurrentHighlightMode,
         EnabledCategories = EnabledCategories
     };
 
@@ -268,25 +249,9 @@
         base.OnInitialized();
         PageTitleService.SetTitle("Markdown to Word");
         
-        // Initialize all categories as enabled by default
         EnabledCategories = Enum.GetValues<InvisibleCharacterCategory>().ToHashSet();
         
         await UpdatePreview();
-    }
-
-    private async Task OnHighlightModeChanged()
-    {
-        if (CurrentViewMode == ViewMode.InvisibleCharacters)
-        {
-            await UpdatePreview();
-            StateHasChanged();
-        }
-    }
-
-    private void SelectPreset(CleaningPreset preset)
-    {
-        SelectedPreset = preset;
-        StateHasChanged();
     }
 
     private async Task CleanText()
@@ -297,18 +262,18 @@
             
             if (cleaningResult.HasChanges)
             {
-                // Store for undo
+                // Cache content for undo
                 UndoContent = MarkdownContent;
                 CanUndo = true;
-                
+
                 // Apply cleaned text
                 MarkdownContent = cleaningResult.CleanedText;
                 LastCleaningReport = cleaningResult.Summary;
                 LastCleaningHasError = false;
-                
+
                 // Update the textarea
                 await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
-                
+
                 await UpdatePreview();
             }
             else
@@ -403,7 +368,6 @@
         DownloadUrl = "data:application/msword;base64," + Convert.ToBase64String(byteArray);
     }
 
-    // Новые методы для работы с режимами и категориями
     private async Task SetViewMode(ViewMode mode)
     {
         CurrentViewMode = mode;
@@ -433,19 +397,19 @@
 
         try
         {
-            // Сохраняем для отмены
+            // Cache content for undo
             UndoContent = MarkdownContent;
-            
-            // Получаем детекцию символов
+
+            // Detect invisible characters in the current content
             var detectionResult = CharacterDetector.DetectInvisibleCharacters(MarkdownContent);
-            
-            // Создаем список символов для удаления (только из включенных категорий)
+
+            // Collect characters from enabled categories only
             var charactersToRemove = detectionResult.DetectedCharacters
                 .Where(dc => EnabledCategories.Contains(dc.Category))
-                .OrderByDescending(dc => dc.Position) // Удаляем с конца чтобы не сбить позиции
+                .OrderByDescending(dc => dc.Position) // Remove from the end to preserve positions
                 .ToList();
-            
-            // Удаляем символы
+
+            // Remove characters
             var cleanedText = MarkdownContent;
             int removedCount = 0;
             var removedCategories = new Dictionary<InvisibleCharacterCategory, int>();
@@ -522,7 +486,7 @@
         await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
         await UpdatePreview();
         
-        LastCleaningReport = "Russian demo text loaded with invisible characters for testing.";
+        LastCleaningReport = "Compact demo text loaded with invisible characters for testing.";
         LastCleaningHasError = false;
         
         StateHasChanged();

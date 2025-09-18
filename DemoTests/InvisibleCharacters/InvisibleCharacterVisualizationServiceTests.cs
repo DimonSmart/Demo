@@ -158,37 +158,6 @@ namespace DemoTests.InvisibleCharacters
         }
 
         [Fact]
-        public void VisualizeInvisibleCharacters_HighlightModeByCategory_UsesCategoryClasses()
-        {
-            var input = "\u0001\u200B"; // Control + ZWSP
-            var options = new VisualizationOptions 
-            { 
-                ShowInvisibleCharacters = true, 
-                HighlightMode = HighlightMode.ByCategory 
-            };
-            var result = _visualizer.VisualizeInvisibleCharacters(input, options);
-            
-            Assert.Contains("inv-control", result);
-            Assert.Contains("inv-zerowidth", result);
-        }
-
-        [Fact]
-        public void VisualizeInvisibleCharacters_HighlightModeAllSame_UsesGenericClass()
-        {
-            var input = "\u0001\u200B"; // Control + ZWSP
-            var options = new VisualizationOptions 
-            { 
-                ShowInvisibleCharacters = true, 
-                HighlightMode = HighlightMode.AllSame 
-            };
-            var result = _visualizer.VisualizeInvisibleCharacters(input, options);
-            
-            Assert.Contains("inv-all", result);
-            Assert.DoesNotContain("inv-control", result);
-            Assert.DoesNotContain("inv-zerowidth", result);
-        }
-
-        [Fact]
         public void VisualizeInvisibleCharacters_SkipCodeBlocks_IgnoresInCode()
         {
             var input = "Text `with\u200Bcode` and\u200Cmore.";
