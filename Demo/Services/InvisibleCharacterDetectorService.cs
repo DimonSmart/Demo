@@ -182,13 +182,22 @@ namespace Demo.Services
             // Category 2: Line breaks
             if (LineBreaks.Contains(codePoint))
             {
+                var hint = codePoint switch
+                {
+                    0x000D => "normalize CR to CR-LF or remove if before LF",
+                    0x0085 => "replace NEL with CR-LF",
+                    0x2028 => "replace LS with CR-LF",
+                    0x2029 => "replace PS with CR-LF",
+                    _ => "normalize to LF"
+                };
+
                 return new CharacterDetection
                 {
                     Category = InvisibleCharacterCategory.LineBreaks,
                     CodePoint = codePoint,
                     Name = GetUnicodeName(codePoint),
                     Marker = "¶",
-                    ReplacementHint = "normalize to \\n"
+                    ReplacementHint = hint
                 };
             }
 

@@ -28,7 +28,7 @@ namespace Demo.Services
         private static readonly HashSet<int> NoBreakSpaces = new() { 0x00A0, 0x202F };
         private static readonly HashSet<int> ZeroWidthFormat = new() { 0x200B, 0x200C, 0x200D, 0x2060, 0xFEFF, 0x180E };
         private static readonly HashSet<int> BiDiControls = new() { 0x200E, 0x200F, 0x202A, 0x202B, 0x202C, 0x202D, 0x202E, 0x2066, 0x2067, 0x2068, 0x2069 };
-        private static readonly HashSet<int> InvisibleMath = new() { 0x2062, 0x2063, 0x2064 };
+        private static readonly HashSet<int> InvisibleMath = new() { 0x2061, 0x2062, 0x2063, 0x2064 };
         private static readonly HashSet<int> VariationSelectors = new();
         private static readonly HashSet<int> EmojiTags = new();
 
@@ -84,6 +84,35 @@ namespace Demo.Services
             };
         }
 
+        /// <summary>
+        /// Cleans only specific categories of invisible characters from the text.
+        /// This method is designed for selective cleaning where user chooses specific categories to remove.
+        /// </summary>
+        /// <param name="input">Text to clean</param>
+        /// <param name="enabledCategories">Only characters from these categories will be removed</param>
+        /// <param name="options">Additional cleaning options</param>
+        /// <returns>Cleaning result with statistics</returns>
+        public CleaningResult CleanSelectedCategories(string input, HashSet<InvisibleCharacterCategory> enabledCategories, CleaningOptions? options = null)
+        {
+            options ??= GetDefaultOptions(CleaningPreset.Safe);
+            
+            var detectionResult = _detector.DetectInvisibleCharacters(input, options.SkipCodeBlocks);
+            var cleanedText = ApplySelectiveCleaning(input, enabledCategories, options);
+            
+            var afterCleaningResult = _detector.DetectInvisibleCharacters(cleanedText, options.SkipCodeBlocks);
+            
+            return new CleaningResult
+            {
+                OriginalText = input,
+                CleanedText = cleanedText,
+                OriginalDetection = detectionResult,
+                AfterCleaningDetection = afterCleaningResult,
+                Preset = CleaningPreset.Safe, // Use Safe as default since this is selective cleaning
+                Options = options,
+                Statistics = CalculateStatistics(detectionResult, afterCleaningResult)
+            };
+        }
+
         private string ApplyCleaningRules(string input, CleaningPreset preset, CleaningOptions options)
         {
             var sb = new StringBuilder(input.Length);
@@ -91,7 +120,6 @@ namespace Demo.Services
             
             int position = 0;
             var runes = input.EnumerateRunes().ToArray();
-            bool insertedSpaceForInvisibleSequence = false;
             
             for (int i = 0; i < runes.Length; i++)
             {
@@ -125,7 +153,6 @@ namespace Demo.Services
                 if (!isInvisible)
                 {
                     // Reset flag when we encounter a visible character
-                    insertedSpaceForInvisibleSequence = false;
                 }
 
                 var processed = ProcessCharacter(rune, preset, options, previousRune, nextRune, sb, runes, i);
@@ -138,6 +165,77 @@ namespace Demo.Services
             }
 
             return sb.ToString();
+        }
+
+        private string ApplySelectiveCleaning(string input, HashSet<InvisibleCharacterCategory> enabledCategories, CleaningOptions options)
+        {
+            var detection = _detector.DetectInvisibleCharacters(input, options.SkipCodeBlocks);
+            
+            // If no categories are enabled, return original text
+            if (enabledCategories.Count == 0)
+                return input;
+            
+            // Build a mapping of positions to character detections for enabled categories only
+            var positionsToClean = detection.DetectedCharacters
+                .Where(cd => enabledCategories.Contains(cd.Category))
+                .ToDictionary(cd => cd.Position, cd => cd);
+            
+            if (positionsToClean.Count == 0)
+                return input;
+            
+            var runes = input.EnumerateRunes().ToArray();
+            var sb = new StringBuilder(input.Length);
+            int position = 0;
+            
+            foreach (var rune in runes)
+            {
+                if (positionsToClean.TryGetValue(position, out var charDetection))
+                {
+                    // Apply selective cleaning for this character
+                    var processed = ProcessCharacterSelectively(rune, charDetection.Category, options);
+                    if (processed != null)
+                    {
+                        sb.Append(processed);
+                    }
+                }
+                else
+                {
+                    // Keep the character as-is
+                    sb.Append(rune.ToString());
+                }
+                
+                position += rune.Utf16SequenceLength;
+            }
+            
+            return sb.ToString();
+        }
+        
+        private string? ProcessCharacterSelectively(Rune rune, InvisibleCharacterCategory category, CleaningOptions options)
+        {
+            var codePoint = rune.Value;
+            
+            return category switch
+            {
+                InvisibleCharacterCategory.C0C1Controls => null, // Remove
+                InvisibleCharacterCategory.LineBreaks => codePoint switch 
+                {
+                    0x000D or 0x0085 or 0x2028 or 0x2029 => "\n",
+                    0x000A => "\n",
+                    _ => null
+                },
+                InvisibleCharacterCategory.Tab => new string(' ', options.TabSize),
+                InvisibleCharacterCategory.WideSpaces => " ",
+                InvisibleCharacterCategory.NoBreakSpaces => " ",
+                InvisibleCharacterCategory.ZeroWidthFormat => null, // Remove
+                InvisibleCharacterCategory.BiDiControls => null, // Remove
+                InvisibleCharacterCategory.SoftHyphen => null, // Remove
+                InvisibleCharacterCategory.InvisibleMath => null, // Remove
+                InvisibleCharacterCategory.VariationSelectors => null, // Remove
+                InvisibleCharacterCategory.EmojiTags => null, // Remove
+                InvisibleCharacterCategory.CombiningMarks => null, // Remove if orphaned
+                InvisibleCharacterCategory.Confusables => GetTypographyNormalization(codePoint),
+                _ => null // Remove unknown categories
+            };
         }
 
         private string? ProcessCharacter(Rune rune, CleaningPreset preset, CleaningOptions options, Rune? previousRune, Rune? nextRune, StringBuilder sb, Rune[] runes, int index)
@@ -268,9 +366,9 @@ namespace Demo.Services
                 0x201D => "\u201D", // RIGHT DOUBLE QUOTATION MARK - keep as smart quote  
                 0x2018 => "\u2018", // LEFT SINGLE QUOTATION MARK - keep as smart quote
                 0x2019 => "\u2019", // RIGHT SINGLE QUOTATION MARK - keep as smart quote
-                0x2013 => "\u2013", // EN DASH - keep as en dash
-                0x2014 => "\u2014", // EM DASH - keep as em dash
-                0x2212 => "\u2212", // MINUS SIGN - keep as math minus
+                0x2013 => "-", // EN DASH → regular hyphen
+                0x2014 => "-", // EM DASH → regular hyphen  
+                0x2212 => "-", // MINUS SIGN → regular hyphen
                 // Cyrillic lookalikes should be converted to Latin
                 0x0430 => "a", // CYRILLIC SMALL LETTER A → LATIN
                 0x0435 => "e", // CYRILLIC SMALL LETTER IE → LATIN  

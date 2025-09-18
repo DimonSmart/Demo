@@ -1,5 +1,4 @@
 ﻿@page "/markdown-to-word"
-@using System.Text
 @using Demo.Demos.MarkdownToWord
 @using Demo.Services
 @using Markdig
@@ -8,6 +7,7 @@
 @inject IJSRuntime JSRuntime
 @inject InvisibleCharacterDetectorService CharacterDetector
 @inject InvisibleCharacterVisualizationService CharacterVisualizer
+@inject InvisibleCharacterCleanerService CharacterCleaner
 <link rel="stylesheet" href="css/demos.css" />
 <style>
 @((MarkupString)CharacterVisualizer.GenerateVisualizationCSS())
@@ -59,7 +59,7 @@
 
 <PageTitle>Markdown to Word</PageTitle>
 <div class="page-container">
-    <!-- Invisible Character Controls -->
+    <!-- View Mode Selection -->
     <div class="invisible-char-controls">
         <div class="row mb-3">
             <div class="col-md-6">
@@ -81,24 +81,33 @@
                     <label class="btn btn-outline-primary flex-fill" for="invisibleChars">Invisible Characters</label>
                 </div>
             </div>
-
-            <div class="col-md-6">
-                <div class="control-group w-100">
-                    <label class="form-label mb-0" for="presetSelect">Cleaning preset</label>
-                    <select id="presetSelect" class="form-select" @bind="SelectedPreset">
-                        <option value="@CleaningPreset.Safe">Safe</option>
-                        <option value="@CleaningPreset.Aggressive">Aggressive</option>
-                        <option value="@CleaningPreset.ASCIIStrict">ASCII-Strict</option>
-                        <option value="@CleaningPreset.TypographySoft">Typography-Soft</option>
-                        <option value="@CleaningPreset.RTLSafe">RTL-Safe</option>
-                        <option value="@CleaningPreset.SEOPlain">SEO/Plain</option>
-                    </select>
-                </div>
-            </div>
         </div>
 
         @if (CurrentViewMode == ViewMode.InvisibleCharacters)
         {
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="control-group w-100">
+                        <label class="form-label mb-0" for="presetSelect">Cleaning preset</label>
+                        <select id="presetSelect" class="form-select" @bind="SelectedPreset">
+                            <option value="@CleaningPreset.Safe">Safe</option>
+                            <option value="@CleaningPreset.Aggressive">Aggressive</option>
+                            <option value="@CleaningPreset.ASCIIStrict">ASCII-Strict</option>
+                            <option value="@CleaningPreset.TypographySoft">Typography-Soft</option>
+                            <option value="@CleaningPreset.RTLSafe">RTL-Safe</option>
+                            <option value="@CleaningPreset.SEOPlain">SEO/Plain</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex align-items-end">
+                        <button class="btn btn-warning btn-clean" @onclick="DeleteInvisibleCharacters" disabled="@(!HasCharactersToClean)">
+                            Clean Selected (@CharactersToCleanCount)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="row mb-3">
                 <div class="col-12">
                     <div class="card">
@@ -128,14 +137,6 @@
                 </div>
             </div>
         }
-        
-        <div class="row mb-3">
-            <div class="col-12 col-md-6 col-lg-4">
-                <button class="btn btn-warning w-100 btn-clean" @onclick="DeleteInvisibleCharacters" disabled="@(!HasCharactersToClean)">
-                    Clean Selected (@CharactersToCleanCount)
-                </button>
-            </div>
-        </div>
     </div>
 
     <!-- Existing Controls -->
@@ -425,84 +426,25 @@
         if (!HasCharactersToClean)
             return;
 
-        var detectionResult = CharacterDetector.DetectInvisibleCharacters(MarkdownContent);
-
-        var charactersToProcess = detectionResult.DetectedCharacters
-            .Where(dc => EnabledCategories.Contains(dc.Category))
-            .OrderByDescending(dc => dc.Position)
-            .ToList();
-
-        if (charactersToProcess.Count == 0)
-            return;
-
-        var builder = new StringBuilder(MarkdownContent);
-        var hasChanges = false;
-
-        foreach (var detection in charactersToProcess)
+        // Используем новый метод селективной очистки для удаления только выбранных категорий
+        var cleaningOptions = new CleaningOptions
         {
-            if (TryApplyCleaning(builder, detection))
-            {
-                hasChanges = true;
-            }
-        }
+            SkipCodeBlocks = true,
+            TabSize = 4,
+            InvisibleMathToSpace = true
+        };
 
-        if (!hasChanges)
+        var result = CharacterCleaner.CleanSelectedCategories(MarkdownContent, EnabledCategories, cleaningOptions);
+
+        if (!result.HasChanges)
             return;
 
-        MarkdownContent = builder.ToString();
+        MarkdownContent = result.CleanedText;
 
         await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
         await UpdatePreview();
 
         StateHasChanged();
-    }
-
-    private static bool TryApplyCleaning(StringBuilder builder, CharacterDetection detection)
-    {
-        var index = detection.Position;
-
-        if (index < 0 || index >= builder.Length)
-        {
-            return false;
-        }
-
-        if (detection.Category == InvisibleCharacterCategory.LineBreaks)
-        {
-            return NormalizeLineBreak(builder, detection, index);
-        }
-
-        builder.Remove(index, 1);
-        return true;
-    }
-
-    private static bool NormalizeLineBreak(StringBuilder builder, CharacterDetection detection, int index)
-    {
-        if (detection.CodePoint == 0x000D)
-        {
-            if (builder[index] != '\r')
-            {
-                return false;
-            }
-
-            if (index + 1 < builder.Length && builder[index + 1] == '\n')
-            {
-                builder.Remove(index, 1);
-            }
-            else
-            {
-                builder[index] = '\n';
-            }
-
-            return true;
-        }
-
-        if (builder[index] == (char)detection.CodePoint)
-        {
-            builder[index] = '\n';
-            return true;
-        }
-
-        return false;
     }
 
     private string GetCategoryDisplayName(InvisibleCharacterCategory category)
