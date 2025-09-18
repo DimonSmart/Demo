@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Demo.Services;
 using Xunit;
 
@@ -85,16 +86,37 @@ namespace DemoTests.InvisibleCharacters
         public void VisualizeInvisibleCharacters_LineBreakDisabled_NoMarker()
         {
             var input = "Line1\nLine2";
-            var options = new VisualizationOptions 
-            { 
-                ShowInvisibleCharacters = true, 
-                ShowLineBreaks = false 
+            var options = new VisualizationOptions
+            {
+                ShowInvisibleCharacters = true,
+                ShowLineBreaks = false
             };
             var result = _visualizer.VisualizeInvisibleCharacters(input, options);
-            
+
             // Should not show line break marker
             Assert.DoesNotContain("¶", result);
             Assert.Contains("\n", result); // But should still have the actual newline
+        }
+
+        [Fact]
+        public void VisualizeInvisibleCharacters_LineBreakCategoryDisabled_NoMarker()
+        {
+            var input = "Line1\nLine2";
+            var options = new VisualizationOptions
+            {
+                ShowInvisibleCharacters = true,
+                ShowLineBreaks = true,
+                EnabledCategories = new HashSet<InvisibleCharacterCategory>
+                {
+                    InvisibleCharacterCategory.ZeroWidthFormat
+                }
+            };
+
+            var result = _visualizer.VisualizeInvisibleCharacters(input, options);
+
+            Assert.DoesNotContain("inv-linebreak", result);
+            Assert.DoesNotContain("¶", result);
+            Assert.Contains("\n", result);
         }
 
         [Fact]
@@ -127,10 +149,29 @@ namespace DemoTests.InvisibleCharacters
             var input = "Text\u200BWithZWSP";
             var options = new VisualizationOptions { ShowInvisibleCharacters = true };
             var result = _visualizer.VisualizeInvisibleCharacters(input, options);
-            
+
             Assert.Contains("inv-zerowidth", result);
             Assert.Contains("ZWSP", result);
             Assert.Contains("U+200B", result);
+        }
+
+        [Fact]
+        public void VisualizeInvisibleCharacters_DisabledCategory_HidesMarkers()
+        {
+            var input = "Hello\u200BWorld";
+            var options = new VisualizationOptions
+            {
+                ShowInvisibleCharacters = true,
+                EnabledCategories = new HashSet<InvisibleCharacterCategory>
+                {
+                    InvisibleCharacterCategory.LineBreaks
+                }
+            };
+
+            var result = _visualizer.VisualizeInvisibleCharacters(input, options);
+
+            Assert.DoesNotContain("inv-zerowidth", result);
+            Assert.DoesNotContain("ZWSP", result);
         }
 
         [Fact]
