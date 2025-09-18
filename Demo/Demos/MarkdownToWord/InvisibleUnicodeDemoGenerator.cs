@@ -23,8 +23,7 @@ public static class InvisibleUnicodeDemoGenerator
 
         var builder = new StringBuilder();
         builder.AppendLine("## Compact invisible character sample");
-        builder.AppendLine("Each bullet hides one character type handled by the cleaner.");
-        builder.AppendLine();
+        builder.AppendLine("**Each bullet hides one character type handled by the cleaner.**");
         builder.AppendLine($"- Control character: ping{control}pong");
         builder.AppendLine($"- Tab character: left{tab}right → left{tabReplacement}right");
         builder.AppendLine($"- Exotic line break: top{lineSeparator}bottom");

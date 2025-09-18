@@ -55,6 +55,12 @@
 #preview li:last-child {
     margin-bottom: 0;
 }
+
+#preview h2 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.4rem;
+}
 </style>
 
 <PageTitle>Markdown to Word</PageTitle>
@@ -100,9 +106,12 @@
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="d-flex align-items-end">
+                    <div class="d-flex align-items-end gap-2">
                         <button class="btn btn-warning btn-clean" @onclick="DeleteInvisibleCharacters" disabled="@(!HasCharactersToClean)">
                             Clean Selected (@CharactersToCleanCount)
+                        </button>
+                        <button class="btn btn-outline-secondary btn-clean" @onclick="ClearAllCheckboxes">
+                            Clear All
                         </button>
                     </div>
                 </div>
@@ -226,6 +235,7 @@
                 InvisibleCharacterCategory.InvisibleMath,
                 InvisibleCharacterCategory.VariationSelectors,
                 InvisibleCharacterCategory.EmojiTags,
+                InvisibleCharacterCategory.CombiningMarks,
                 InvisibleCharacterCategory.Confusables
             },
             [CleaningPreset.ASCIIStrict] = new[]
@@ -444,6 +454,13 @@
         await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
         await UpdatePreview();
 
+        StateHasChanged();
+    }
+
+    private async Task ClearAllCheckboxes()
+    {
+        EnabledCategories.Clear();
+        await UpdatePreview();
         StateHasChanged();
     }
 
