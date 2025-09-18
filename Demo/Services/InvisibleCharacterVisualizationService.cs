@@ -23,6 +23,7 @@ namespace Demo.Services
         {
             var sb = new StringBuilder();
             var detectionsByPosition = detection.DetectedCharacters.ToDictionary(d => d.Position, d => d);
+            var hasLineBreakDetections = detection.DetectedCharacters.Any(d => d.Category == InvisibleCharacterCategory.LineBreaks);
             var codeBlockRanges = options.SkipCodeBlocks ? FindCodeBlockRanges(input) : new List<(int start, int end)>();
 
             int position = 0;
@@ -48,7 +49,7 @@ namespace Demo.Services
                         sb.Append(HttpUtility.HtmlEncode(rune.ToString()));
                     }
                 }
-                else if (ShouldRenderLineFeed(rune, options))
+                else if (ShouldRenderLineFeed(rune, options, hasLineBreakDetections))
                 {
                     var cssClass = GetCssClass(InvisibleCharacterCategory.LineBreaks);
                     var marker = "¶";
@@ -84,8 +85,13 @@ namespace Demo.Services
             return options.ShowInvisibleCharacters;
         }
 
-        private static bool ShouldRenderLineFeed(Rune rune, VisualizationOptions options)
+        private static bool ShouldRenderLineFeed(Rune rune, VisualizationOptions options, bool hasLineBreakDetections)
         {
+            if (!hasLineBreakDetections)
+            {
+                return false;
+            }
+
             return rune.Value == 0x000A &&
                    options.ShowLineBreaks &&
                    IsCategoryEnabled(InvisibleCharacterCategory.LineBreaks, options);
