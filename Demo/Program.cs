@@ -25,6 +25,9 @@ builder.Services.AddSingleton<PageTitleService>();
 builder.Services.AddSingleton<LogStore>();
 builder.Services.AddScoped<BrowserService>();
 builder.Services.AddScoped<ImageProcessingService>();
+builder.Services.AddScoped<InvisibleCharacterDetectorService>();
+builder.Services.AddScoped<InvisibleCharacterCleanerService>();
+builder.Services.AddScoped<InvisibleCharacterVisualizationService>();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
 // Hash demo

@@ -7,16 +7,167 @@
 
 @inject PageTitleService PageTitleService
 @inject IJSRuntime JSRuntime
+@inject InvisibleCharacterDetectorService CharacterDetector
+@inject InvisibleCharacterCleanerService CharacterCleaner
+@inject InvisibleCharacterVisualizationService CharacterVisualizer
 <link rel="stylesheet" href="css/demos.css" />
+<style>
+@((MarkupString)CharacterVisualizer.GenerateVisualizationCSS())
+
+.invisible-char-controls {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dropdown-toggle-split {
+    padding-left: 0.375rem;
+    padding-right: 0.375rem;
+}
+
+.cleaning-report {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 8px 0;
+    font-size: 0.9em;
+}
+
+.cleaning-report.error {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+}
+</style>
 
 <PageTitle>Markdown to Word</PageTitle>
 <div class="page-container">
+    <!-- Invisible Character Controls -->
+    <div class="invisible-char-controls">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <!-- Mode toggle -->
+                <div class="btn-group d-flex" role="group">
+                    <input type="radio" 
+                           class="btn-check" 
+                           name="viewMode" 
+                           id="preview" 
+                           checked="@(CurrentViewMode == ViewMode.Preview)"
+                           @onchange="@(() => SetViewMode(ViewMode.Preview))" />
+                    <label class="btn btn-outline-primary flex-fill" for="preview">Preview</label>
+
+                    <input type="radio" 
+                           class="btn-check" 
+                           name="viewMode" 
+                           id="invisibleChars" 
+                           checked="@(CurrentViewMode == ViewMode.InvisibleCharacters)"
+                           @onchange="@(() => SetViewMode(ViewMode.InvisibleCharacters))" />
+                    <label class="btn btn-outline-primary flex-fill" for="invisibleChars">Invisible Characters</label>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <!-- Additional cleaning presets -->
+                <div class="btn-group w-100">
+                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                        Presets (@SelectedPreset)
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><h6 class="dropdown-header">Cleaning Presets</h6></li>
+                        <li><button class="dropdown-item" @onclick="() => SelectPreset(CleaningPreset.Safe)">Safe</button></li>
+                        <li><button class="dropdown-item" @onclick="() => SelectPreset(CleaningPreset.Aggressive)">Aggressive</button></li>
+                        <li><button class="dropdown-item" @onclick="() => SelectPreset(CleaningPreset.ASCIIStrict)">ASCII-Strict</button></li>
+                        <li><button class="dropdown-item" @onclick="() => SelectPreset(CleaningPreset.TypographySoft)">Typography-Soft</button></li>
+                        <li><button class="dropdown-item" @onclick="() => SelectPreset(CleaningPreset.RTLSafe)">RTL-Safe</button></li>
+                        <li><button class="dropdown-item" @onclick="() => SelectPreset(CleaningPreset.SEOPlain)">SEO/Plain</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><button class="dropdown-item" @onclick="CleanText">Apply Preset</button></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Селекторы категорий (показываем только в режиме невидимых символов) -->
+        @if (CurrentViewMode == ViewMode.InvisibleCharacters)
+        {
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Invisible Character Categories</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                @foreach (var category in Enum.GetValues<InvisibleCharacterCategory>())
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" 
+                                                   type="checkbox" 
+                                                   id="cat-@category" 
+                                                   checked="@EnabledCategories.Contains(category)"
+                                                   @onchange="@(e => ToggleCategory(category, (bool)e.Value!))" />
+                                            <label class="form-check-label" for="cat-@category">
+                                                @GetCategoryDisplayName(category)
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <!-- Clean selected categories button -->
+                <button class="btn btn-warning w-100" @onclick="DeleteInvisibleCharacters" disabled="@(!HasInvisibleCharactersInEnabledCategories)">
+                    Clean Selected (@InvisibleCharacterCount)
+                </button>
+            </div>
+            <div class="col-md-6">
+                <!-- Highlight mode -->
+                <select class="form-select" @bind="CurrentHighlightMode" @bind:after="OnHighlightModeChanged">
+                    <option value="@HighlightMode.ByCategory">By Category</option>
+                    <option value="@HighlightMode.AllSame">All Same</option>
+                </select>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(LastCleaningReport))
+        {
+            <div class="cleaning-report @(LastCleaningHasError ? "error" : "")">
+                @LastCleaningReport
+                @if (CanUndo)
+                {
+                    <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="UndoLastCleaning">Undo</button>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Existing Controls -->
     <div>
         <div class="mb-2">
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("**")' style="font-weight: bold;">B</button>
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("_")' style="font-style: italic;">I</button>
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("~~")' style="text-decoration: line-through;">S</button>
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("`")' style="font-family: monospace;">`code`</button>
+            <button class="btn btn-info ms-3" @onclick="LoadExample" title="Load Russian text with invisible characters for testing">Show Example</button>
         </div>
     </div>
 
@@ -27,9 +178,16 @@
         </div>
 
         <div class="form-group" style="width: 50%; display: flex; flex-direction: column;">
-            <label class="form-label">Preview</label>
+            <label class="form-label">@(CurrentViewMode == ViewMode.Preview ? "Preview" : "Text with Invisible Characters")</label>
             <div id="preview" class="form-control" style="flex-grow: 1; overflow-y: auto; white-space: pre-wrap;">
-                @((MarkupString)MarkdownPreview)
+                @if (CurrentViewMode == ViewMode.InvisibleCharacters)
+                {
+                    @((MarkupString)VisualizedPreview)
+                }
+                else
+                {
+                    @((MarkupString)MarkdownPreview)
+                }
             </div>
         </div>
     </div>
@@ -41,19 +199,149 @@
 </div>
 
 @code {
+    // Enum для режимов просмотра
+    private enum ViewMode
+    {
+        Preview,
+        InvisibleCharacters
+    }
+
     private ElementReference MarkdownTextArea;
     private string MarkdownContent { get; set; } = string.Empty;
     private string MarkdownPreview { get; set; } = string.Empty;
+    private string VisualizedPreview { get; set; } = string.Empty;
     private string DownloadUrl { get; set; } = string.Empty;
     private Markdig.MarkdownPipeline MarkdownPipeline =
         new Markdig.MarkdownPipelineBuilder()
         .UseEmphasisExtras()
         .Build();
 
-    protected override void OnInitialized()
+    // Invisible character feature properties
+    private ViewMode CurrentViewMode { get; set; } = ViewMode.Preview;
+    private bool ShowInvisibleCharacters => CurrentViewMode == ViewMode.InvisibleCharacters;
+    private HashSet<InvisibleCharacterCategory> EnabledCategories { get; set; } = new();
+    
+    // Computed properties for UI
+    private bool HasInvisibleCharactersInEnabledCategories
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(MarkdownContent) || EnabledCategories.Count == 0)
+                return false;
+
+            var detectionResult = CharacterDetector.DetectInvisibleCharacters(MarkdownContent);
+            return detectionResult.DetectedCharacters.Any(dc => EnabledCategories.Contains(dc.Category));
+        }
+    }
+    
+    private int InvisibleCharacterCount
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(MarkdownContent) || EnabledCategories.Count == 0)
+                return 0;
+
+            var detectionResult = CharacterDetector.DetectInvisibleCharacters(MarkdownContent);
+            return detectionResult.DetectedCharacters.Count(dc => EnabledCategories.Contains(dc.Category));
+        }
+    }
+    
+    private CleaningPreset SelectedPreset { get; set; } = CleaningPreset.Safe;
+    private HighlightMode CurrentHighlightMode { get; set; } = HighlightMode.ByCategory;
+    private string LastCleaningReport { get; set; } = string.Empty;
+    private bool LastCleaningHasError { get; set; } = false;
+    private bool CanUndo { get; set; } = false;
+    private string? UndoContent { get; set; }
+
+    // Visualization options
+    private VisualizationOptions VisualizationOptions => new()
+    {
+        ShowInvisibleCharacters = ShowInvisibleCharacters,
+        SkipCodeBlocks = true,
+        ShowLineBreaks = true,
+        HighlightMode = CurrentHighlightMode,
+        EnabledCategories = EnabledCategories
+    };
+
+    protected override async Task OnInitializedAsync()
     {
         base.OnInitialized();
         PageTitleService.SetTitle("Markdown to Word");
+        
+        // Initialize all categories as enabled by default
+        EnabledCategories = Enum.GetValues<InvisibleCharacterCategory>().ToHashSet();
+        
+        await UpdatePreview();
+    }
+
+    private async Task OnHighlightModeChanged()
+    {
+        if (CurrentViewMode == ViewMode.InvisibleCharacters)
+        {
+            await UpdatePreview();
+            StateHasChanged();
+        }
+    }
+
+    private void SelectPreset(CleaningPreset preset)
+    {
+        SelectedPreset = preset;
+        StateHasChanged();
+    }
+
+    private async Task CleanText()
+    {
+        try
+        {
+            var cleaningResult = CharacterCleaner.CleanText(MarkdownContent, SelectedPreset);
+            
+            if (cleaningResult.HasChanges)
+            {
+                // Store for undo
+                UndoContent = MarkdownContent;
+                CanUndo = true;
+                
+                // Apply cleaned text
+                MarkdownContent = cleaningResult.CleanedText;
+                LastCleaningReport = cleaningResult.Summary;
+                LastCleaningHasError = false;
+                
+                // Update the textarea
+                await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
+                
+                await UpdatePreview();
+            }
+            else
+            {
+                LastCleaningReport = "No invisible characters found to clean.";
+                LastCleaningHasError = false;
+                CanUndo = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            LastCleaningReport = $"Error during cleaning: {ex.Message}";
+            LastCleaningHasError = true;
+            CanUndo = false;
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task UndoLastCleaning()
+    {
+        if (CanUndo && UndoContent != null)
+        {
+            MarkdownContent = UndoContent;
+            UndoContent = null;
+            CanUndo = false;
+            LastCleaningReport = "Cleaning undone.";
+            LastCleaningHasError = false;
+            
+            await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
+            await UpdatePreview();
+            StateHasChanged();
+        }
     }
 
     private async Task ToggleMarkdownAction(string markdownSymbol)
@@ -69,22 +357,38 @@
             await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
 
             // Update preview
-            MarkdownPreview = Markdig.Markdown.ToHtml(MarkdownContent, MarkdownPipeline);
-
-            GenerateDownloadUrl();
+            await UpdatePreview();
         }
     }
 
-    private void OnInput(ChangeEventArgs e)
+    private async Task OnInput(ChangeEventArgs e)
     {
         MarkdownContent = e.Value?.ToString() ?? string.Empty;
-        MarkdownPreview = Markdig.Markdown.ToHtml(MarkdownContent);
+        await UpdatePreview();
+    }
+
+    private Task UpdatePreview()
+    {
+        MarkdownPreview = Markdig.Markdown.ToHtml(MarkdownContent, MarkdownPipeline);
+        
+        if (CurrentViewMode == ViewMode.InvisibleCharacters)
+        {
+            // Generate visualized preview with only enabled categories
+            var visualizedMarkdown = CharacterVisualizer.VisualizeInvisibleCharacters(MarkdownContent, VisualizationOptions);
+            VisualizedPreview = Markdig.Markdown.ToHtml(visualizedMarkdown, MarkdownPipeline);
+        }
+        else
+        {
+            VisualizedPreview = MarkdownPreview;
+        }
+        
         GenerateDownloadUrl();
+        return Task.CompletedTask;
     }
 
     private void GenerateDownloadUrl()
     {
-        string htmlContent = Markdig.Markdown.ToHtml(MarkdownContent); // Convert Markdown to HTML
+        string htmlContent = Markdig.Markdown.ToHtml(MarkdownContent, MarkdownPipeline); // Convert Markdown to HTML
 
         // Wrap HTML content into a basic Word file structure
         string wordContent = $@"<html xmlns:o='urn:schemas-microsoft-com:office:office'
@@ -97,5 +401,130 @@
         // Convert the content to base64 string
         var byteArray = Encoding.UTF8.GetBytes(wordContent);
         DownloadUrl = "data:application/msword;base64," + Convert.ToBase64String(byteArray);
+    }
+
+    // Новые методы для работы с режимами и категориями
+    private async Task SetViewMode(ViewMode mode)
+    {
+        CurrentViewMode = mode;
+        await UpdatePreview();
+        StateHasChanged();
+    }
+
+    private async Task ToggleCategory(InvisibleCharacterCategory category, bool enabled)
+    {
+        if (enabled)
+        {
+            EnabledCategories.Add(category);
+        }
+        else
+        {
+            EnabledCategories.Remove(category);
+        }
+        
+        await UpdatePreview();
+        StateHasChanged();
+    }
+
+    private async Task DeleteInvisibleCharacters()
+    {
+        if (!HasInvisibleCharactersInEnabledCategories)
+            return;
+
+        try
+        {
+            // Сохраняем для отмены
+            UndoContent = MarkdownContent;
+            
+            // Получаем детекцию символов
+            var detectionResult = CharacterDetector.DetectInvisibleCharacters(MarkdownContent);
+            
+            // Создаем список символов для удаления (только из включенных категорий)
+            var charactersToRemove = detectionResult.DetectedCharacters
+                .Where(dc => EnabledCategories.Contains(dc.Category))
+                .OrderByDescending(dc => dc.Position) // Удаляем с конца чтобы не сбить позиции
+                .ToList();
+            
+            // Удаляем символы
+            var cleanedText = MarkdownContent;
+            int removedCount = 0;
+            var removedCategories = new Dictionary<InvisibleCharacterCategory, int>();
+            
+            foreach (var charToRemove in charactersToRemove)
+            {
+                if (charToRemove.Position < cleanedText.Length)
+                {
+                    cleanedText = cleanedText.Remove(charToRemove.Position, 1);
+                    removedCount++;
+                    
+                    if (!removedCategories.ContainsKey(charToRemove.Category))
+                        removedCategories[charToRemove.Category] = 0;
+                    removedCategories[charToRemove.Category]++;
+                }
+            }
+            
+            MarkdownContent = cleanedText;
+            
+            await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
+            await UpdatePreview();
+            
+            // Form report
+            var categoryReports = removedCategories.Select(kvp => 
+                $"{GetCategoryDisplayName(kvp.Key)}: {kvp.Value}");
+            LastCleaningReport = $"Removed {removedCount} characters. {string.Join(", ", categoryReports)}";
+            LastCleaningHasError = false;
+            CanUndo = true;
+        }
+        catch (Exception ex)
+        {
+            LastCleaningReport = $"Error during removal: {ex.Message}";
+            LastCleaningHasError = true;
+            CanUndo = false;
+        }
+        
+        StateHasChanged();
+    }
+
+    private string GetCategoryDisplayName(InvisibleCharacterCategory category)
+    {
+        return category switch
+        {
+            InvisibleCharacterCategory.C0C1Controls => "C0/C1 Controls",
+            InvisibleCharacterCategory.LineBreaks => "Line Breaks", 
+            InvisibleCharacterCategory.Tab => "Tab",
+            InvisibleCharacterCategory.WideSpaces => "Wide Spaces",
+            InvisibleCharacterCategory.NoBreakSpaces => "No-Break Spaces",
+            InvisibleCharacterCategory.ZeroWidthFormat => "Zero Width Format",
+            InvisibleCharacterCategory.BiDiControls => "BiDi Controls",
+            InvisibleCharacterCategory.SoftHyphen => "Soft Hyphen",
+            InvisibleCharacterCategory.InvisibleMath => "Invisible Math",
+            InvisibleCharacterCategory.VariationSelectors => "Variation Selectors",
+            InvisibleCharacterCategory.EmojiTags => "Emoji Tags",
+            InvisibleCharacterCategory.CombiningMarks => "Combining Marks",
+            InvisibleCharacterCategory.Confusables => "Confusables",
+            _ => category.ToString()
+        };
+    }
+
+    private async Task LoadExample()
+    {
+        // Store current content for undo if there's content
+        if (!string.IsNullOrEmpty(MarkdownContent))
+        {
+            UndoContent = MarkdownContent;
+            CanUndo = true;
+        }
+
+        // Generate demo text with various invisible characters
+        var demoContent = InvisibleUnicodeDemoGenerator.BuildMarkdown();
+        MarkdownContent = demoContent;
+
+        await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
+        await UpdatePreview();
+        
+        LastCleaningReport = "Russian demo text loaded with invisible characters for testing.";
+        LastCleaningHasError = false;
+        
+        StateHasChanged();
     }
 }
