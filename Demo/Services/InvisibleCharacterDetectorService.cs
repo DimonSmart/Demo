@@ -113,14 +113,14 @@ namespace Demo.Services
         static InvisibleCharacterDetectorService()
         {
             // Initialize variation selectors
-            for (int i = 0xFE00; i <= 0xFE0F; i++)
+            for (var i = 0xFE00; i <= 0xFE0F; i++)
                 VariationSelectors.Add(i);
-            for (int i = 0xE0100; i <= 0xE01EF; i++)
+            for (var i = 0xE0100; i <= 0xE01EF; i++)
                 VariationSelectors.Add(i);
 
             // Initialize emoji tags
             EmojiTags.Add(0xE0001);
-            for (int i = 0xE0020; i <= 0xE007F; i++)
+            for (var i = 0xE0020; i <= 0xE007F; i++)
                 EmojiTags.Add(i);
         }
 
@@ -129,9 +129,9 @@ namespace Demo.Services
             var result = new DetectionResult();
             var codeBlockRanges = skipCodeBlocks ? FindCodeBlockRanges(input) : new List<(int start, int end)>();
             
-            int utf16Position = 0;
-            int line = 1;
-            int column = 1;
+            var utf16Position = 0;
+            var line = 1;
+            var column = 1;
 
             foreach (var rune in input.EnumerateRunes())
             {
@@ -347,14 +347,14 @@ namespace Demo.Services
             return null;
         }
 
-        private List<(int start, int end)> FindCodeBlockRanges(string input)
+        private static List<(int start, int end)> FindCodeBlockRanges(string input)
         {
             var ranges = new List<(int start, int end)>();
-            bool inInlineCode = false;
-            bool inFencedCode = false;
-            int codeStart = 0;
+            var inInlineCode = false;
+            var inFencedCode = false;
+            var codeStart = 0;
             
-            for (int i = 0; i < input.Length; i++)
+            for (var i = 0; i < input.Length; i++)
             {
                 if (input[i] == '`')
                 {
@@ -398,12 +398,12 @@ namespace Demo.Services
             return ranges;
         }
 
-        private bool IsInCodeBlock(int position, List<(int start, int end)> codeBlocks)
+        private static bool IsInCodeBlock(int position, List<(int start, int end)> codeBlocks)
         {
             return codeBlocks.Any(block => position >= block.start && position < block.end);
         }
 
-        private void UpdatePosition(Rune rune, ref int line, ref int column, ref int utf16Position)
+        private static void UpdatePosition(Rune rune, ref int line, ref int column, ref int utf16Position)
         {
             if (rune.Value == 0x000A) // LF
             {
@@ -417,14 +417,14 @@ namespace Demo.Services
             utf16Position += rune.Utf16SequenceLength;
         }
 
-        private string GetContext(string input, int utf16Position, int contextLength)
+        private static string GetContext(string input, int utf16Position, int contextLength)
         {
-            int start = Math.Max(0, utf16Position - contextLength);
-            int end = Math.Min(input.Length, utf16Position + contextLength);
+            var start = Math.Max(0, utf16Position - contextLength);
+            var end = Math.Min(input.Length, utf16Position + contextLength);
             return input.Substring(start, end - start);
         }
 
-        private string GetUnicodeName(int codePoint)
+        private static string GetUnicodeName(int codePoint)
         {
             // This is a simplified implementation
             // In a real application, you would use a proper Unicode database
@@ -450,7 +450,7 @@ namespace Demo.Services
             };
         }
 
-        private string GetZeroWidthMarker(int codePoint) => codePoint switch
+        private static string GetZeroWidthMarker(int codePoint) => codePoint switch
         {
             0x200B => "ZWSP",
             0x200C => "ZWNJ",
@@ -461,7 +461,7 @@ namespace Demo.Services
             _ => "ZW"
         };
 
-        private string GetBiDiMarker(int codePoint) => codePoint switch
+        private static string GetBiDiMarker(int codePoint) => codePoint switch
         {
             0x200E => "LRM",
             0x200F => "RLM",
@@ -477,7 +477,7 @@ namespace Demo.Services
             _ => "BIDI"
         };
 
-        private string GetMathMarker(int codePoint) => codePoint switch
+        private static string GetMathMarker(int codePoint) => codePoint switch
         {
             0x2062 => "×₀",
             0x2063 => ",₀",
