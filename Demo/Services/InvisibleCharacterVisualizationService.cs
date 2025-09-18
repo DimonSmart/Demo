@@ -45,8 +45,7 @@ namespace Demo.Services
                 }
                 else if (options.ShowLineBreaks && rune.Value == 0x000A) // LF
                 {
-                    // Show line break marker even if LF is not detected as invisible character
-                    var cssClass = GetCssClass(InvisibleCharacterCategory.LineBreaks, options.HighlightMode);
+                    var cssClass = GetCssClass(InvisibleCharacterCategory.LineBreaks);
                     var marker = "¶";
                     var tooltip = "Line Feed (LF)";
                     var codePoint = "U+000A";
@@ -69,7 +68,7 @@ namespace Demo.Services
 
         private string VisualizeCharacter(CharacterDetection detection, Rune rune, VisualizationOptions options)
         {
-            var cssClass = GetCssClass(detection.Category, options.HighlightMode);
+            var cssClass = GetCssClass(detection.Category);
             var marker = GetVisualMarker(detection, rune);
             var tooltip = HttpUtility.HtmlAttributeEncode(detection.Tooltip);
             var codePoint = detection.CodePointString;
@@ -78,19 +77,9 @@ namespace Demo.Services
             // Special handling for line breaks - show marker at end of line
             if (detection.Category == InvisibleCharacterCategory.LineBreaks)
             {
-                if (rune.Value == 0x000A) // LF
-                {
-                    return options.ShowLineBreaks 
-                        ? $"<span class=\"{cssClass}\" data-code=\"{codePoint}\" data-name=\"{name}\" title=\"{tooltip}\">{marker}</span>\n"
-                        : "\n";
-                }
-                else
-                {
-                    // CR, NEL, LS, PS - show marker and convert to LF
-                    return options.ShowLineBreaks 
-                        ? $"<span class=\"{cssClass}\" data-code=\"{codePoint}\" data-name=\"{name}\" title=\"{tooltip}\">{marker}</span>\n"
-                        : "\n";
-                }
+                return options.ShowLineBreaks
+                    ? $"<span class=\"{cssClass}\" data-code=\"{codePoint}\" data-name=\"{name}\" title=\"{tooltip}\">{marker}</span>\n"
+                    : "\n";
             }
 
             // Special handling for TAB - show marker with visual tab alignment
@@ -125,10 +114,10 @@ namespace Demo.Services
             };
         }
 
-        private string GetCssClass(InvisibleCharacterCategory category, HighlightMode mode)
+        private string GetCssClass(InvisibleCharacterCategory category)
         {
             var baseClass = "inv-char";
-            var categoryClass = mode == HighlightMode.ByCategory ? $"inv-{GetCategoryName(category).ToLower()}" : "inv-all";
+            var categoryClass = $"inv-{GetCategoryName(category).ToLower()}";
             return $"{baseClass} {categoryClass}";
         }
 
@@ -204,82 +193,49 @@ namespace Demo.Services
             return @"
 .inv-char {
     position: relative;
-    border-radius: 2px;
-    font-family: 'Courier New', monospace;
-    font-size: 0.85em;
-    font-weight: bold;
-    padding: 0 2px;
-    margin: 0 1px;
-    display: inline-block;
-    cursor: help;
-}
-
-/* Category-specific colors */
-.inv-control { background-color: rgba(255, 99, 99, 0.3); color: #cc0000; }
-.inv-linebreak { background-color: rgba(99, 255, 99, 0.3); color: #006600; }
-.inv-tab { background-color: rgba(99, 99, 255, 0.3); color: #000066; }
-.inv-widespace { background-color: rgba(255, 255, 99, 0.3); color: #666600; }
-.inv-nbsp { background-color: rgba(255, 165, 0, 0.3); color: #cc6600; }
-.inv-zerowidth { background-color: rgba(255, 99, 255, 0.3); color: #990099; }
-.inv-bidi { background-color: rgba(255, 192, 203, 0.3); color: #990066; }
-.inv-softhyphen { background-color: rgba(192, 192, 192, 0.3); color: #666666; }
-.inv-invismath { background-color: rgba(144, 238, 144, 0.3); color: #006633; }
-.inv-varsel { background-color: rgba(173, 216, 230, 0.3); color: #336699; }
-.inv-emotag { background-color: rgba(221, 160, 221, 0.3); color: #663366; }
-.inv-combining { background-color: rgba(255, 218, 185, 0.3); color: #994400; }
-.inv-confusable { background-color: rgba(255, 140, 0, 0.3); color: #cc4400; }
-
-/* All same color mode */
-.inv-all { background-color: rgba(255, 182, 193, 0.4); color: #990033; }
-
-/* Hover effects */
-.inv-char:hover {
-    background-color: rgba(0, 0, 0, 0.1);
-    transform: scale(1.1);
-    z-index: 1000;
-}
-
-/* Tooltip styling */
-.inv-char[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #333;
-    color: white;
-    padding: 4px 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 4px;
-    font-size: 12px;
-    white-space: nowrap;
-    z-index: 1001;
-    margin-bottom: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 0.85em;
+    font-weight: 600;
+    padding: 0 4px;
+    margin: 0 1px;
+    line-height: 1.4;
+    cursor: help;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.inv-char[title]:hover::before {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 4px solid transparent;
-    border-top-color: #333;
-    z-index: 1001;
+.inv-char:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    z-index: 5;
 }
 
-/* Tab visualization specific styling */
+.inv-control { background-color: #ffd6d6; color: #a91f1f; }
+.inv-linebreak { background-color: #d0f4de; color: #1f6f3d; }
+.inv-tab { background-color: #d7dcff; color: #2430a0; }
+.inv-widespace { background-color: #fff2b2; color: #856404; }
+.inv-nbsp { background-color: #ffe0c7; color: #9b4d16; }
+.inv-zerowidth { background-color: #f5d0ff; color: #7e1b8d; }
+.inv-bidi { background-color: #ffd9ec; color: #a11963; }
+.inv-softhyphen { background-color: #e4e7eb; color: #4b5563; }
+.inv-invismath { background-color: #d2f8d2; color: #2b7a0b; }
+.inv-varsel { background-color: #d0ebff; color: #216fa0; }
+.inv-emotag { background-color: #ffe6a7; color: #8a4f0f; }
+.inv-combining { background-color: #ffd5f2; color: #a60f63; }
+.inv-confusable { background-color: #ffe8cc; color: #8c4a03; }
+
 .inv-tab {
-    min-width: 2em;
-    text-align: left;
+    min-width: 2.5ch;
+    justify-content: flex-start;
 }
 
-/* Line break visualization */
 .inv-linebreak {
-    position: absolute;
-    right: -1em;
-    font-size: 0.8em;
-}";
+    min-width: 2ch;
+}
+";
         }
     }
 
@@ -288,18 +244,11 @@ namespace Demo.Services
         public bool ShowInvisibleCharacters { get; set; } = false;
         public bool SkipCodeBlocks { get; set; } = true;
         public bool ShowLineBreaks { get; set; } = true;
-        public HighlightMode HighlightMode { get; set; } = HighlightMode.ByCategory;
         public HashSet<InvisibleCharacterCategory> EnabledCategories { get; set; } = new();
 
         public static VisualizationOptions Default => new()
         {
             EnabledCategories = Enum.GetValues<InvisibleCharacterCategory>().ToHashSet()
         };
-    }
-
-    public enum HighlightMode
-    {
-        ByCategory,
-        AllSame
     }
 }
