@@ -19,24 +19,25 @@ public static class InvisibleUnicodeDemoGenerator
         const char combiningAcute = '\u0301';
         const char confusableDash = '\u2014';
         const string emojiTagSequence = "\U0001F3F4\U000E0067\U000E0062\U000E0073\U000E0065\U000E0063\U000E0074\U000E007F";
+        const string tabReplacement = "    ";
 
         var builder = new StringBuilder();
         builder.AppendLine("## Compact invisible character sample");
         builder.AppendLine("Each bullet hides one character type handled by the cleaner.");
         builder.AppendLine();
         builder.AppendLine($"- Control character: ping{control}pong");
-        builder.AppendLine($"- Tab character: left{tab}right");
+        builder.AppendLine($"- Tab character: left{tab}right → left{tabReplacement}right");
         builder.AppendLine($"- Exotic line break: top{lineSeparator}bottom");
         builder.AppendLine($"- Wide space: label{thinSpace}value");
-        builder.AppendLine($"- Non-breaking space: keep{nonBreakingSpace}together");
+        builder.AppendLine($"- Non-breaking space: keep{nonBreakingSpace}together → keep together");
         builder.AppendLine($"- Zero-width format: join{zeroWidthSpace}ed");
         builder.AppendLine($"- BiDi mark: start{leftToRightMark}end");
         builder.AppendLine($"- Soft hyphen: re{softHyphen}order");
         builder.AppendLine($"- Invisible math separator: 2{invisibleSeparator}x");
         builder.AppendLine($"- Variation selector: heart\u2764{variationSelector}");
-        builder.AppendLine($"- Emoji tag sequence: flag{emojiTagSequence}");
-        builder.AppendLine($"- Combining mark: accent e{combiningAcute}");
-        builder.AppendLine($"- Confusable dash: word{confusableDash}dash");
+        builder.AppendLine($"- Emoji tag sequence: flag{emojiTagSequence} → flag");
+        builder.AppendLine($"- Combining mark (accent helper): accent e{combiningAcute}");
+        builder.AppendLine($"- Confusable dash: word{confusableDash}dash → word-dash");
         return builder.ToString();
     }
 }
