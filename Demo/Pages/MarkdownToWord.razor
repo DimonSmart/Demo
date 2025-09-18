@@ -1,22 +1,161 @@
 ﻿@page "/markdown-to-word"
-@using System.IO
-@using System.Text
 @using Demo.Demos.MarkdownToWord
 @using Demo.Services
 @using Markdig
 
 @inject PageTitleService PageTitleService
 @inject IJSRuntime JSRuntime
+@inject InvisibleCharacterDetectorService CharacterDetector
+@inject InvisibleCharacterVisualizationService CharacterVisualizer
+@inject InvisibleCharacterCleanerService CharacterCleaner
 <link rel="stylesheet" href="css/demos.css" />
+<style>
+@((MarkupString)CharacterVisualizer.GenerateVisualizationCSS())
+
+.invisible-char-controls {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.control-group select {
+    flex: 1;
+}
+
+.btn-clean {
+    white-space: normal;
+    line-height: 1.2;
+}
+
+#preview ul,
+#preview ol {
+    white-space: normal;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+}
+
+#preview li {
+    margin-bottom: 0.25rem;
+    line-height: 1.25;
+}
+
+#preview li:last-child {
+    margin-bottom: 0;
+}
+
+#preview h2 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.4rem;
+}
+</style>
 
 <PageTitle>Markdown to Word</PageTitle>
 <div class="page-container">
+    <!-- View Mode Selection -->
+    <div class="invisible-char-controls">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="btn-group d-flex" role="group">
+                    <input type="radio"
+                           class="btn-check"
+                           name="viewMode"
+                           id="preview"
+                           checked="@(CurrentViewMode == ViewMode.Preview)"
+                           @onchange="@(() => SetViewMode(ViewMode.Preview))" />
+                    <label class="btn btn-outline-primary flex-fill" for="preview">Preview</label>
+
+                    <input type="radio"
+                           class="btn-check"
+                           name="viewMode"
+                           id="invisibleChars"
+                           checked="@(CurrentViewMode == ViewMode.InvisibleCharacters)"
+                           @onchange="@(() => SetViewMode(ViewMode.InvisibleCharacters))" />
+                    <label class="btn btn-outline-primary flex-fill" for="invisibleChars">Invisible Characters</label>
+                </div>
+            </div>
+        </div>
+
+        @if (CurrentViewMode == ViewMode.InvisibleCharacters)
+        {
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="control-group w-100">
+                        <label class="form-label mb-0" for="presetSelect">Cleaning preset</label>
+                        <select id="presetSelect" class="form-select" @bind="SelectedPreset">
+                            <option value="@CleaningPreset.Safe">Safe</option>
+                            <option value="@CleaningPreset.Aggressive">Aggressive</option>
+                            <option value="@CleaningPreset.ASCIIStrict">ASCII-Strict</option>
+                            <option value="@CleaningPreset.TypographySoft">Typography-Soft</option>
+                            <option value="@CleaningPreset.RTLSafe">RTL-Safe</option>
+                            <option value="@CleaningPreset.SEOPlain">SEO/Plain</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex align-items-end gap-2">
+                        <button class="btn btn-warning btn-clean" @onclick="DeleteInvisibleCharacters" disabled="@(!HasCharactersToClean)">
+                            Clean Selected (@CharactersToCleanCount)
+                        </button>
+                        <button class="btn btn-outline-secondary btn-clean" @onclick="ClearAllCheckboxes">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Invisible Character Categories</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                @foreach (var category in Enum.GetValues<InvisibleCharacterCategory>())
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" 
+                                                   type="checkbox" 
+                                                   id="cat-@category" 
+                                                   checked="@EnabledCategories.Contains(category)"
+                                                   @onchange="@(e => ToggleCategory(category, (bool)e.Value!))" />
+                                            <label class="form-check-label" for="cat-@category">
+                                                @GetCategoryDisplayName(category)
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Existing Controls -->
     <div>
         <div class="mb-2">
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("**")' style="font-weight: bold;">B</button>
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("_")' style="font-style: italic;">I</button>
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("~~")' style="text-decoration: line-through;">S</button>
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("`")' style="font-family: monospace;">`code`</button>
+            <button class="btn btn-info ms-3" @onclick="LoadExample" title="Load compact text with invisible characters for testing">Show Example</button>
         </div>
     </div>
 
@@ -27,9 +166,16 @@
         </div>
 
         <div class="form-group" style="width: 50%; display: flex; flex-direction: column;">
-            <label class="form-label">Preview</label>
+            <label class="form-label">@(CurrentViewMode == ViewMode.Preview ? "Preview" : "Text with Invisible Characters")</label>
             <div id="preview" class="form-control" style="flex-grow: 1; overflow-y: auto; white-space: pre-wrap;">
-                @((MarkupString)MarkdownPreview)
+                @if (CurrentViewMode == ViewMode.InvisibleCharacters)
+                {
+                    @((MarkupString)VisualizedPreview)
+                }
+                else
+                {
+                    @((MarkupString)MarkdownPreview)
+                }
             </div>
         </div>
     </div>
@@ -41,19 +187,165 @@
 </div>
 
 @code {
+    private enum ViewMode
+    {
+        Preview,
+        InvisibleCharacters
+    }
+
     private ElementReference MarkdownTextArea;
     private string MarkdownContent { get; set; } = string.Empty;
     private string MarkdownPreview { get; set; } = string.Empty;
+    private string VisualizedPreview { get; set; } = string.Empty;
     private string DownloadUrl { get; set; } = string.Empty;
+    private DetectionResult LatestDetectionResult { get; set; } = new();
     private Markdig.MarkdownPipeline MarkdownPipeline =
         new Markdig.MarkdownPipelineBuilder()
         .UseEmphasisExtras()
         .Build();
 
-    protected override void OnInitialized()
+    private ViewMode CurrentViewMode { get; set; } = ViewMode.Preview;
+    private bool ShowInvisibleCharacters => CurrentViewMode == ViewMode.InvisibleCharacters;
+    private HashSet<InvisibleCharacterCategory> EnabledCategories { get; set; } = new();
+
+    private static readonly IReadOnlyDictionary<CleaningPreset, InvisibleCharacterCategory[]> PresetCategoryMap =
+        new Dictionary<CleaningPreset, InvisibleCharacterCategory[]>
+        {
+            [CleaningPreset.Safe] = new[]
+            {
+                InvisibleCharacterCategory.C0C1Controls,
+                InvisibleCharacterCategory.LineBreaks,
+                InvisibleCharacterCategory.Tab,
+                InvisibleCharacterCategory.WideSpaces,
+                InvisibleCharacterCategory.ZeroWidthFormat,
+                InvisibleCharacterCategory.BiDiControls,
+                InvisibleCharacterCategory.SoftHyphen,
+                InvisibleCharacterCategory.InvisibleMath
+            },
+            [CleaningPreset.Aggressive] = new[]
+            {
+                InvisibleCharacterCategory.C0C1Controls,
+                InvisibleCharacterCategory.LineBreaks,
+                InvisibleCharacterCategory.Tab,
+                InvisibleCharacterCategory.WideSpaces,
+                InvisibleCharacterCategory.NoBreakSpaces,
+                InvisibleCharacterCategory.ZeroWidthFormat,
+                InvisibleCharacterCategory.BiDiControls,
+                InvisibleCharacterCategory.SoftHyphen,
+                InvisibleCharacterCategory.InvisibleMath,
+                InvisibleCharacterCategory.VariationSelectors,
+                InvisibleCharacterCategory.EmojiTags,
+                InvisibleCharacterCategory.CombiningMarks,
+                InvisibleCharacterCategory.Confusables
+            },
+            [CleaningPreset.ASCIIStrict] = new[]
+            {
+                InvisibleCharacterCategory.C0C1Controls,
+                InvisibleCharacterCategory.LineBreaks,
+                InvisibleCharacterCategory.Tab,
+                InvisibleCharacterCategory.WideSpaces,
+                InvisibleCharacterCategory.NoBreakSpaces,
+                InvisibleCharacterCategory.ZeroWidthFormat,
+                InvisibleCharacterCategory.BiDiControls,
+                InvisibleCharacterCategory.SoftHyphen,
+                InvisibleCharacterCategory.InvisibleMath,
+                InvisibleCharacterCategory.VariationSelectors,
+                InvisibleCharacterCategory.EmojiTags,
+                InvisibleCharacterCategory.Confusables
+            },
+            [CleaningPreset.TypographySoft] = new[]
+            {
+                InvisibleCharacterCategory.C0C1Controls,
+                InvisibleCharacterCategory.LineBreaks,
+                InvisibleCharacterCategory.Tab,
+                InvisibleCharacterCategory.WideSpaces,
+                InvisibleCharacterCategory.ZeroWidthFormat,
+                InvisibleCharacterCategory.BiDiControls,
+                InvisibleCharacterCategory.SoftHyphen,
+                InvisibleCharacterCategory.InvisibleMath
+            },
+            [CleaningPreset.RTLSafe] = new[]
+            {
+                InvisibleCharacterCategory.C0C1Controls,
+                InvisibleCharacterCategory.LineBreaks,
+                InvisibleCharacterCategory.Tab,
+                InvisibleCharacterCategory.WideSpaces,
+                InvisibleCharacterCategory.ZeroWidthFormat,
+                InvisibleCharacterCategory.SoftHyphen,
+                InvisibleCharacterCategory.InvisibleMath
+            },
+            [CleaningPreset.SEOPlain] = new[]
+            {
+                InvisibleCharacterCategory.C0C1Controls,
+                InvisibleCharacterCategory.LineBreaks,
+                InvisibleCharacterCategory.Tab,
+                InvisibleCharacterCategory.WideSpaces,
+                InvisibleCharacterCategory.NoBreakSpaces,
+                InvisibleCharacterCategory.ZeroWidthFormat,
+                InvisibleCharacterCategory.BiDiControls,
+                InvisibleCharacterCategory.SoftHyphen,
+                InvisibleCharacterCategory.InvisibleMath,
+                InvisibleCharacterCategory.VariationSelectors,
+                InvisibleCharacterCategory.EmojiTags,
+                InvisibleCharacterCategory.Confusables
+            }
+        };
+
+    private CleaningPreset selectedPreset = CleaningPreset.Safe;
+    private CleaningPreset SelectedPreset
+    {
+        get => selectedPreset;
+        set
+        {
+            if (selectedPreset != value)
+            {
+                selectedPreset = value;
+                _ = InvokeAsync(async () =>
+                {
+                    ApplyPresetCategories(selectedPreset);
+                    await UpdatePreview();
+                    StateHasChanged();
+                });
+            }
+        }
+    }
+
+    private bool HasCharactersToClean => EnabledCategories.Count > 0 &&
+        LatestDetectionResult.DetectedCharacters.Any(dc => EnabledCategories.Contains(dc.Category));
+
+    private int CharactersToCleanCount => EnabledCategories.Count == 0
+        ? 0
+        : LatestDetectionResult.DetectedCharacters.Count(dc => EnabledCategories.Contains(dc.Category));
+    
+    // Visualization options
+    private VisualizationOptions VisualizationOptions => new()
+    {
+        ShowInvisibleCharacters = ShowInvisibleCharacters,
+        SkipCodeBlocks = true,
+        ShowLineBreaks = true,
+        EnabledCategories = EnabledCategories
+    };
+
+    protected override async Task OnInitializedAsync()
     {
         base.OnInitialized();
         PageTitleService.SetTitle("Markdown to Word");
+
+        ApplyPresetCategories(SelectedPreset);
+
+        await UpdatePreview();
+    }
+
+    private void ApplyPresetCategories(CleaningPreset preset)
+    {
+        if (PresetCategoryMap.TryGetValue(preset, out var categories))
+        {
+            EnabledCategories = new HashSet<InvisibleCharacterCategory>(categories);
+        }
+        else
+        {
+            EnabledCategories = new HashSet<InvisibleCharacterCategory>(Enum.GetValues<InvisibleCharacterCategory>());
+        }
     }
 
     private async Task ToggleMarkdownAction(string markdownSymbol)
@@ -69,22 +361,40 @@
             await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
 
             // Update preview
-            MarkdownPreview = Markdig.Markdown.ToHtml(MarkdownContent, MarkdownPipeline);
-
-            GenerateDownloadUrl();
+            await UpdatePreview();
         }
     }
 
-    private void OnInput(ChangeEventArgs e)
+    private async Task OnInput(ChangeEventArgs e)
     {
         MarkdownContent = e.Value?.ToString() ?? string.Empty;
-        MarkdownPreview = Markdig.Markdown.ToHtml(MarkdownContent);
+        await UpdatePreview();
+    }
+
+    private Task UpdatePreview()
+    {
+        var content = MarkdownContent ?? string.Empty;
+        LatestDetectionResult = CharacterDetector.DetectInvisibleCharacters(content);
+        MarkdownPreview = Markdig.Markdown.ToHtml(content, MarkdownPipeline);
+
+        if (CurrentViewMode == ViewMode.InvisibleCharacters)
+        {
+            // Generate visualized preview with only enabled categories
+            var visualizedMarkdown = CharacterVisualizer.VisualizeInvisibleCharacters(content, VisualizationOptions);
+            VisualizedPreview = Markdig.Markdown.ToHtml(visualizedMarkdown, MarkdownPipeline);
+        }
+        else
+        {
+            VisualizedPreview = MarkdownPreview;
+        }
+
         GenerateDownloadUrl();
+        return Task.CompletedTask;
     }
 
     private void GenerateDownloadUrl()
     {
-        string htmlContent = Markdig.Markdown.ToHtml(MarkdownContent); // Convert Markdown to HTML
+        string htmlContent = Markdig.Markdown.ToHtml(MarkdownContent, MarkdownPipeline); // Convert Markdown to HTML
 
         // Wrap HTML content into a basic Word file structure
         string wordContent = $@"<html xmlns:o='urn:schemas-microsoft-com:office:office'
@@ -97,5 +407,92 @@
         // Convert the content to base64 string
         var byteArray = Encoding.UTF8.GetBytes(wordContent);
         DownloadUrl = "data:application/msword;base64," + Convert.ToBase64String(byteArray);
+    }
+
+    private async Task SetViewMode(ViewMode mode)
+    {
+        CurrentViewMode = mode;
+        await UpdatePreview();
+        StateHasChanged();
+    }
+
+    private async Task ToggleCategory(InvisibleCharacterCategory category, bool enabled)
+    {
+        if (enabled)
+        {
+            EnabledCategories.Add(category);
+        }
+        else
+        {
+            EnabledCategories.Remove(category);
+        }
+        
+        await UpdatePreview();
+        StateHasChanged();
+    }
+
+    private async Task DeleteInvisibleCharacters()
+    {
+        if (!HasCharactersToClean)
+            return;
+
+        // Используем новый метод селективной очистки для удаления только выбранных категорий
+        var cleaningOptions = new CleaningOptions
+        {
+            SkipCodeBlocks = true,
+            TabSize = 4,
+            InvisibleMathToSpace = true
+        };
+
+        var result = CharacterCleaner.CleanSelectedCategories(MarkdownContent, EnabledCategories, cleaningOptions);
+
+        if (!result.HasChanges)
+            return;
+
+        MarkdownContent = result.CleanedText;
+
+        await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
+        await UpdatePreview();
+
+        StateHasChanged();
+    }
+
+    private async Task ClearAllCheckboxes()
+    {
+        EnabledCategories.Clear();
+        await UpdatePreview();
+        StateHasChanged();
+    }
+
+    private string GetCategoryDisplayName(InvisibleCharacterCategory category)
+    {
+        return category switch
+        {
+            InvisibleCharacterCategory.C0C1Controls => "C0/C1 Controls",
+            InvisibleCharacterCategory.LineBreaks => "Line Breaks",
+            InvisibleCharacterCategory.Tab => "Tab",
+            InvisibleCharacterCategory.WideSpaces => "Wide Spaces",
+            InvisibleCharacterCategory.NoBreakSpaces => "No-Break Spaces",
+            InvisibleCharacterCategory.ZeroWidthFormat => "Zero Width Format",
+            InvisibleCharacterCategory.BiDiControls => "BiDi Controls",
+            InvisibleCharacterCategory.SoftHyphen => "Soft Hyphen",
+            InvisibleCharacterCategory.InvisibleMath => "Invisible Math",
+            InvisibleCharacterCategory.VariationSelectors => "Variation Selectors",
+            InvisibleCharacterCategory.EmojiTags => "Emoji Tags",
+            InvisibleCharacterCategory.CombiningMarks => "Combining Marks",
+            InvisibleCharacterCategory.Confusables => "Confusables",
+            _ => category.ToString()
+        };
+    }
+
+    private async Task LoadExample()
+    {
+        var demoContent = InvisibleUnicodeDemoGenerator.BuildMarkdown();
+        MarkdownContent = demoContent;
+
+        await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
+        await UpdatePreview();
+
+        StateHasChanged();
     }
 }
