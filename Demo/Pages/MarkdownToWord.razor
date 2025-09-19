@@ -24,6 +24,63 @@
     gap: 12px;
 }
 
+.view-mode-toggle {
+    max-width: 360px;
+    width: 100%;
+}
+
+.view-mode-toggle-input {
+    display: none;
+}
+
+.view-mode-toggle-track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #e9ecef;
+    border-radius: 999px;
+    padding: 6px;
+    font-weight: 500;
+    color: #6c757d;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.view-mode-toggle-option {
+    flex: 1;
+    text-align: center;
+    z-index: 1;
+    transition: color 0.3s ease;
+    padding: 2px 0;
+}
+
+.view-mode-toggle-handle {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: calc(50% - 8px);
+    height: calc(100% - 8px);
+    background: #ffffff;
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(13, 110, 253, 0.25);
+    transition: left 0.3s ease;
+}
+
+.view-mode-toggle-input:checked + .view-mode-toggle-track {
+    background: #dbe7ff;
+}
+
+.view-mode-toggle-input:checked + .view-mode-toggle-track .view-mode-toggle-handle {
+    left: calc(50% + 4px);
+}
+
+.view-mode-toggle-input:not(:checked) + .view-mode-toggle-track .view-mode-toggle-option.preview,
+.view-mode-toggle-input:checked + .view-mode-toggle-track .view-mode-toggle-option.invisible {
+    color: #0d6efd;
+}
+
 .control-group {
     display: flex;
     align-items: center;
@@ -37,6 +94,43 @@
 .btn-clean {
     white-space: normal;
     line-height: 1.2;
+}
+
+.invisible-categories-card {
+    border: 1px solid #d7dce2;
+    border-radius: 10px;
+}
+
+.invisible-categories-card .card-header {
+    padding: 0.6rem 0.9rem;
+    background: #f3f5f9;
+    border-bottom: 1px solid #d7dce2;
+}
+
+.invisible-categories-card .card-body {
+    padding: 0.75rem;
+}
+
+.invisible-category-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    background: #f8f9fa;
+    border: 1px solid transparent;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.invisible-category-option:hover {
+    background: #eef2f7;
+    border-color: #d0d8e5;
+}
+
+.invisible-category-option .form-check-input {
+    margin-top: 0;
+    float: none;
 }
 
 #preview ul,
@@ -67,73 +161,65 @@
 <div class="page-container">
     <!-- View Mode Selection -->
     <div class="invisible-char-controls">
-        <div class="row mb-3">
+        <div class="row mb-3 w-100">
             <div class="col-md-6">
-                <div class="btn-group d-flex" role="group">
-                    <input type="radio"
-                           class="btn-check"
-                           name="viewMode"
-                           id="preview"
-                           checked="@(CurrentViewMode == ViewMode.Preview)"
-                           @onchange="@(() => SetViewMode(ViewMode.Preview))" />
-                    <label class="btn btn-outline-primary flex-fill" for="preview">Preview</label>
-
-                    <input type="radio"
-                           class="btn-check"
-                           name="viewMode"
-                           id="invisibleChars"
+                <div class="view-mode-toggle">
+                    <input type="checkbox"
+                           id="viewModeToggle"
+                           class="view-mode-toggle-input"
                            checked="@(CurrentViewMode == ViewMode.InvisibleCharacters)"
-                           @onchange="@(() => SetViewMode(ViewMode.InvisibleCharacters))" />
-                    <label class="btn btn-outline-primary flex-fill" for="invisibleChars">Invisible Characters</label>
+                           @onchange="ToggleViewMode" />
+                    <label class="view-mode-toggle-track" for="viewModeToggle">
+                        <span class="view-mode-toggle-option preview">Preview</span>
+                        <span class="view-mode-toggle-option invisible">Invisible Characters</span>
+                        <span class="view-mode-toggle-handle"></span>
+                    </label>
                 </div>
             </div>
         </div>
 
         @if (CurrentViewMode == ViewMode.InvisibleCharacters)
         {
-            <div class="row mb-3">
+            <div class="row g-3 w-100 mb-1">
                 <div class="col-md-6">
                     <div class="control-group w-100">
                         <label class="form-label mb-0" for="presetSelect">Cleaning preset</label>
-                        <select id="presetSelect" class="form-select" @bind="SelectedPreset">
+                        <select id="presetSelect" class="form-select" @bind="SelectedPresetOption">
+                            <option value="@SelectAllOption">Select all</option>
                             <option value="@CleaningPreset.Safe">Safe</option>
                             <option value="@CleaningPreset.Aggressive">Aggressive</option>
                             <option value="@CleaningPreset.ASCIIStrict">ASCII-Strict</option>
                             <option value="@CleaningPreset.TypographySoft">Typography-Soft</option>
                             <option value="@CleaningPreset.RTLSafe">RTL-Safe</option>
                             <option value="@CleaningPreset.SEOPlain">SEO/Plain</option>
+                            <option value="@UnselectAllOption">Unselect all</option>
                         </select>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="d-flex align-items-end gap-2">
-                        <button class="btn btn-warning btn-clean" @onclick="DeleteInvisibleCharacters" disabled="@(!HasCharactersToClean)">
-                            Clean Selected (@CharactersToCleanCount)
-                        </button>
-                        <button class="btn btn-outline-secondary btn-clean" @onclick="ClearAllCheckboxes">
-                            Clear All
-                        </button>
-                    </div>
+                <div class="col-md-6 d-flex align-items-end justify-content-md-end">
+                    <button class="btn btn-warning btn-clean w-100 w-md-auto" @onclick="DeleteInvisibleCharacters" disabled="@(!HasCharactersToClean)">
+                        Clean Selected (@CharactersToCleanCount)
+                    </button>
                 </div>
             </div>
 
             <div class="row mb-3">
                 <div class="col-12">
-                    <div class="card">
+                    <div class="card invisible-categories-card">
                         <div class="card-header">
                             <h6 class="mb-0">Invisible Character Categories</h6>
                         </div>
                         <div class="card-body">
-                            <div class="row">
+                            <div class="row g-2">
                                 @foreach (var category in Enum.GetValues<InvisibleCharacterCategory>())
                                 {
-                                    <div class="col-md-4 mb-2">
-                                        <div class="form-check">
-                                            <input class="form-check-input" 
-                                                   type="checkbox" 
-                                                   id="cat-@category" 
-                                                   checked="@EnabledCategories.Contains(category)"
-                                                   @onchange="@(e => ToggleCategory(category, (bool)e.Value!))" />
+                                    <div class="col-sm-6 col-md-4 col-lg-3">
+                                        <div class="form-check invisible-category-option">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   id="cat-@category"
+                                                    checked="@EnabledCategories.Contains(category)"
+                                                    @onchange="@(e => ToggleCategory(category, (bool)e.Value!))" />
                                             <label class="form-check-label" for="cat-@category">
                                                 @GetCategoryDisplayName(category)
                                             </label>
@@ -291,22 +377,28 @@
             }
         };
 
-    private CleaningPreset selectedPreset = CleaningPreset.Safe;
-    private CleaningPreset SelectedPreset
+    private const string SelectAllOption = "SelectAll";
+    private const string UnselectAllOption = "UnselectAll";
+
+    private CleaningPreset currentPreset = CleaningPreset.Safe;
+    private string selectedPresetOption = CleaningPreset.Safe.ToString();
+
+    private string SelectedPresetOption
     {
-        get => selectedPreset;
+        get => selectedPresetOption;
         set
         {
-            if (selectedPreset != value)
+            var isCommand = string.Equals(value, SelectAllOption, StringComparison.Ordinal) ||
+                            string.Equals(value, UnselectAllOption, StringComparison.Ordinal);
+
+            if (!isCommand && selectedPresetOption == value)
+                return;
+
+            selectedPresetOption = value;
+            _ = InvokeAsync(async () =>
             {
-                selectedPreset = value;
-                _ = InvokeAsync(async () =>
-                {
-                    ApplyPresetCategories(selectedPreset);
-                    await UpdatePreview();
-                    StateHasChanged();
-                });
-            }
+                await HandlePresetOption(value);
+            });
         }
     }
 
@@ -331,9 +423,38 @@
         base.OnInitialized();
         PageTitleService.SetTitle("Markdown to Word");
 
-        ApplyPresetCategories(SelectedPreset);
+        ApplyPresetCategories(currentPreset);
 
         await UpdatePreview();
+    }
+
+    private async Task HandlePresetOption(string? option)
+    {
+        if (string.IsNullOrWhiteSpace(option))
+            return;
+
+        if (string.Equals(option, SelectAllOption, StringComparison.Ordinal))
+        {
+            await SelectAllCategories();
+            return;
+        }
+
+        if (string.Equals(option, UnselectAllOption, StringComparison.Ordinal))
+        {
+            await ClearAllCategories();
+            return;
+        }
+
+        if (!Enum.TryParse(option, out CleaningPreset preset))
+            return;
+
+        if (currentPreset == preset)
+            return;
+
+        currentPreset = preset;
+        ApplyPresetCategories(currentPreset);
+        await UpdatePreview();
+        StateHasChanged();
     }
 
     private void ApplyPresetCategories(CleaningPreset preset)
@@ -409,6 +530,13 @@
         DownloadUrl = "data:application/msword;base64," + Convert.ToBase64String(byteArray);
     }
 
+    private async Task ToggleViewMode(ChangeEventArgs e)
+    {
+        var isInvisible = e.Value is bool value && value;
+        var mode = isInvisible ? ViewMode.InvisibleCharacters : ViewMode.Preview;
+        await SetViewMode(mode);
+    }
+
     private async Task SetViewMode(ViewMode mode)
     {
         CurrentViewMode = mode;
@@ -457,7 +585,14 @@
         StateHasChanged();
     }
 
-    private async Task ClearAllCheckboxes()
+    private async Task SelectAllCategories()
+    {
+        EnabledCategories = new HashSet<InvisibleCharacterCategory>(Enum.GetValues<InvisibleCharacterCategory>());
+        await UpdatePreview();
+        StateHasChanged();
+    }
+
+    private async Task ClearAllCategories()
     {
         EnabledCategories.Clear();
         await UpdatePreview();
