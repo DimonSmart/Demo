@@ -1,8 +1,7 @@
-using System.Linq;
 using System.Text;
 using System.Web;
 
-namespace Demo.Services
+namespace Demo.Demos.MarkdownToWord
 {
     public class InvisibleCharacterVisualizationService
     {
@@ -14,7 +13,7 @@ namespace Demo.Services
                 return HttpUtility.HtmlEncode(input);
 
             var detection = _detector.DetectInvisibleCharacters(input, options.SkipCodeBlocks);
-            
+
             // Even if no invisible characters are detected, we might still need to show line breaks
             return ApplyVisualization(input, detection, options);
         }
@@ -25,7 +24,7 @@ namespace Demo.Services
             var detectionsByPosition = detection.DetectedCharacters.ToDictionary(d => d.Position, d => d);
             var codeBlockRanges = options.SkipCodeBlocks ? FindCodeBlockRanges(input) : new List<(int start, int end)>();
 
-            int position = 0;
+            var position = 0;
 
             foreach (var rune in input.EnumerateRunes())
             {
@@ -62,14 +61,10 @@ namespace Demo.Services
         private static bool ShouldVisualizeDetection(CharacterDetection detection, VisualizationOptions options)
         {
             if (!IsCategoryEnabled(detection.Category, options))
-            {
                 return false;
-            }
 
             if (detection.Category == InvisibleCharacterCategory.LineBreaks)
-            {
                 return options.ShowLineBreaks || options.ShowInvisibleCharacters;
-            }
 
             return options.ShowInvisibleCharacters;
         }
@@ -77,14 +72,10 @@ namespace Demo.Services
         private static bool IsCategoryEnabled(InvisibleCharacterCategory category, VisualizationOptions options)
         {
             if (options.EnabledCategories is null)
-            {
                 return true;
-            }
 
             if (options.EnabledCategories.Count == 0)
-            {
                 return false;
-            }
 
             return options.EnabledCategories.Contains(category);
         }
@@ -168,11 +159,11 @@ namespace Demo.Services
         private List<(int start, int end)> FindCodeBlockRanges(string input)
         {
             var ranges = new List<(int start, int end)>();
-            bool inInlineCode = false;
-            bool inFencedCode = false;
-            int codeStart = 0;
-            
-            for (int i = 0; i < input.Length; i++)
+            var inInlineCode = false;
+            var inFencedCode = false;
+            var codeStart = 0;
+
+            for (var i = 0; i < input.Length; i++)
             {
                 if (input[i] == '`')
                 {
@@ -205,7 +196,7 @@ namespace Demo.Services
                     }
                 }
             }
-            
+
             return ranges;
         }
 

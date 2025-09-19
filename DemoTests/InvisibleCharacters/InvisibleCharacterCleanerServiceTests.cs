@@ -1,8 +1,8 @@
 using Xunit;
-using Demo.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Demo.Demos.MarkdownToWord;
 
 namespace DemoTests.InvisibleCharacters
 {
@@ -13,6 +13,17 @@ namespace DemoTests.InvisibleCharacters
         public InvisibleCharacterCleanerServiceTests()
         {
             _cleaner = new InvisibleCharacterCleanerService();
+        }
+
+        // Helper methods to avoid xUnit2009 warnings
+        private static void AssertDoesNotContainChar(string text, char character)
+        {
+            Assert.True(text.IndexOf(character) == -1, $"Text should not contain character '{character}' (\\u{(int)character:X4})");
+        }
+
+        private static void AssertDoesNotContainString(string text, string substring)
+        {
+            Assert.True(text.IndexOf(substring, StringComparison.Ordinal) == -1, $"Text should not contain substring '{substring}'");
         }
 
         // Individual unit tests removed - functionality is covered by comprehensive UI behavior simulation tests below
@@ -30,8 +41,8 @@ namespace DemoTests.InvisibleCharacters
             var result = _cleaner.CleanText(input, preset);
             
             // All presets should at least remove control characters and ZWSP
-            Assert.False(result.CleanedText.Contains('\u0001')); // Control should be removed
-            Assert.False(result.CleanedText.Contains('\u200B')); // ZWSP should be removed
+            AssertDoesNotContainChar(result.CleanedText, '\u0001'); // Control should be removed
+            AssertDoesNotContainChar(result.CleanedText, '\u200B'); // ZWSP should be removed
             
             // NBSP handling varies by preset
             if (preset == CleaningPreset.Safe || preset == CleaningPreset.TypographySoft || preset == CleaningPreset.RTLSafe)
@@ -99,9 +110,9 @@ namespace DemoTests.InvisibleCharacters
                     if (result.HasChanges)
                     {
                         // Should be removed (2x), not replaced with space (2 x)
-                        Assert.False(result.CleanedText.Contains('\u2063'));
+                        AssertDoesNotContainChar(result.CleanedText, '\u2063');
                         Assert.Contains("2x", result.CleanedText);
-                        Assert.False(result.CleanedText.Contains("2 x"));
+                        AssertDoesNotContainString(result.CleanedText, "2 x");
                     }
                 }
             }
@@ -112,9 +123,9 @@ namespace DemoTests.InvisibleCharacters
             
             Assert.True(finalResult.HasChanges);
             // Final text should have most invisible characters processed
-            Assert.False(finalResult.CleanedText.Contains('\u0001')); // C0C1Controls removed
-            Assert.False(finalResult.CleanedText.Contains('\u200B')); // ZeroWidth removed
-            Assert.False(finalResult.CleanedText.Contains('\u2063')); // InvisibleMath removed (not spaced)
+            AssertDoesNotContainChar(finalResult.CleanedText, '\u0001'); // C0C1Controls removed
+            AssertDoesNotContainChar(finalResult.CleanedText, '\u200B'); // ZeroWidth removed
+            AssertDoesNotContainChar(finalResult.CleanedText, '\u2063'); // InvisibleMath removed (not spaced)
             Assert.Contains("2x", finalResult.CleanedText); // Should be directly concatenated
             Assert.Contains("-", finalResult.CleanedText); // EM DASH converted to hyphen
         }
@@ -154,7 +165,7 @@ namespace DemoTests.InvisibleCharacters
             var result1 = _cleaner.CleanSelectedCategories(testText, c0c1Only, new CleaningOptions());
             
             Assert.True(result1.HasChanges);
-            Assert.False(result1.CleanedText.Contains('\u0001')); // Control removed
+            AssertDoesNotContainChar(result1.CleanedText, '\u0001'); // Control removed
             Assert.True(result1.CleanedText.Contains('\u200B')); // ZWSP preserved
             Assert.True(result1.CleanedText.Contains('\u00A0')); // NBSP preserved
             
@@ -164,7 +175,7 @@ namespace DemoTests.InvisibleCharacters
             
             Assert.True(result2.HasChanges);
             Assert.True(result2.CleanedText.Contains('\u0001')); // Control preserved
-            Assert.False(result2.CleanedText.Contains('\u200B')); // ZWSP removed
+            AssertDoesNotContainChar(result2.CleanedText, '\u200B'); // ZWSP removed
             Assert.True(result2.CleanedText.Contains('\u00A0')); // NBSP preserved
         }
 
@@ -183,11 +194,11 @@ namespace DemoTests.InvisibleCharacters
             var result = _cleaner.CleanSelectedCategories(testText, multipleCategories, new CleaningOptions());
             
             Assert.True(result.HasChanges);
-            Assert.False(result.CleanedText.Contains('\u0001')); // Control removed
-            Assert.False(result.CleanedText.Contains('\u200B')); // ZWSP removed
+            AssertDoesNotContainChar(result.CleanedText, '\u0001'); // Control removed
+            AssertDoesNotContainChar(result.CleanedText, '\u200B'); // ZWSP removed
             Assert.True(result.CleanedText.Contains('\u00A0')); // NBSP preserved (not selected)
             Assert.True(result.CleanedText.Contains('-')); // En dash converted to hyphen
-            Assert.False(result.CleanedText.Contains('\u2013')); // Original en dash removed
+            AssertDoesNotContainChar(result.CleanedText, '\u2013'); // Original en dash removed
         }
 
         [Fact]
@@ -216,7 +227,7 @@ namespace DemoTests.InvisibleCharacters
             var step1Result = _cleaner.CleanSelectedCategories(initialText, step1Categories, options);
 
             Assert.True(step1Result.HasChanges);
-            Assert.False(step1Result.CleanedText.Contains('\u0001')); // SOH removed
+            AssertDoesNotContainChar(step1Result.CleanedText, '\u0001'); // SOH removed
             Assert.Contains("\u00A0", step1Result.CleanedText); // NBSP still there
             Assert.Contains("\u200B", step1Result.CleanedText); // ZWSP still there
             
@@ -228,8 +239,8 @@ namespace DemoTests.InvisibleCharacters
             };
             var step2Result = _cleaner.CleanSelectedCategories(initialText, step2Categories, options);
             
-            Assert.False(step2Result.CleanedText.Contains('\u0001')); // SOH removed
-            Assert.False(step2Result.CleanedText.Contains('\u200B')); // ZWSP removed
+            AssertDoesNotContainChar(step2Result.CleanedText, '\u0001'); // SOH removed
+            AssertDoesNotContainChar(step2Result.CleanedText, '\u200B'); // ZWSP removed
             Assert.Contains("\u00A0", step2Result.CleanedText); // NBSP still there
             Assert.Contains("\u00AD", step2Result.CleanedText); // SoftHyphen still there
 
@@ -243,9 +254,9 @@ namespace DemoTests.InvisibleCharacters
             var step3Result = _cleaner.CleanSelectedCategories(initialText, step3Categories, options);
             
             // Verify InvisibleMath is removed, not replaced with space
-            Assert.False(step3Result.CleanedText.Contains('\u2063')); // INVISIBLE SEPARATOR removed
+            AssertDoesNotContainChar(step3Result.CleanedText, '\u2063'); // INVISIBLE SEPARATOR removed
             Assert.Contains("2x", step3Result.CleanedText); // Should be directly concatenated
-            Assert.False(step3Result.CleanedText.Contains("2 x")); // Should NOT have space
+            AssertDoesNotContainString(step3Result.CleanedText, "2 x"); // Should NOT have space
 
             // Step 4: User adds Confusables (em dash test)
             var step4Categories = new HashSet<InvisibleCharacterCategory> 
@@ -258,14 +269,14 @@ namespace DemoTests.InvisibleCharacters
             var step4Result = _cleaner.CleanSelectedCategories(initialText, step4Categories, options);
             
             // Verify em dash conversion
-            Assert.False(step4Result.CleanedText.Contains('\u2014')); // EM DASH removed
+            AssertDoesNotContainChar(step4Result.CleanedText, '\u2014'); // EM DASH removed
             Assert.Contains("smart-quote", step4Result.CleanedText); // EM DASH converted to hyphen
             
             // Final verification - all selected categories processed
-            Assert.False(step4Result.CleanedText.Contains('\u0001')); // C0C1Controls
-            Assert.False(step4Result.CleanedText.Contains('\u200B')); // ZeroWidthFormat
-            Assert.False(step4Result.CleanedText.Contains('\u2063')); // InvisibleMath
-            Assert.False(step4Result.CleanedText.Contains('\u2014')); // Confusables
+            AssertDoesNotContainChar(step4Result.CleanedText, '\u0001'); // C0C1Controls
+            AssertDoesNotContainChar(step4Result.CleanedText, '\u200B'); // ZeroWidthFormat
+            AssertDoesNotContainChar(step4Result.CleanedText, '\u2063'); // InvisibleMath
+            AssertDoesNotContainChar(step4Result.CleanedText, '\u2014'); // Confusables
             
             // But preserved non-selected categories
             Assert.Contains("\u00A0", step4Result.CleanedText); // NoBreakSpaces preserved
@@ -298,11 +309,9 @@ namespace DemoTests.InvisibleCharacters
                 Assert.Equal(expected, result.CleanedText);
                 
                 // Verify original characters are gone
-                Assert.False(result.CleanedText.Contains('\u2014')); // EM DASH
-                Assert.False(result.CleanedText.Contains('\u2013')); // EN DASH  
-                Assert.False(result.CleanedText.Contains('\u2212')); // MINUS SIGN
-                
-                // Verify replacement character is present
+                AssertDoesNotContainChar(result.CleanedText, '\u2014'); // EM DASH
+                AssertDoesNotContainChar(result.CleanedText, '\u2013'); // EN DASH
+                AssertDoesNotContainChar(result.CleanedText, '\u2212'); // MINUS SIGN                // Verify replacement character is present
                 Assert.Contains("-", result.CleanedText);
             }
         }
@@ -359,9 +368,9 @@ namespace DemoTests.InvisibleCharacters
             Assert.Equal(expected, result.CleanedText);
             
             // Verify specific replacements
-            Assert.False(result.CleanedText.Contains("—")); // EM DASH gone
-            Assert.False(result.CleanedText.Contains("–")); // EN DASH gone
-            Assert.False(result.CleanedText.Contains("−")); // MINUS SIGN gone
+            AssertDoesNotContainString(result.CleanedText, "—"); // EM DASH gone
+            AssertDoesNotContainString(result.CleanedText, "–"); // EN DASH gone
+            AssertDoesNotContainString(result.CleanedText, "−"); // MINUS SIGN gone
             Assert.Contains("-", result.CleanedText); // Regular hyphen present
         }
     }

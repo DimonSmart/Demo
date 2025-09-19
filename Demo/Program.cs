@@ -3,6 +3,7 @@ using BlazorImageProcessing;
 using Demo;
 using Demo.Demos.Common;
 using Demo.Demos.HashX;
+using Demo.Demos.MarkdownToWord;
 using Demo.Demos.MazeRunner;
 using Demo.Demos.Pdd;
 using Demo.Services;

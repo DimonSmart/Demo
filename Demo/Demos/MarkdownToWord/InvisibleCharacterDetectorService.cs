@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace Demo.Services
+namespace Demo.Demos.MarkdownToWord
 {
     public class InvisibleCharacterDetectorService
     {
@@ -169,179 +169,79 @@ namespace Demo.Services
             // Category 1: ASCII Control C0/C1
             if (C0C1Controls.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.C0C1Controls,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = "CTRL",
-                    ReplacementHint = "remove"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.C0C1Controls, codePoint, "CTRL");
             }
 
             // Category 2: Line breaks
             if (LineBreaks.Contains(codePoint))
             {
-                var hint = codePoint switch
-                {
-                    0x000D => "normalize CR to CR-LF or remove if before LF",
-                    0x0085 => "replace NEL with CR-LF",
-                    0x2028 => "replace LS with CR-LF",
-                    0x2029 => "replace PS with CR-LF",
-                    _ => "normalize to LF"
-                };
-
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.LineBreaks,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = "¶",
-                    ReplacementHint = hint
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.LineBreaks, codePoint, "¶");
             }
 
             // Category 3: Tab
             if (codePoint == 0x0009)
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.Tab,
-                    CodePoint = codePoint,
-                    Name = "TAB",
-                    Marker = "→",
-                    ReplacementHint = "4 spaces"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.Tab, codePoint, "→");
             }
 
             // Category 4: Wide spaces
             if (WideSpaces.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.WideSpaces,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = "·",
-                    ReplacementHint = "regular space"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.WideSpaces, codePoint, "·");
             }
 
             // Category 5: Non-breaking spaces
             if (NoBreakSpaces.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.NoBreakSpaces,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = codePoint == 0x00A0 ? "⍽" : "⍽ⁿ",
-                    ReplacementHint = "keep (safe) / regular space (aggressive)"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.NoBreakSpaces, codePoint, codePoint == 0x00A0 ? "⍽" : "⍽ⁿ");
             }
 
             // Category 6: Zero-width/format
             if (ZeroWidthFormat.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.ZeroWidthFormat,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = GetZeroWidthMarker(codePoint),
-                    ReplacementHint = "remove"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.ZeroWidthFormat, codePoint, GetZeroWidthMarker(codePoint));
             }
 
             // Category 7: BiDi controls
             if (BiDiControls.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.BiDiControls,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = GetBiDiMarker(codePoint),
-                    ReplacementHint = "remove"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.BiDiControls, codePoint, GetBiDiMarker(codePoint));
             }
 
             // Category 8: Soft hyphen
             if (codePoint == 0x00AD)
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.SoftHyphen,
-                    CodePoint = codePoint,
-                    Name = "SOFT HYPHEN",
-                    Marker = "¬",
-                    ReplacementHint = "remove"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.SoftHyphen, codePoint, "¬");
             }
 
             // Category 9: Invisible math
             if (InvisibleMath.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.InvisibleMath,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = GetMathMarker(codePoint),
-                    ReplacementHint = "regular space / remove"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.InvisibleMath, codePoint, GetMathMarker(codePoint));
             }
 
             // Category 10: Variation selectors
             if (VariationSelectors.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.VariationSelectors,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = $"VS{(codePoint >= 0xFE00 && codePoint <= 0xFE0F ? codePoint - 0xFE00 + 1 : "S")}",
-                    ReplacementHint = "keep (safe) / remove (aggressive)"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.VariationSelectors, codePoint, $"VS{(codePoint >= 0xFE00 && codePoint <= 0xFE0F ? codePoint - 0xFE00 + 1 : "S")}");
             }
 
             // Category 11: Emoji tags
             if (EmojiTags.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.EmojiTags,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = "TAG",
-                    ReplacementHint = "keep (safe) / remove (aggressive)"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.EmojiTags, codePoint, "TAG");
             }
 
             // Category 12: Combining marks
             if (category == UnicodeCategory.NonSpacingMark)
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.CombiningMarks,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = "◌",
-                    ReplacementHint = "remove if orphaned / keep with base"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.CombiningMarks, codePoint, "◌");
             }
 
             // Category 13: Confusables
             if (Confusables.ContainsKey(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.Confusables,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = "≈",
-                    ReplacementHint = $"→ {Confusables[codePoint]}"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.Confusables, codePoint, "≈");
             }
 
             return null;
@@ -484,6 +384,21 @@ namespace Demo.Services
             0x2064 => "+₀",
             _ => "MATH"
         };
+
+        private CharacterDetection CreateCharacterDetection(InvisibleCharacterCategory category, int codePoint, string marker)
+        {
+            var cleaningActions = CleaningActionFactory.CreateActionsForCharacter(category, codePoint);
+            
+            return new CharacterDetection
+            {
+                Category = category,
+                CodePoint = codePoint,
+                Name = GetUnicodeName(codePoint),
+                Marker = marker,
+                ReplacementHint = cleaningActions.GetValueOrDefault(CleaningPreset.Safe)?.Description ?? "No action defined",
+                CleaningActions = cleaningActions
+            };
+        }
     }
 
     public class DetectionResult
@@ -507,25 +422,30 @@ namespace Demo.Services
         public int Column { get; set; }
         public string Context { get; set; } = string.Empty;
         
+        /// <summary>
+        /// Specific cleaning actions for different presets
+        /// </summary>
+        public Dictionary<CleaningPreset, CleaningAction> CleaningActions { get; set; } = new();
+        
         public string CodePointString => $"U+{CodePoint:X4}";
         public string FullName => $"{Name} · {CodePointString}";
         public string Tooltip => $"{FullName} · Action: {ReplacementHint}";
+        
+        /// <summary>
+        /// Gets the appropriate cleaning action for a specific preset
+        /// </summary>
+        public CleaningAction GetCleaningAction(CleaningPreset preset)
+        {
+            if (CleaningActions.TryGetValue(preset, out var action))
+                return action;
+            
+            // Fallback to Safe preset if available
+            if (preset != CleaningPreset.Safe && CleaningActions.TryGetValue(CleaningPreset.Safe, out var safeAction))
+                return safeAction;
+            
+            // Ultimate fallback - keep character
+            return CleaningAction.Keep("No specific action defined");
+        }
     }
 
-    public enum InvisibleCharacterCategory
-    {
-        C0C1Controls = 1,
-        LineBreaks = 2,
-        Tab = 3,
-        WideSpaces = 4,
-        NoBreakSpaces = 5,
-        ZeroWidthFormat = 6,
-        BiDiControls = 7,
-        SoftHyphen = 8,
-        InvisibleMath = 9,
-        VariationSelectors = 10,
-        EmojiTags = 11,
-        CombiningMarks = 12,
-        Confusables = 13
-    }
 }
