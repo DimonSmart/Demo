@@ -1,24 +1,98 @@
 using System.Globalization;
 using System.Text;
 
-namespace Demo.Services
+namespace Demo.Demos.MarkdownToWord
 {
     public class InvisibleCharacterDetectorService
     {
         // Character sets for different categories
-        private static readonly HashSet<int> C0C1Controls = new()
+        private static readonly HashSet<int> C0C1Controls = new();
+
+        static InvisibleCharacterDetectorService()
         {
-            // C0 controls (0x00-0x1F except \t \n \r)
-            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 
-            0x0B, 0x0C, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 
-            0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 
-            0x1E, 0x1F, 0x7F, // DEL
-            // C1 controls (0x80-0x9F)
-            0x80, 0x81, 0x82, 0x83, 0x84, 0x86, 0x87, 0x88, 0x89, 
-            0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x91, 0x92, 
-            0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 
-            0x9C, 0x9D, 0x9E, 0x9F
-        };
+            // Initialize C0/C1 controls (excluding NEL which is handled as line break)
+            for (var i = 0x00; i <= 0x1F; i++)
+            {
+                if (i != 0x09 && i != 0x0A && i != 0x0D) // Skip TAB, LF, CR
+                    C0C1Controls.Add(i);
+            }
+            C0C1Controls.Add(0x7F); // DEL
+            for (var i = 0x80; i <= 0x9F; i++)
+            {
+                if (i != 0x85) // Skip NEL (handled as line break)
+                    C0C1Controls.Add(i);
+            }
+
+            // Initialize wide spaces - comprehensive list
+            var wideSpacesList = new[]
+            {
+                0x2000, // EN QUAD
+                0x2001, // EM QUAD
+                0x2002, // EN SPACE
+                0x2003, // EM SPACE
+                0x2004, // THREE-PER-EM SPACE
+                0x2005, // FOUR-PER-EM SPACE
+                0x2006, // SIX-PER-EM SPACE
+                0x2007, // FIGURE SPACE
+                0x2008, // PUNCTUATION SPACE
+                0x2009, // THIN SPACE
+                0x200A, // HAIR SPACE
+                0x205F, // MEDIUM MATHEMATICAL SPACE
+                0x3000  // IDEOGRAPHIC SPACE
+            };
+            foreach (var space in wideSpacesList)
+                WideSpaces.Add(space);
+
+            // Initialize no-break spaces
+            NoBreakSpaces.Add(0x00A0); // NBSP
+            NoBreakSpaces.Add(0x202F); // NARROW NO-BREAK SPACE
+
+            // Initialize zero-width formatting characters
+            var zeroWidthList = new[]
+            {
+                0x200B, // ZWSP
+                0x200C, // ZWNJ
+                0x200D, // ZWJ
+                0x2060, // WORD JOINER
+                0xFEFF, // BOM/ZWNBSP
+                0x180E  // MONGOLIAN VOWEL SEPARATOR (historical)
+            };
+            foreach (var zw in zeroWidthList)
+                ZeroWidthFormat.Add(zw);
+
+            // Initialize BiDi controls
+            var biDiList = new[]
+            {
+                0x200E, // LRM
+                0x200F, // RLM
+                0x202A, // LRE
+                0x202B, // RLE
+                0x202C, // PDF
+                0x202D, // LRO
+                0x202E, // RLO
+                0x2066, // LRI
+                0x2067, // RLI
+                0x2068, // FSI
+                0x2069  // PDI
+            };
+            foreach (var bidi in biDiList)
+                BiDiControls.Add(bidi);
+
+            // Initialize invisible math operators
+            InvisibleMath.Add(0x2062); // INVISIBLE TIMES
+            InvisibleMath.Add(0x2063); // INVISIBLE SEPARATOR  
+            InvisibleMath.Add(0x2064); // INVISIBLE PLUS
+
+            // Initialize variation selectors
+            for (var i = 0xFE00; i <= 0xFE0F; i++)
+                VariationSelectors.Add(i);
+            for (var i = 0xE0100; i <= 0xE01EF; i++)
+                VariationSelectors.Add(i);
+
+            // Initialize emoji tags - full TAG block
+            for (var i = 0xE0000; i <= 0xE007F; i++)
+                EmojiTags.Add(i);
+        }
 
         private static readonly HashSet<int> LineBreaks = new()
         {
@@ -30,59 +104,11 @@ namespace Demo.Services
             0x2029  // PS
         };
 
-        private static readonly HashSet<int> WideSpaces = new()
-        {
-            0x2002, // EN SPACE
-            0x2003, // EM SPACE
-            0x2004, // THREE-PER-EM SPACE
-            0x2005, // FOUR-PER-EM SPACE
-            0x2006, // SIX-PER-EM SPACE
-            0x2007, // FIGURE SPACE
-            0x2008, // PUNCTUATION SPACE
-            0x2009, // THIN SPACE
-            0x200A, // HAIR SPACE
-            0x205F, // MEDIUM MATHEMATICAL SPACE
-            0x3000  // IDEOGRAPHIC SPACE
-        };
-
-        private static readonly HashSet<int> NoBreakSpaces = new()
-        {
-            0x00A0, // NBSP
-            0x202F  // NNBSP
-        };
-
-        private static readonly HashSet<int> ZeroWidthFormat = new()
-        {
-            0x200B, // ZWSP
-            0x200C, // ZWNJ
-            0x200D, // ZWJ
-            0x2060, // WORD JOINER
-            0xFEFF, // BOM/ZWNBSP
-            0x180E  // MONGOLIAN VOWEL SEPARATOR (historical)
-        };
-
-        private static readonly HashSet<int> BiDiControls = new()
-        {
-            0x200E, // LRM
-            0x200F, // RLM
-            0x202A, // LRE
-            0x202B, // RLE
-            0x202C, // PDF
-            0x202D, // LRO
-            0x202E, // RLO
-            0x2066, // LRI
-            0x2067, // RLI
-            0x2068, // FSI
-            0x2069  // PDI
-        };
-
-        private static readonly HashSet<int> InvisibleMath = new()
-        {
-            0x2062, // INVISIBLE TIMES
-            0x2063, // INVISIBLE SEPARATOR
-            0x2064  // INVISIBLE PLUS
-        };
-
+        private static readonly HashSet<int> WideSpaces = new();
+        private static readonly HashSet<int> NoBreakSpaces = new();
+        private static readonly HashSet<int> ZeroWidthFormat = new();
+        private static readonly HashSet<int> BiDiControls = new();
+        private static readonly HashSet<int> InvisibleMath = new();
         private static readonly HashSet<int> VariationSelectors = new();
         private static readonly HashSet<int> EmojiTags = new();
 
@@ -109,20 +135,6 @@ namespace Demo.Services
             { 0x0443, "y" }, // CYRILLIC SMALL LETTER U → LATIN
             { 0x0445, "x" }  // CYRILLIC SMALL LETTER HA → LATIN
         };
-
-        static InvisibleCharacterDetectorService()
-        {
-            // Initialize variation selectors
-            for (var i = 0xFE00; i <= 0xFE0F; i++)
-                VariationSelectors.Add(i);
-            for (var i = 0xE0100; i <= 0xE01EF; i++)
-                VariationSelectors.Add(i);
-
-            // Initialize emoji tags
-            EmojiTags.Add(0xE0001);
-            for (var i = 0xE0020; i <= 0xE007F; i++)
-                EmojiTags.Add(i);
-        }
 
         public DetectionResult DetectInvisibleCharacters(string input, bool skipCodeBlocks = true)
         {
@@ -169,179 +181,79 @@ namespace Demo.Services
             // Category 1: ASCII Control C0/C1
             if (C0C1Controls.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.C0C1Controls,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = "CTRL",
-                    ReplacementHint = "remove"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.C0C1Controls, codePoint, "CTRL");
             }
 
             // Category 2: Line breaks
             if (LineBreaks.Contains(codePoint))
             {
-                var hint = codePoint switch
-                {
-                    0x000D => "normalize CR to CR-LF or remove if before LF",
-                    0x0085 => "replace NEL with CR-LF",
-                    0x2028 => "replace LS with CR-LF",
-                    0x2029 => "replace PS with CR-LF",
-                    _ => "normalize to LF"
-                };
-
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.LineBreaks,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = "¶",
-                    ReplacementHint = hint
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.LineBreaks, codePoint, "¶");
             }
 
             // Category 3: Tab
             if (codePoint == 0x0009)
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.Tab,
-                    CodePoint = codePoint,
-                    Name = "TAB",
-                    Marker = "→",
-                    ReplacementHint = "4 spaces"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.Tab, codePoint, "→");
             }
 
             // Category 4: Wide spaces
             if (WideSpaces.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.WideSpaces,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = "·",
-                    ReplacementHint = "regular space"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.WideSpaces, codePoint, "·");
             }
 
             // Category 5: Non-breaking spaces
             if (NoBreakSpaces.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.NoBreakSpaces,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = codePoint == 0x00A0 ? "⍽" : "⍽ⁿ",
-                    ReplacementHint = "keep (safe) / regular space (aggressive)"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.NoBreakSpaces, codePoint, codePoint == 0x00A0 ? "⍽" : "⍽ⁿ");
             }
 
             // Category 6: Zero-width/format
             if (ZeroWidthFormat.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.ZeroWidthFormat,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = GetZeroWidthMarker(codePoint),
-                    ReplacementHint = "remove"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.ZeroWidthFormat, codePoint, GetZeroWidthMarker(codePoint));
             }
 
             // Category 7: BiDi controls
             if (BiDiControls.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.BiDiControls,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = GetBiDiMarker(codePoint),
-                    ReplacementHint = "remove"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.BiDiControls, codePoint, GetBiDiMarker(codePoint));
             }
 
             // Category 8: Soft hyphen
             if (codePoint == 0x00AD)
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.SoftHyphen,
-                    CodePoint = codePoint,
-                    Name = "SOFT HYPHEN",
-                    Marker = "¬",
-                    ReplacementHint = "remove"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.SoftHyphen, codePoint, "¬");
             }
 
             // Category 9: Invisible math
             if (InvisibleMath.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.InvisibleMath,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = GetMathMarker(codePoint),
-                    ReplacementHint = "regular space / remove"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.InvisibleMath, codePoint, GetMathMarker(codePoint));
             }
 
             // Category 10: Variation selectors
             if (VariationSelectors.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.VariationSelectors,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = $"VS{(codePoint >= 0xFE00 && codePoint <= 0xFE0F ? codePoint - 0xFE00 + 1 : "S")}",
-                    ReplacementHint = "keep (safe) / remove (aggressive)"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.VariationSelectors, codePoint, $"VS{(codePoint >= 0xFE00 && codePoint <= 0xFE0F ? codePoint - 0xFE00 + 1 : "S")}");
             }
 
             // Category 11: Emoji tags
             if (EmojiTags.Contains(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.EmojiTags,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = "TAG",
-                    ReplacementHint = "keep (safe) / remove (aggressive)"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.EmojiTags, codePoint, "TAG");
             }
 
             // Category 12: Combining marks
             if (category == UnicodeCategory.NonSpacingMark)
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.CombiningMarks,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = "◌",
-                    ReplacementHint = "remove if orphaned / keep with base"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.CombiningMarks, codePoint, "◌");
             }
 
             // Category 13: Confusables
             if (Confusables.ContainsKey(codePoint))
             {
-                return new CharacterDetection
-                {
-                    Category = InvisibleCharacterCategory.Confusables,
-                    CodePoint = codePoint,
-                    Name = GetUnicodeName(codePoint),
-                    Marker = "≈",
-                    ReplacementHint = $"→ {Confusables[codePoint]}"
-                };
+                return CreateCharacterDetection(InvisibleCharacterCategory.Confusables, codePoint, "≈");
             }
 
             return null;
@@ -484,6 +396,21 @@ namespace Demo.Services
             0x2064 => "+₀",
             _ => "MATH"
         };
+
+        private CharacterDetection CreateCharacterDetection(InvisibleCharacterCategory category, int codePoint, string marker)
+        {
+            var cleaningActions = CleaningActionFactory.CreateActionsForCharacter(category, codePoint);
+            
+            return new CharacterDetection
+            {
+                Category = category,
+                CodePoint = codePoint,
+                Name = GetUnicodeName(codePoint),
+                Marker = marker,
+                ReplacementHint = cleaningActions.GetValueOrDefault(CleaningPreset.Safe)?.Description ?? "No action defined",
+                CleaningActions = cleaningActions
+            };
+        }
     }
 
     public class DetectionResult
@@ -507,25 +434,30 @@ namespace Demo.Services
         public int Column { get; set; }
         public string Context { get; set; } = string.Empty;
         
+        /// <summary>
+        /// Specific cleaning actions for different presets
+        /// </summary>
+        public Dictionary<CleaningPreset, CleaningAction> CleaningActions { get; set; } = new();
+        
         public string CodePointString => $"U+{CodePoint:X4}";
         public string FullName => $"{Name} · {CodePointString}";
         public string Tooltip => $"{FullName} · Action: {ReplacementHint}";
+        
+        /// <summary>
+        /// Gets the appropriate cleaning action for a specific preset
+        /// </summary>
+        public CleaningAction GetCleaningAction(CleaningPreset preset)
+        {
+            if (CleaningActions.TryGetValue(preset, out var action))
+                return action;
+            
+            // Fallback to Safe preset if available
+            if (preset != CleaningPreset.Safe && CleaningActions.TryGetValue(CleaningPreset.Safe, out var safeAction))
+                return safeAction;
+            
+            // Ultimate fallback - keep character
+            return CleaningAction.Keep("No specific action defined");
+        }
     }
 
-    public enum InvisibleCharacterCategory
-    {
-        C0C1Controls = 1,
-        LineBreaks = 2,
-        Tab = 3,
-        WideSpaces = 4,
-        NoBreakSpaces = 5,
-        ZeroWidthFormat = 6,
-        BiDiControls = 7,
-        SoftHyphen = 8,
-        InvisibleMath = 9,
-        VariationSelectors = 10,
-        EmojiTags = 11,
-        CombiningMarks = 12,
-        Confusables = 13
-    }
 }
