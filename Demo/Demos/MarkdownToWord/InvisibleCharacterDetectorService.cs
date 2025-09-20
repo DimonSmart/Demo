@@ -6,19 +6,93 @@ namespace Demo.Demos.MarkdownToWord
     public class InvisibleCharacterDetectorService
     {
         // Character sets for different categories
-        private static readonly HashSet<int> C0C1Controls = new()
+        private static readonly HashSet<int> C0C1Controls = new();
+
+        static InvisibleCharacterDetectorService()
         {
-            // C0 controls (0x00-0x1F except \t \n \r)
-            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 
-            0x0B, 0x0C, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 
-            0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 
-            0x1E, 0x1F, 0x7F, // DEL
-            // C1 controls (0x80-0x9F)
-            0x80, 0x81, 0x82, 0x83, 0x84, 0x86, 0x87, 0x88, 0x89, 
-            0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x91, 0x92, 
-            0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 
-            0x9C, 0x9D, 0x9E, 0x9F
-        };
+            // Initialize C0/C1 controls (excluding NEL which is handled as line break)
+            for (var i = 0x00; i <= 0x1F; i++)
+            {
+                if (i != 0x09 && i != 0x0A && i != 0x0D) // Skip TAB, LF, CR
+                    C0C1Controls.Add(i);
+            }
+            C0C1Controls.Add(0x7F); // DEL
+            for (var i = 0x80; i <= 0x9F; i++)
+            {
+                if (i != 0x85) // Skip NEL (handled as line break)
+                    C0C1Controls.Add(i);
+            }
+
+            // Initialize wide spaces - comprehensive list
+            var wideSpacesList = new[]
+            {
+                0x2000, // EN QUAD
+                0x2001, // EM QUAD
+                0x2002, // EN SPACE
+                0x2003, // EM SPACE
+                0x2004, // THREE-PER-EM SPACE
+                0x2005, // FOUR-PER-EM SPACE
+                0x2006, // SIX-PER-EM SPACE
+                0x2007, // FIGURE SPACE
+                0x2008, // PUNCTUATION SPACE
+                0x2009, // THIN SPACE
+                0x200A, // HAIR SPACE
+                0x205F, // MEDIUM MATHEMATICAL SPACE
+                0x3000  // IDEOGRAPHIC SPACE
+            };
+            foreach (var space in wideSpacesList)
+                WideSpaces.Add(space);
+
+            // Initialize no-break spaces
+            NoBreakSpaces.Add(0x00A0); // NBSP
+            NoBreakSpaces.Add(0x202F); // NARROW NO-BREAK SPACE
+
+            // Initialize zero-width formatting characters
+            var zeroWidthList = new[]
+            {
+                0x200B, // ZWSP
+                0x200C, // ZWNJ
+                0x200D, // ZWJ
+                0x2060, // WORD JOINER
+                0xFEFF, // BOM/ZWNBSP
+                0x180E  // MONGOLIAN VOWEL SEPARATOR (historical)
+            };
+            foreach (var zw in zeroWidthList)
+                ZeroWidthFormat.Add(zw);
+
+            // Initialize BiDi controls
+            var biDiList = new[]
+            {
+                0x200E, // LRM
+                0x200F, // RLM
+                0x202A, // LRE
+                0x202B, // RLE
+                0x202C, // PDF
+                0x202D, // LRO
+                0x202E, // RLO
+                0x2066, // LRI
+                0x2067, // RLI
+                0x2068, // FSI
+                0x2069  // PDI
+            };
+            foreach (var bidi in biDiList)
+                BiDiControls.Add(bidi);
+
+            // Initialize invisible math operators
+            InvisibleMath.Add(0x2062); // INVISIBLE TIMES
+            InvisibleMath.Add(0x2063); // INVISIBLE SEPARATOR  
+            InvisibleMath.Add(0x2064); // INVISIBLE PLUS
+
+            // Initialize variation selectors
+            for (var i = 0xFE00; i <= 0xFE0F; i++)
+                VariationSelectors.Add(i);
+            for (var i = 0xE0100; i <= 0xE01EF; i++)
+                VariationSelectors.Add(i);
+
+            // Initialize emoji tags - full TAG block
+            for (var i = 0xE0000; i <= 0xE007F; i++)
+                EmojiTags.Add(i);
+        }
 
         private static readonly HashSet<int> LineBreaks = new()
         {
@@ -30,59 +104,11 @@ namespace Demo.Demos.MarkdownToWord
             0x2029  // PS
         };
 
-        private static readonly HashSet<int> WideSpaces = new()
-        {
-            0x2002, // EN SPACE
-            0x2003, // EM SPACE
-            0x2004, // THREE-PER-EM SPACE
-            0x2005, // FOUR-PER-EM SPACE
-            0x2006, // SIX-PER-EM SPACE
-            0x2007, // FIGURE SPACE
-            0x2008, // PUNCTUATION SPACE
-            0x2009, // THIN SPACE
-            0x200A, // HAIR SPACE
-            0x205F, // MEDIUM MATHEMATICAL SPACE
-            0x3000  // IDEOGRAPHIC SPACE
-        };
-
-        private static readonly HashSet<int> NoBreakSpaces = new()
-        {
-            0x00A0, // NBSP
-            0x202F  // NNBSP
-        };
-
-        private static readonly HashSet<int> ZeroWidthFormat = new()
-        {
-            0x200B, // ZWSP
-            0x200C, // ZWNJ
-            0x200D, // ZWJ
-            0x2060, // WORD JOINER
-            0xFEFF, // BOM/ZWNBSP
-            0x180E  // MONGOLIAN VOWEL SEPARATOR (historical)
-        };
-
-        private static readonly HashSet<int> BiDiControls = new()
-        {
-            0x200E, // LRM
-            0x200F, // RLM
-            0x202A, // LRE
-            0x202B, // RLE
-            0x202C, // PDF
-            0x202D, // LRO
-            0x202E, // RLO
-            0x2066, // LRI
-            0x2067, // RLI
-            0x2068, // FSI
-            0x2069  // PDI
-        };
-
-        private static readonly HashSet<int> InvisibleMath = new()
-        {
-            0x2062, // INVISIBLE TIMES
-            0x2063, // INVISIBLE SEPARATOR
-            0x2064  // INVISIBLE PLUS
-        };
-
+        private static readonly HashSet<int> WideSpaces = new();
+        private static readonly HashSet<int> NoBreakSpaces = new();
+        private static readonly HashSet<int> ZeroWidthFormat = new();
+        private static readonly HashSet<int> BiDiControls = new();
+        private static readonly HashSet<int> InvisibleMath = new();
         private static readonly HashSet<int> VariationSelectors = new();
         private static readonly HashSet<int> EmojiTags = new();
 
@@ -109,20 +135,6 @@ namespace Demo.Demos.MarkdownToWord
             { 0x0443, "y" }, // CYRILLIC SMALL LETTER U → LATIN
             { 0x0445, "x" }  // CYRILLIC SMALL LETTER HA → LATIN
         };
-
-        static InvisibleCharacterDetectorService()
-        {
-            // Initialize variation selectors
-            for (var i = 0xFE00; i <= 0xFE0F; i++)
-                VariationSelectors.Add(i);
-            for (var i = 0xE0100; i <= 0xE01EF; i++)
-                VariationSelectors.Add(i);
-
-            // Initialize emoji tags
-            EmojiTags.Add(0xE0001);
-            for (var i = 0xE0020; i <= 0xE007F; i++)
-                EmojiTags.Add(i);
-        }
 
         public DetectionResult DetectInvisibleCharacters(string input, bool skipCodeBlocks = true)
         {
