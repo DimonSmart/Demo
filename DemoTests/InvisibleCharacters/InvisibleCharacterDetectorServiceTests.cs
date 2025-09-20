@@ -162,13 +162,30 @@ namespace DemoTests.InvisibleCharacters
         [InlineData("\u201C", InvisibleCharacterCategory.Confusables)] // LEFT DOUBLE QUOTATION MARK
         [InlineData("\u201D", InvisibleCharacterCategory.Confusables)] // RIGHT DOUBLE QUOTATION MARK
         [InlineData("\u2013", InvisibleCharacterCategory.Confusables)] // EN DASH
-        [InlineData("\u0430", InvisibleCharacterCategory.Confusables)] // CYRILLIC SMALL LETTER A
         public void DetectInvisibleCharacters_Confusables_DetectsCorrectly(string input, InvisibleCharacterCategory expectedCategory)
         {
             var result = _detector.DetectInvisibleCharacters(input, skipCodeBlocks: false);
-            
+
             Assert.Single(result.DetectedCharacters);
             Assert.Equal(expectedCategory, result.DetectedCharacters[0].Category);
+        }
+
+        [Fact]
+        public void DetectInvisibleCharacters_PureCyrillicWord_DoesNotTriggerConfusable()
+        {
+            var input = "сосна";
+            var result = _detector.DetectInvisibleCharacters(input, skipCodeBlocks: false);
+
+            Assert.DoesNotContain(result.DetectedCharacters, d => d.Category == InvisibleCharacterCategory.Confusables);
+        }
+
+        [Fact]
+        public void DetectInvisibleCharacters_MixedAlphabetWord_DetectsConfusable()
+        {
+            var input = "pa\u0441sword";
+            var result = _detector.DetectInvisibleCharacters(input, skipCodeBlocks: false);
+
+            Assert.Contains(result.DetectedCharacters, d => d.Category == InvisibleCharacterCategory.Confusables && d.CodePoint == 0x0441);
         }
 
         [Fact]

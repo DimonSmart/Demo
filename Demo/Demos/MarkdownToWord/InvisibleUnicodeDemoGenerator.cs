@@ -123,11 +123,11 @@ public static class InvisibleUnicodeDemoGenerator
         const char confusableDash = '\u2014';
         const char leftDoubleQuote = '\u201C';
         const char rightDoubleQuote = '\u201D';
-        const char cyrillicA = '\u0430';
+        const string mixedAlphabetWord = "pa\u0441sword";
         const char minusSign = '\u2212';
         builder.AppendLine($"- Em dash: word{confusableDash}dash → word-dash");
         builder.AppendLine($"- Smart quotes: {leftDoubleQuote}text{rightDoubleQuote} → \"text\"");
-        builder.AppendLine($"- Cyrillic A: l{cyrillicA}tin → latin");
+        builder.AppendLine($"- Mixed alphabet word: {mixedAlphabetWord} → password");
         builder.AppendLine($"- Minus sign: 5{minusSign}3 → 5-3");
         
         return builder.ToString();

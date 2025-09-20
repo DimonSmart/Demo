@@ -58,7 +58,7 @@ namespace DemoTests.MarkdownToWord
             Assert.Contains("**Confusable/suspicious characters", markdown);
             Assert.Contains("Em dash", markdown);
             Assert.Contains("Smart quotes", markdown);
-            Assert.Contains("Cyrillic A", markdown);
+            Assert.Contains("Mixed alphabet word", markdown);
             Assert.Contains("Minus sign", markdown);
         }
 
