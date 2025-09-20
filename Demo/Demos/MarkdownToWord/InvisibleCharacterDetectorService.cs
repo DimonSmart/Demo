@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Globalization;
 using System.Text;
 
@@ -112,35 +113,12 @@ namespace Demo.Demos.MarkdownToWord
         private static readonly HashSet<int> VariationSelectors = new();
         private static readonly HashSet<int> EmojiTags = new();
 
-        // Confusables mapping for category 13
-        private static readonly Dictionary<int, string> Confusables = new()
-        {
-            // Quotes
-            { 0x201C, "\"" }, // LEFT DOUBLE QUOTATION MARK → ASCII
-            { 0x201D, "\"" }, // RIGHT DOUBLE QUOTATION MARK → ASCII
-            { 0x2018, "'" }, // LEFT SINGLE QUOTATION MARK → ASCII
-            { 0x2019, "'" }, // RIGHT SINGLE QUOTATION MARK → ASCII
-
-            // Dashes
-            { 0x2212, "-" }, // MINUS SIGN → HYPHEN-MINUS
-            { 0x2013, "-" }, // EN DASH → HYPHEN-MINUS
-            { 0x2014, "-" }, // EM DASH → HYPHEN-MINUS
-
-            // Cyrillic lookalikes
-            { 0x0430, "a" }, // CYRILLIC SMALL LETTER A → LATIN
-            { 0x0435, "e" }, // CYRILLIC SMALL LETTER IE → LATIN
-            { 0x043E, "o" }, // CYRILLIC SMALL LETTER O → LATIN
-            { 0x0440, "p" }, // CYRILLIC SMALL LETTER ER → LATIN
-            { 0x0441, "c" }, // CYRILLIC SMALL LETTER ES → LATIN
-            { 0x0443, "y" }, // CYRILLIC SMALL LETTER U → LATIN
-            { 0x0445, "x" }  // CYRILLIC SMALL LETTER HA → LATIN
-        };
-
         public DetectionResult DetectInvisibleCharacters(string input, bool skipCodeBlocks = true)
         {
             var result = new DetectionResult();
             var codeBlockRanges = skipCodeBlocks ? FindCodeBlockRanges(input) : new List<(int start, int end)>();
-            
+            var scriptProfile = AnalyzeScriptProfile(input);
+
             var utf16Position = 0;
             var line = 1;
             var column = 1;
@@ -154,7 +132,7 @@ namespace Demo.Demos.MarkdownToWord
                     continue;
                 }
 
-                var detection = ClassifyCharacter(rune);
+                var detection = ClassifyCharacter(input, rune, utf16Position, scriptProfile);
                 if (detection != null)
                 {
                     detection.Position = utf16Position;
@@ -173,7 +151,7 @@ namespace Demo.Demos.MarkdownToWord
             return result;
         }
 
-        private CharacterDetection? ClassifyCharacter(Rune rune)
+        private CharacterDetection? ClassifyCharacter(string text, Rune rune, int position, ScriptProfile scriptProfile)
         {
             var codePoint = rune.Value;
             var category = CharUnicodeInfo.GetUnicodeCategory(codePoint);
@@ -251,12 +229,222 @@ namespace Demo.Demos.MarkdownToWord
             }
 
             // Category 13: Confusables
-            if (Confusables.ContainsKey(codePoint))
+            if (ConfusableCharacterDefinitions.Punctuation.ContainsKey(codePoint))
             {
                 return CreateCharacterDetection(InvisibleCharacterCategory.Confusables, codePoint, "≈");
             }
 
+            if (ConfusableCharacterDefinitions.Letters.TryGetValue(codePoint, out var letterDefinition))
+            {
+                if (!letterDefinition.RequiresLatinContext || IsLatinContext(text, position, rune, scriptProfile))
+                {
+                    return CreateCharacterDetection(InvisibleCharacterCategory.Confusables, codePoint, "≈");
+                }
+
+                return null;
+            }
+
             return null;
+        }
+
+        private static ScriptProfile AnalyzeScriptProfile(string text)
+        {
+            var containsLatin = false;
+            var containsCyrillic = false;
+
+            foreach (var rune in text.EnumerateRunes())
+            {
+                if (!containsLatin && IsLatinLetter(rune))
+                {
+                    containsLatin = true;
+                }
+
+                if (!containsCyrillic && IsCyrillicLetter(rune))
+                {
+                    containsCyrillic = true;
+                }
+
+                if (containsLatin && containsCyrillic)
+                {
+                    break;
+                }
+            }
+
+            return new ScriptProfile(containsLatin, containsCyrillic);
+        }
+
+        private static bool IsLatinContext(string text, int position, Rune currentRune, ScriptProfile scriptProfile)
+        {
+            if (!scriptProfile.ContainsLatinLetters)
+            {
+                return false;
+            }
+
+            var previousLetter = GetPreviousLetterRune(text, position);
+            if (previousLetter.HasValue && IsLatinLetter(previousLetter.Value))
+            {
+                return true;
+            }
+
+            var nextLetter = GetNextLetterRune(text, position, currentRune.Utf16SequenceLength);
+            if (nextLetter.HasValue && IsLatinLetter(nextLetter.Value))
+            {
+                return true;
+            }
+
+            return !scriptProfile.IsPurelyCyrillic;
+        }
+
+        private static Rune? GetPreviousLetterRune(string text, int position)
+        {
+            var index = position;
+
+            while (index > 0)
+            {
+                index = GetPreviousRuneStartIndex(text, index);
+                if (index < 0)
+                {
+                    return null;
+                }
+
+                if (!TryGetRuneAt(text, index, out var rune, out _))
+                {
+                    return null;
+                }
+
+                if (IsLetterCategory(CharUnicodeInfo.GetUnicodeCategory(rune.Value)))
+                {
+                    return rune;
+                }
+            }
+
+            return null;
+        }
+
+        private static Rune? GetNextLetterRune(string text, int position, int currentRuneLength)
+        {
+            var index = position + currentRuneLength;
+
+            while (index < text.Length)
+            {
+                if (!TryGetRuneAt(text, index, out var rune, out var consumed))
+                {
+                    return null;
+                }
+
+                if (IsLetterCategory(CharUnicodeInfo.GetUnicodeCategory(rune.Value)))
+                {
+                    return rune;
+                }
+
+                index += consumed;
+            }
+
+            return null;
+        }
+
+        private static int GetPreviousRuneStartIndex(string text, int position)
+        {
+            var index = position - 1;
+
+            while (index >= 0 && char.IsLowSurrogate(text[index]))
+            {
+                index--;
+            }
+
+            return index;
+        }
+
+        private static bool TryGetRuneAt(string text, int index, out Rune rune, out int length)
+        {
+            if (index < 0 || index >= text.Length)
+            {
+                rune = default;
+                length = 0;
+                return false;
+            }
+
+            var status = Rune.DecodeFromUtf16(text.AsSpan(index), out rune, out length);
+            return status == OperationStatus.Done;
+        }
+
+        private static bool IsLetterCategory(UnicodeCategory category) =>
+            category == UnicodeCategory.UppercaseLetter ||
+            category == UnicodeCategory.LowercaseLetter ||
+            category == UnicodeCategory.TitlecaseLetter ||
+            category == UnicodeCategory.OtherLetter ||
+            category == UnicodeCategory.ModifierLetter;
+
+        private static bool IsLatinLetter(Rune rune)
+        {
+            var value = rune.Value;
+
+            if ((value >= 0x0041 && value <= 0x005A) || (value >= 0x0061 && value <= 0x007A))
+            {
+                return true;
+            }
+
+            if ((value >= 0x00C0 && value <= 0x00D6) || (value >= 0x00D8 && value <= 0x00F6) || (value >= 0x00F8 && value <= 0x00FF))
+            {
+                return true;
+            }
+
+            if (value >= 0x0100 && value <= 0x017F)
+            {
+                return true;
+            }
+
+            if (value >= 0x0180 && value <= 0x024F)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsCyrillicLetter(Rune rune)
+        {
+            var value = rune.Value;
+
+            if (value >= 0x0400 && value <= 0x04FF)
+            {
+                return true;
+            }
+
+            if (value >= 0x0500 && value <= 0x052F)
+            {
+                return true;
+            }
+
+            if (value >= 0x2DE0 && value <= 0x2DFF)
+            {
+                return true;
+            }
+
+            if (value >= 0xA640 && value <= 0xA69F)
+            {
+                return true;
+            }
+
+            if (value >= 0x1C80 && value <= 0x1C8F)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private readonly struct ScriptProfile
+        {
+            public ScriptProfile(bool containsLatinLetters, bool containsCyrillicLetters)
+            {
+                ContainsLatinLetters = containsLatinLetters;
+                ContainsCyrillicLetters = containsCyrillicLetters;
+            }
+
+            public bool ContainsLatinLetters { get; }
+            public bool ContainsCyrillicLetters { get; }
+            public bool IsPurelyCyrillic => ContainsCyrillicLetters && !ContainsLatinLetters;
         }
 
         private static List<(int start, int end)> FindCodeBlockRanges(string input)

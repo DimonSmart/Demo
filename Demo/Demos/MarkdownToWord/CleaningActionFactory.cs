@@ -212,25 +212,12 @@ namespace Demo.Demos.MarkdownToWord
 
         private static string GetConfusableReplacement(int codePoint)
         {
-            // Confusables mapping
-            return codePoint switch
+            if (ConfusableCharacterDefinitions.TryGetReplacement(codePoint, out var replacement))
             {
-                0x201C => "\"", // LEFT DOUBLE QUOTATION MARK → ASCII
-                0x201D => "\"", // RIGHT DOUBLE QUOTATION MARK → ASCII
-                0x2018 => "'", // LEFT SINGLE QUOTATION MARK → ASCII
-                0x2019 => "'", // RIGHT SINGLE QUOTATION MARK → ASCII
-                0x2212 => "-", // MINUS SIGN → HYPHEN-MINUS
-                0x2013 => "-", // EN DASH → HYPHEN-MINUS
-                0x2014 => "-", // EM DASH → HYPHEN-MINUS
-                0x0430 => "a", // CYRILLIC SMALL LETTER A → LATIN
-                0x0435 => "e", // CYRILLIC SMALL LETTER IE → LATIN
-                0x043E => "o", // CYRILLIC SMALL LETTER O → LATIN
-                0x0440 => "p", // CYRILLIC SMALL LETTER ER → LATIN
-                0x0441 => "c", // CYRILLIC SMALL LETTER ES → LATIN
-                0x0443 => "y", // CYRILLIC SMALL LETTER U → LATIN
-                0x0445 => "x", // CYRILLIC SMALL LETTER HA → LATIN
-                _ => "?"        // Fallback
-            };
+                return replacement;
+            }
+
+            return "?";
         }
     }
 }

@@ -124,8 +124,12 @@ namespace Demo.Demos.MarkdownToWord
             {
                 if (positionsToClean.TryGetValue(position, out var charDetection))
                 {
-                    // Apply cleaning using Safe preset for selective cleaning
-                    var cleaningAction = charDetection.GetCleaningAction(CleaningPreset.Safe);
+                    // Use a more aggressive preset for confusables when explicitly selected
+                    var presetForAction = charDetection.Category == InvisibleCharacterCategory.Confusables
+                        ? CleaningPreset.Aggressive
+                        : CleaningPreset.Safe;
+
+                    var cleaningAction = charDetection.GetCleaningAction(presetForAction);
                     var processedChar = ApplyCleaningAction(rune, cleaningAction, new CleaningContext
                     {
                         OriginalText = input,
@@ -133,7 +137,7 @@ namespace Demo.Demos.MarkdownToWord
                         CurrentCharacter = rune,
                         PreviousCharacter = GetPreviousCharacter(runes, position),
                         NextCharacter = GetNextCharacter(runes, position),
-                        Preset = CleaningPreset.Safe,
+                        Preset = presetForAction,
                         Options = options,
                         IsInCodeBlock = false
                     });
