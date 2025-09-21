@@ -15,7 +15,7 @@
         <div class="hand-info">
             <span class="total-score">Total: @(Hand.AllCardFacedUp ? $"{Hand.HandValue}" : "Secret")</span>
             <span class="badge @(Hand.IsPair ? "badge-active" : "badge-inactive")">Pair</span>
-            <span class="badge @(Hand.IsSoft ? "badge-active" : "badge-inactive")">Soft</span>
+            <span class="badge @((Hand.AllCardFacedUp && Hand.IsSoft) ? "badge-active" : "badge-inactive")">Soft</span>
 
             <div class="bet-label">
                 @if (playerHand != null)
