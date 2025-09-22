@@ -38,6 +38,7 @@ builder.Services.AddScoped<IHashAlgorithm, JsMd5Algorithm>();
 builder.Services.AddScoped<CardStorageService>();
 builder.Services.AddScoped<UserPreferencesStorageService<PddUserPreferences>>();
 builder.Services.AddScoped<TextTranslationService>();
+builder.Services.AddScoped<IPddDataService, PddDataService>();
 
 // MazeRunner demo
 builder.Services.Configure<OllamaOptions>(options =>
