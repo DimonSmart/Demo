@@ -1,0 +1,260 @@
+@page "/pdd/statistics"
+@using Demo.Demos.Common
+@using Demo.Demos.Pdd
+@using Demo.Services
+@using Microsoft.AspNetCore.Components.Web
+
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject UserPreferencesStorageService<PddUserPreferences> PreferencesStorage
+@inject CardStorageService CardStorage
+@inject PageTitleService PageTitleService
+@inject IPddStatisticsService statisticsService
+@inject IPddLanguageService languageService
+
+<link rel="stylesheet" href="css/pdd.css" />
+<link rel="stylesheet" href="css/demos.css" />
+
+<div class="pdd-page-container">
+    <div class="pdd-top-nav-bar fixed-top-bar">
+        <div class="pdd-stats-header">
+            <div class="pdd-stats-date">
+                @if (statistics != null)
+                {
+                    <span>Generated: @statistics.GeneratedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                }
+            </div>
+            <div class="pdd-navigation">
+                <a href="/pdd" class="pdd-back-link">← Back to Learning</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="pdd-content">
+        @if (IsLoading)
+        {
+            <div class="pdd-loading">
+                <p>Loading statistics...</p>
+                <div class="pdd-loading-bar-container">
+                    <div class="pdd-loading-bar"></div>
+                </div>
+            </div>
+        }
+        else if (statistics == null)
+        {
+            <div class="pdd-error">
+                <p>Error loading statistics. Make sure PDD data is loaded.</p>
+            </div>
+        }
+        else
+        {
+            <!-- Overall Statistics -->
+            <div class="pdd-stats-section">
+                <h3>📊 Overall Statistics</h3>
+                <div class="pdd-stats-grid">
+                    <div class="pdd-stat-card">
+                        <div class="pdd-stat-value">@statistics.OverallMetrics.TotalQuestions</div>
+                        <div class="pdd-stat-label">Total Questions</div>
+                    </div>
+                    <div class="pdd-stat-card pdd-stat-success">
+                        <div class="pdd-stat-value">@statistics.OverallMetrics.LearnedQuestions</div>
+                        <div class="pdd-stat-label">Learned</div>
+                        <div class="pdd-stat-percentage">
+                            @(statistics.OverallMetrics.TotalQuestions > 0 ? 
+                              Math.Round((double)statistics.OverallMetrics.LearnedQuestions / statistics.OverallMetrics.TotalQuestions * 100, 1) : 0)%
+                        </div>
+                    </div>
+                    <div class="pdd-stat-card pdd-stat-warning">
+                        <div class="pdd-stat-value">@statistics.OverallMetrics.InProgressQuestions</div>
+                        <div class="pdd-stat-label">In Progress</div>
+                        <div class="pdd-stat-percentage">
+                            @(statistics.OverallMetrics.TotalQuestions > 0 ? 
+                              Math.Round((double)statistics.OverallMetrics.InProgressQuestions / statistics.OverallMetrics.TotalQuestions * 100, 1) : 0)%
+                        </div>
+                    </div>
+                    <div class="pdd-stat-card pdd-stat-info">
+                        <div class="pdd-stat-value">@statistics.OverallMetrics.NotStartedQuestions</div>
+                        <div class="pdd-stat-label">Not Started</div>
+                        <div class="pdd-stat-percentage">
+                            @(statistics.OverallMetrics.TotalQuestions > 0 ? 
+                              Math.Round((double)statistics.OverallMetrics.NotStartedQuestions / statistics.OverallMetrics.TotalQuestions * 100, 1) : 0)%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Topic Statistics -->
+            <div class="pdd-stats-section">
+                <h3>📚 Statistics by Topic</h3>
+                <div class="pdd-topics-stats">
+                    @foreach (var topicStat in statistics.TopicStatistics)
+                    {
+                        <div class="pdd-topic-card">
+                            <div class="pdd-topic-header">
+                                <h4>@GetLocalizedTopicTitle(topicStat.Topic)</h4>
+                                <div class="pdd-topic-progress">
+                                    <span class="pdd-progress-percentage">
+                                        @Math.Round(topicStat.LearnedPercentage, 1)%
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="pdd-progress-bar">
+                                <div class="pdd-progress-fill" style="width: @topicStat.LearnedPercentage%"></div>
+                            </div>
+
+                            <div class="pdd-topic-details">
+                                <div class="pdd-topic-stat">
+                                    <span class="pdd-stat-label">Total:</span>
+                                    <span class="pdd-stat-value">@topicStat.TotalQuestions</span>
+                                </div>
+                                <div class="pdd-topic-stat pdd-stat-success">
+                                    <span class="pdd-stat-label">Learned:</span>
+                                    <span class="pdd-stat-value">@topicStat.LearnedQuestions</span>
+                                </div>
+                                <div class="pdd-topic-stat pdd-stat-warning">
+                                    <span class="pdd-stat-label">In Progress:</span>
+                                    <span class="pdd-stat-value">@topicStat.InProgressQuestions</span>
+                                </div>
+                                <div class="pdd-topic-stat pdd-stat-info">
+                                    <span class="pdd-stat-label">Not Started:</span>
+                                    <span class="pdd-stat-value">@topicStat.NotStartedQuestions</span>
+                                </div>
+                                @if (topicStat.RecentlyStudiedQuestions > 0)
+                                {
+                                    <div class="pdd-topic-stat">
+                                        <span class="pdd-stat-label">Studied this week:</span>
+                                        <span class="pdd-stat-value">@topicStat.RecentlyStudiedQuestions</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Most Difficult Questions -->
+            <div class="pdd-stats-section">
+                <h3>🎯 Top 10 Difficult Questions</h3>
+                <div class="pdd-difficult-questions">
+                    @if (statistics.MostDifficultQuestions.Any())
+                    {
+                        @foreach (var (question, index) in statistics.MostDifficultQuestions.Select((q, i) => (q, i + 1)))
+                        {
+                            <div class="pdd-difficult-question">
+                                <div class="pdd-question-rank">
+                                    <span class="pdd-rank-number">@index</span>
+                                </div>
+                                <div class="pdd-question-info">
+                                    <div class="pdd-question-header">
+                                        <span class="pdd-question-id">Question #@question.QuestionId</span>
+                                        <span class="pdd-question-topic">
+                                            @GetLocalizedTopicTitle(question.Topic)
+                                        </span>
+                                    </div>
+                                    <div class="pdd-question-text">
+                                        @GetLocalizedQuestionText(question.Question)
+                                    </div>
+                                    <div class="pdd-question-details">
+                                        <span class="pdd-difficulty-score">
+                                            Difficulty: @question.DifficultyScore
+                                        </span>
+                                        <span class="pdd-attempts">
+                                            Attempts: ~@question.EstimatedAttempts
+                                        </span>
+                                        @if (question.DaysSinceLastAnswer.HasValue)
+                                        {
+                                            <span class="pdd-last-answer">
+                                                Last answer: @question.DaysSinceLastAnswer days ago
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="pdd-last-answer">
+                                                Not answered yet
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="pdd-no-difficult">
+                            @if (statistics.OverallMetrics.LearnedQuestions + statistics.OverallMetrics.InProgressQuestions < 10)
+                            {
+                                <p>📚 Insufficient data to determine difficult questions.</p>
+                                <p>Try answering more questions first - we need some attempt history to identify which questions are challenging for you.</p>
+                            }
+                            else
+                            {
+                                <p>🎉 Congratulations! No difficult questions found.</p>
+                                <p>All questions are either learned or being studied successfully!</p>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private DetailedLearningStatistics? statistics;
+    private bool IsLoading = true;
+    private string primaryLanguage = "es"; // Default value
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        PageTitleService.SetTitle("PDD Learning Statistics");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadStatisticsAsync();
+        }
+    }
+
+    private async Task LoadStatisticsAsync()
+    {
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+
+            // Load user's primary language preference
+            primaryLanguage = await languageService.GetPrimaryLanguageAsync();
+
+            // Load user study cards
+            var storedCards = await CardStorage.LoadCardsAsync();
+            var studyCards = storedCards?.Cards?.ToList() ?? new List<QuestionStudyCard>();
+
+            // Generate statistics
+            statistics = await statisticsService.GenerateDetailedStatisticsAsync(studyCards);
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't show details to user
+            Console.WriteLine($"Error loading statistics: {ex.Message}");
+            statistics = null;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetLocalizedTopicTitle(Topic topic)
+    {
+        return languageService.GetLocalizedContent(topic.Title, primaryLanguage, "Unknown Topic");
+    }
+
+    private string GetLocalizedQuestionText(QuestionItem question)
+    {
+        return languageService.GetLocalizedContent(question.LocalizedQuestionText, primaryLanguage, "Question text not available");
+    }
+}

@@ -66,6 +66,9 @@ public class QuestionQueue
     {
         if (card == null) return;
 
+        // Set the last answer time
+        card.LastAnsweredAt = DateTime.Now;
+
         if (!isCorrect)
         {
             _incorrectAnswers++;

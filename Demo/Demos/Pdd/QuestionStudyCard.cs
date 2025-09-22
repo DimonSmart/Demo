@@ -9,5 +9,11 @@
         public int Id { get; set; }
         public bool IsLearned => ConsecutiveCorrectCount >= 3;
         public int ConsecutiveCorrectCount { get; set; }
+        
+        /// <summary>
+        /// Date and time of last answer to the question.
+        /// May be null for existing users.
+        /// </summary>
+        public DateTime? LastAnsweredAt { get; set; }
     }
 }
