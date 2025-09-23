@@ -2,17 +2,18 @@
 @using Demo.Demos.Common
 @using Demo.Demos.Pdd
 @using Demo.Demos.Pdd.Components
-@using System.Text.Json
 @using Demo.Services
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.Extensions.Configuration
 
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
 @inject UserPreferencesStorageService<PddUserPreferences> PreferencesStorage
 @inject PageTitleService PageTitleService
 @inject CardStorageService CardStorage
-@inject HttpClient HttpClient
 @inject IJSRuntime JSRuntime
 @inject TextTranslationService TranslationService
+@inject IConfiguration Configuration
+@inject IPddDataService PddDataService
 
 <link rel="stylesheet" href="css/pdd.css" />
 <link rel="stylesheet" href="css/demos.css" />
@@ -80,7 +81,6 @@
     private bool AllQuestionsInBatchAnswered => currentBatch.All(q => q.HasAnswered);
 
     private IReadOnlyCollection<QuestionItem> allQuestions = new List<QuestionItem>();
-    const string ExamDataBaseAddress = @"https://DimonSmart.github.io/DGT/";
     
     private bool IsLoading = true;
     private bool highlightTerms = false;
@@ -112,7 +112,8 @@
             UpdateSecondaryLanguages();
         }
 
-        allQuestions = await LoadQuestions();
+        var database = await PddDataService.LoadDatabaseAsync();
+        allQuestions = database.Questions;
         questionQueue = await LoadQuestionsQueue(allQuestions);
         LoadNextBatch();
         IsLoading = false;
@@ -166,21 +167,7 @@
         }
     }
 
-    internal async Task<IReadOnlyCollection<QuestionItem>> LoadQuestions()
-    {
-        try
-        {
-            var response = await HttpClient.GetAsync("https://DimonSmart.github.io/DGT/pdd.json");
-            response.EnsureSuccessStatusCode();
-            var json = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<List<QuestionItem>>(json) ?? new List<QuestionItem>();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading questions: {ex.Message}");
-            return new List<QuestionItem>();
-        }
-    }
+
 
     internal async Task<QuestionQueue> LoadQuestionsQueue(IReadOnlyCollection<QuestionItem> questions)
     {
@@ -233,7 +220,8 @@
     private async Task ResetProgress()
     {
         await CardStorage.ResetProgressAsync();
-        allQuestions = await LoadQuestions();
+        var database = await PddDataService.LoadDatabaseAsync();
+        allQuestions = database.Questions;
         questionQueue = await LoadQuestionsQueue(allQuestions);
         LoadNextBatch();
         StateHasChanged();
