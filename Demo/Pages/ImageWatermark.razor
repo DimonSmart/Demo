@@ -206,7 +206,9 @@
             };
 
         canvas.Save();
+        canvas.Translate(width / 2f, height / 2f);
         canvas.RotateDegrees((float)_watermarkAngle);
+        canvas.Translate(-width / 2f, -height / 2f);
 
         var maxSide = Math.Max(width, height);
         for (float y = -maxSide; y < maxSide * 2; y += (textSize * _watermarkDensity))
