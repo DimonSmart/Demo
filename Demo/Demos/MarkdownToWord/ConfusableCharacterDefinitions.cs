@@ -19,6 +19,7 @@ internal static class ConfusableCharacterDefinitions
     {
         { 0x0430, new ConfusableLetterDefinition("a", ConfusableLetterContext.Latin) }, // CYRILLIC SMALL LETTER A → LATIN
         { 0x0435, new ConfusableLetterDefinition("e", ConfusableLetterContext.Latin) }, // CYRILLIC SMALL LETTER IE → LATIN
+        { 0x0438, new ConfusableLetterDefinition("u", ConfusableLetterContext.Latin) }, // CYRILLIC SMALL LETTER I → LATIN
         { 0x043E, new ConfusableLetterDefinition("o", ConfusableLetterContext.Latin) }, // CYRILLIC SMALL LETTER O → LATIN
         { 0x0440, new ConfusableLetterDefinition("p", ConfusableLetterContext.Latin) }, // CYRILLIC SMALL LETTER ER → LATIN
         { 0x0441, new ConfusableLetterDefinition("c", ConfusableLetterContext.Latin) }, // CYRILLIC SMALL LETTER ES → LATIN
