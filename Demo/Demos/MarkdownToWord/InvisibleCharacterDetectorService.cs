@@ -236,7 +236,7 @@ namespace Demo.Demos.MarkdownToWord
 
             if (ConfusableCharacterDefinitions.Letters.TryGetValue(codePoint, out var letterDefinition))
             {
-                if (!letterDefinition.RequiresLatinContext || IsSuspiciousLatinContext(text, position, rune, scriptProfile))
+                if (IsSuspiciousContext(letterDefinition, text, position, rune, scriptProfile))
                 {
                     return CreateCharacterDetection(InvisibleCharacterCategory.Confusables, codePoint, "≈");
                 }
@@ -268,6 +268,21 @@ namespace Demo.Demos.MarkdownToWord
             return new ScriptProfile(latinCount, cyrillicCount);
         }
 
+        private static bool IsSuspiciousContext(
+            ConfusableLetterDefinition definition,
+            string text,
+            int position,
+            Rune currentRune,
+            ScriptProfile scriptProfile)
+        {
+            return definition.RequiredContext switch
+            {
+                ConfusableLetterContext.Latin => IsSuspiciousLatinContext(text, position, currentRune, scriptProfile),
+                ConfusableLetterContext.Cyrillic => IsSuspiciousCyrillicContext(text, position, currentRune, scriptProfile),
+                _ => true
+            };
+        }
+
         private static bool IsSuspiciousLatinContext(string text, int position, Rune currentRune, ScriptProfile scriptProfile)
         {
             var wordProfile = GetWordScriptProfile(text, position, currentRune);
@@ -285,6 +300,28 @@ namespace Demo.Demos.MarkdownToWord
                 }
 
                 return scriptProfile.LatinLetterCount > 0;
+            }
+
+            return true;
+        }
+
+        private static bool IsSuspiciousCyrillicContext(string text, int position, Rune currentRune, ScriptProfile scriptProfile)
+        {
+            var wordProfile = GetWordScriptProfile(text, position, currentRune);
+
+            if (!wordProfile.ContainsCyrillicLetters)
+            {
+                if (wordProfile.LatinLetterCount > 1)
+                {
+                    return false;
+                }
+
+                if (scriptProfile.LatinLetterCount > wordProfile.LatinLetterCount)
+                {
+                    return false;
+                }
+
+                return scriptProfile.CyrillicLetterCount > 0;
             }
 
             return true;
@@ -472,6 +509,7 @@ namespace Demo.Demos.MarkdownToWord
             public int OtherLetterCount { get; }
 
             public bool ContainsLatinLetters => LatinLetterCount > 0;
+            public bool ContainsCyrillicLetters => CyrillicLetterCount > 0;
         }
 
         private readonly struct ScriptProfile
