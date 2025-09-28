@@ -180,6 +180,33 @@ namespace DemoTests.InvisibleCharacters
         }
 
         [Fact]
+        public void DetectInvisibleCharacters_CyrillicSentence_DoesNotTriggerConfusable()
+        {
+            var input = "Это пример русского текста и обычных слов.";
+            var result = _detector.DetectInvisibleCharacters(input, skipCodeBlocks: false);
+
+            Assert.DoesNotContain(result.DetectedCharacters, d => d.Category == InvisibleCharacterCategory.Confusables);
+        }
+
+        [Fact]
+        public void DetectInvisibleCharacters_SingleCyrillicLetterInRussianContext_DoesNotTriggerConfusable()
+        {
+            var input = "И пример русского текста";
+            var result = _detector.DetectInvisibleCharacters(input, skipCodeBlocks: false);
+
+            Assert.DoesNotContain(result.DetectedCharacters, d => d.Category == InvisibleCharacterCategory.Confusables);
+        }
+
+        [Fact]
+        public void DetectInvisibleCharacters_StandaloneCyrillicInEnglishText_DetectsConfusable()
+        {
+            var input = "This line has letter и among English words.";
+            var result = _detector.DetectInvisibleCharacters(input, skipCodeBlocks: false);
+
+            Assert.Contains(result.DetectedCharacters, d => d.Category == InvisibleCharacterCategory.Confusables && d.CodePoint == 0x0438);
+        }
+
+        [Fact]
         public void DetectInvisibleCharacters_MixedAlphabetWord_DetectsConfusable()
         {
             var input = "pa\u0441sword";

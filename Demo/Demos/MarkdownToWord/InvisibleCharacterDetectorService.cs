@@ -236,7 +236,7 @@ namespace Demo.Demos.MarkdownToWord
 
             if (ConfusableCharacterDefinitions.Letters.TryGetValue(codePoint, out var letterDefinition))
             {
-                if (!letterDefinition.RequiresLatinContext || IsLatinContext(text, position, rune, scriptProfile))
+                if (!letterDefinition.RequiresLatinContext || IsSuspiciousLatinContext(text, position, rune, scriptProfile))
                 {
                     return CreateCharacterDetection(InvisibleCharacterCategory.Confusables, codePoint, "≈");
                 }
@@ -249,98 +249,122 @@ namespace Demo.Demos.MarkdownToWord
 
         private static ScriptProfile AnalyzeScriptProfile(string text)
         {
-            var containsLatin = false;
-            var containsCyrillic = false;
+            var latinCount = 0;
+            var cyrillicCount = 0;
 
             foreach (var rune in text.EnumerateRunes())
             {
-                if (!containsLatin && IsLatinLetter(rune))
+                if (IsLatinLetter(rune))
                 {
-                    containsLatin = true;
+                    latinCount++;
                 }
 
-                if (!containsCyrillic && IsCyrillicLetter(rune))
+                if (IsCyrillicLetter(rune))
                 {
-                    containsCyrillic = true;
-                }
-
-                if (containsLatin && containsCyrillic)
-                {
-                    break;
+                    cyrillicCount++;
                 }
             }
 
-            return new ScriptProfile(containsLatin, containsCyrillic);
+            return new ScriptProfile(latinCount, cyrillicCount);
         }
 
-        private static bool IsLatinContext(string text, int position, Rune currentRune, ScriptProfile scriptProfile)
+        private static bool IsSuspiciousLatinContext(string text, int position, Rune currentRune, ScriptProfile scriptProfile)
         {
-            if (!scriptProfile.ContainsLatinLetters)
+            var wordProfile = GetWordScriptProfile(text, position, currentRune);
+
+            if (!wordProfile.ContainsLatinLetters)
             {
-                return false;
+                if (wordProfile.CyrillicLetterCount > 1)
+                {
+                    return false;
+                }
+
+                if (scriptProfile.CyrillicLetterCount > wordProfile.CyrillicLetterCount)
+                {
+                    return false;
+                }
+
+                return scriptProfile.LatinLetterCount > 0;
             }
 
-            var previousLetter = GetPreviousLetterRune(text, position);
-            if (previousLetter.HasValue && IsLatinLetter(previousLetter.Value))
-            {
-                return true;
-            }
-
-            var nextLetter = GetNextLetterRune(text, position, currentRune.Utf16SequenceLength);
-            if (nextLetter.HasValue && IsLatinLetter(nextLetter.Value))
-            {
-                return true;
-            }
-
-            return !scriptProfile.IsPurelyCyrillic;
+            return true;
         }
 
-        private static Rune? GetPreviousLetterRune(string text, int position)
+        private static WordScriptProfile GetWordScriptProfile(string text, int position, Rune currentRune)
         {
+            var latinCount = IsLatinLetter(currentRune) ? 1 : 0;
+            var cyrillicCount = IsCyrillicLetter(currentRune) ? 1 : 0;
+            var otherCount = IsLetterCategory(CharUnicodeInfo.GetUnicodeCategory(currentRune.Value)) &&
+                             !IsLatinLetter(currentRune) &&
+                             !IsCyrillicLetter(currentRune)
+                ? 1
+                : 0;
+
             var index = position;
 
-            while (index > 0)
+            while (true)
             {
                 index = GetPreviousRuneStartIndex(text, index);
                 if (index < 0)
                 {
-                    return null;
+                    break;
                 }
 
                 if (!TryGetRuneAt(text, index, out var rune, out _))
                 {
-                    return null;
+                    break;
                 }
 
-                if (IsLetterCategory(CharUnicodeInfo.GetUnicodeCategory(rune.Value)))
+                if (!IsLetterCategory(CharUnicodeInfo.GetUnicodeCategory(rune.Value)))
                 {
-                    return rune;
+                    break;
+                }
+
+                if (IsLatinLetter(rune))
+                {
+                    latinCount++;
+                }
+                else if (IsCyrillicLetter(rune))
+                {
+                    cyrillicCount++;
+                }
+                else
+                {
+                    otherCount++;
                 }
             }
 
-            return null;
-        }
-
-        private static Rune? GetNextLetterRune(string text, int position, int currentRuneLength)
-        {
-            var index = position + currentRuneLength;
+            index = position + currentRune.Utf16SequenceLength;
 
             while (index < text.Length)
             {
                 if (!TryGetRuneAt(text, index, out var rune, out var consumed))
                 {
-                    return null;
+                    break;
                 }
 
-                if (IsLetterCategory(CharUnicodeInfo.GetUnicodeCategory(rune.Value)))
+                if (!IsLetterCategory(CharUnicodeInfo.GetUnicodeCategory(rune.Value)))
                 {
-                    return rune;
+                    break;
+                }
+
+                if (IsLatinLetter(rune))
+                {
+                    latinCount++;
+                }
+                else if (IsCyrillicLetter(rune))
+                {
+                    cyrillicCount++;
+                }
+                else
+                {
+                    otherCount++;
                 }
 
                 index += consumed;
             }
 
-            return null;
+            return new WordScriptProfile(latinCount, cyrillicCount, otherCount);
         }
 
         private static int GetPreviousRuneStartIndex(string text, int position)
@@ -434,17 +458,32 @@ namespace Demo.Demos.MarkdownToWord
             return false;
         }
 
-        private readonly struct ScriptProfile
+        private readonly struct WordScriptProfile
         {
-            public ScriptProfile(bool containsLatinLetters, bool containsCyrillicLetters)
+            public WordScriptProfile(int latinLetterCount, int cyrillicLetterCount, int otherLetterCount)
             {
-                ContainsLatinLetters = containsLatinLetters;
-                ContainsCyrillicLetters = containsCyrillicLetters;
+                LatinLetterCount = latinLetterCount;
+                CyrillicLetterCount = cyrillicLetterCount;
+                OtherLetterCount = otherLetterCount;
             }
 
-            public bool ContainsLatinLetters { get; }
-            public bool ContainsCyrillicLetters { get; }
-            public bool IsPurelyCyrillic => ContainsCyrillicLetters && !ContainsLatinLetters;
+            public int LatinLetterCount { get; }
+            public int CyrillicLetterCount { get; }
+            public int OtherLetterCount { get; }
+
+            public bool ContainsLatinLetters => LatinLetterCount > 0;
+        }
+
+        private readonly struct ScriptProfile
+        {
+            public ScriptProfile(int latinLetterCount, int cyrillicLetterCount)
+            {
+                LatinLetterCount = latinLetterCount;
+                CyrillicLetterCount = cyrillicLetterCount;
+            }
+
+            public int LatinLetterCount { get; }
+            public int CyrillicLetterCount { get; }
         }
 
         private static List<(int start, int end)> FindCodeBlockRanges(string input)
