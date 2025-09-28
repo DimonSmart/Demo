@@ -286,45 +286,50 @@ namespace Demo.Demos.MarkdownToWord
         private static bool IsSuspiciousLatinContext(string text, int position, Rune currentRune, ScriptProfile scriptProfile)
         {
             var wordProfile = GetWordScriptProfile(text, position, currentRune);
+            var currentIsLatin = IsLatinLetter(currentRune);
+            var currentIsCyrillic = IsCyrillicLetter(currentRune);
+            var latinContextLetters = wordProfile.LatinLetterCount - (currentIsLatin ? 1 : 0);
+            var cyrillicContextLetters = wordProfile.CyrillicLetterCount - (currentIsCyrillic ? 1 : 0);
 
-            if (!wordProfile.ContainsLatinLetters)
+            if (latinContextLetters > 0)
             {
-                if (wordProfile.CyrillicLetterCount > 1)
-                {
-                    return false;
-                }
-
-                if (scriptProfile.CyrillicLetterCount > wordProfile.CyrillicLetterCount)
-                {
-                    return false;
-                }
-
-                return scriptProfile.LatinLetterCount > 0;
+                return latinContextLetters >= cyrillicContextLetters;
             }
 
-            return true;
+            if (cyrillicContextLetters > 0)
+            {
+                return false;
+            }
+
+            var totalLatinLetters = scriptProfile.LatinLetterCount - (currentIsLatin ? 1 : 0);
+            var totalCyrillicLetters = scriptProfile.CyrillicLetterCount - (currentIsCyrillic ? 1 : 0);
+
+            return totalLatinLetters > 0 && totalLatinLetters >= totalCyrillicLetters;
         }
 
         private static bool IsSuspiciousCyrillicContext(string text, int position, Rune currentRune, ScriptProfile scriptProfile)
         {
             var wordProfile = GetWordScriptProfile(text, position, currentRune);
 
-            if (!wordProfile.ContainsCyrillicLetters)
+            var currentIsLatin = IsLatinLetter(currentRune);
+            var currentIsCyrillic = IsCyrillicLetter(currentRune);
+            var latinContextLetters = wordProfile.LatinLetterCount - (currentIsLatin ? 1 : 0);
+            var cyrillicContextLetters = wordProfile.CyrillicLetterCount - (currentIsCyrillic ? 1 : 0);
+
+            if (cyrillicContextLetters > 0)
             {
-                if (wordProfile.LatinLetterCount > 1)
-                {
-                    return false;
-                }
-
-                if (scriptProfile.LatinLetterCount > wordProfile.LatinLetterCount)
-                {
-                    return false;
-                }
-
-                return scriptProfile.CyrillicLetterCount > 0;
+                return cyrillicContextLetters >= latinContextLetters;
             }
 
-            return true;
+            if (latinContextLetters > 0)
+            {
+                return false;
+            }
+
+            var totalLatinLetters = scriptProfile.LatinLetterCount - (currentIsLatin ? 1 : 0);
+            var totalCyrillicLetters = scriptProfile.CyrillicLetterCount - (currentIsCyrillic ? 1 : 0);
+
+            return totalCyrillicLetters > 0 && totalCyrillicLetters >= totalLatinLetters;
         }
 
         private static WordScriptProfile GetWordScriptProfile(string text, int position, Rune currentRune)
