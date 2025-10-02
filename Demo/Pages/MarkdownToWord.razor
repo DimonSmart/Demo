@@ -210,6 +210,7 @@
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("**")' style="font-weight: bold;">B</button>
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("_")' style="font-style: italic;">I</button>
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("~~")' style="text-decoration: line-through;">S</button>
+            <button class="btn btn-secondary" @onclick="ApplyDiacriticStrikeAction" title="Layer combining marks for an intense strikeout">M̴a̷n̶g̵l̷e̴</button>
             <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("`")' style="font-family: monospace;">`code`</button>
             <button class="btn btn-info ms-3" @onclick="LoadExample" title="Load compact text with invisible characters for testing">Show Example</button>
         </div>
@@ -437,6 +438,21 @@
             await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
 
             // Update preview
+            await UpdatePreview();
+        }
+    }
+
+    private async Task ApplyDiacriticStrikeAction()
+    {
+        var selectionStart = await JSRuntime.InvokeAsync<int>("getSelectionStart", MarkdownTextArea);
+        var selectionEnd = await JSRuntime.InvokeAsync<int>("getSelectionEnd", MarkdownTextArea);
+
+        if (selectionStart >= 0 && selectionEnd > selectionStart)
+        {
+            MarkdownContent = MarkdownProcessor.ApplyDiacriticStrike(MarkdownContent, selectionStart, selectionEnd);
+
+            await JSRuntime.InvokeVoidAsync("updateTextAreaContent", MarkdownTextArea, MarkdownContent);
+
             await UpdatePreview();
         }
     }
