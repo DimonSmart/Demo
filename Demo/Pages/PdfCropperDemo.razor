@@ -1,0 +1,574 @@
+@page "/pdf-cropper"
+@using System.Collections.Generic
+@using System.Globalization
+@using System.IO
+@using System.Linq
+@using Demo.Services
+@using Demo.PdfProcessing
+@inject PageTitleService PageTitleService
+
+<PageTitle>PDF Cropper</PageTitle>
+
+<div class="pdf-cropper-page">
+    <h1 class="mb-4">PDF Cropper</h1>
+
+    <div class="alert alert-info" role="alert">
+        Обработка выполняется полностью в браузере. Выберите PDF-файлы, настройте параметры обрезки и скачайте результат.
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Загрузка файлов</div>
+        <div class="card-body">
+            <div class="mb-3">
+                <InputFile OnChange="OnFilesSelected" multiple accept="application/pdf,.pdf" />
+                <small class="text-muted d-block mt-2">Максимальный размер одного файла — @FormatFileSize(MaxUploadFileSizeInBytes).</small>
+            </div>
+
+            @if (_uploadErrors.Count > 0)
+            {
+                <ul class="text-danger">
+                    @foreach (var error in _uploadErrors)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            }
+
+            @if (_uploadedFiles.Count > 0)
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Файл</th>
+                                <th class="text-end">Размер</th>
+                                <th class="text-end">Страниц</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var file in _uploadedFiles)
+                            {
+                                <tr>
+                                    <td>@file.Name</td>
+                                    <td class="text-end">@FormatFileSize(file.Content.Length)</td>
+                                    <td class="text-end">@file.PageCount</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <EditForm Model="_options" OnValidSubmit="ProcessFiles">
+        <div class="card mb-4">
+            <div class="card-header">Параметры обрезки</div>
+            <div class="card-body row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Метод обрезки</label>
+                    <InputSelect @bind-Value="_options.Method" class="form-select">
+                        @foreach (var method in CropMethods)
+                        {
+                            <option value="@method">@GetMethodLabel(method)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Поле безопасности, pt</label>
+                    <InputNumber @bind-Value="_options.Margin" class="form-control" step="0.25" min="0" />
+                </div>
+                <div class="col-md-4 d-flex align-items-center">
+                    <div class="form-check mt-4">
+                        <InputCheckbox @bind-Value="_options.ExcludeEdgeTouchingObjects" class="form-check-input" id="excludeEdge" />
+                        <label class="form-check-label" for="excludeEdge">Игнорировать объекты, касающиеся края</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">Оптимизация PDF</div>
+            <div class="card-body row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Уровень сжатия</label>
+                    <InputSelect @bind-Value="_options.CompressionLevelKey" class="form-select">
+                        @foreach (var option in CompressionOptions)
+                        {
+                            <option value="@option.Value">@option.Label</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Целевая версия PDF</label>
+                    <InputSelect @bind-Value="_options.TargetPdfVersionValue" class="form-select">
+                        @foreach (var option in TargetVersionOptions)
+                        {
+                            <option value="@option.Value">@option.Label</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-12">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="_options.EnableFullCompression" class="form-check-input" id="fullCompression" />
+                                <label class="form-check-label" for="fullCompression">Полное сжатие cross-reference таблицы</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="_options.EnableSmartMode" class="form-check-input" id="smartMode" />
+                                <label class="form-check-label" for="smartMode">Smart mode (deduplication)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="_options.RemoveUnusedObjects" class="form-check-input" id="removeUnused" />
+                                <label class="form-check-label" for="removeUnused">Удалять неиспользуемые объекты</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="_options.RemoveXmpMetadata" class="form-check-input" id="removeXmp" />
+                                <label class="form-check-label" for="removeXmp">Удалять XMP-метаданные</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="_options.ClearDocumentInfo" class="form-check-input" id="clearInfo" />
+                                <label class="form-check-label" for="clearInfo">Очищать документную информацию</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="_options.RemoveEmbeddedStandardFonts" class="form-check-input" id="removeFonts" />
+                                <label class="form-check-label" for="removeFonts">Удалять встроенные стандартные шрифты</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <button type="submit" class="btn btn-primary" disabled="@(_isProcessing || _uploadedFiles.Count == 0)">Запустить обрезку</button>
+            @if (_isProcessing)
+            {
+                <span class="text-info">Идет обработка, пожалуйста, подождите...</span>
+            }
+        </div>
+    </EditForm>
+
+    @if (_processingErrors.Count > 0)
+    {
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach (var message in _processingErrors)
+                {
+                    <li>@message</li>
+                }
+            </ul>
+        </div>
+    }
+
+    @if (_results.Count > 0)
+    {
+        <div class="results-list">
+            @foreach (var result in _results)
+            {
+                <div class="card mb-4">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <span>@result.FileName</span>
+                        <a class="btn btn-success btn-sm" href="@result.CroppedDownloadUrl" download="@result.CroppedFileName">Скачать обрезанный PDF</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <div class="stat-box">
+                                    <div class="stat-label">Размер до</div>
+                                    <div class="stat-value">@FormatFileSize(result.OriginalSize)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="stat-box">
+                                    <div class="stat-label">Размер после</div>
+                                    <div class="stat-value">@FormatFileSize(result.CroppedSize)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="stat-box">
+                                    <div class="stat-label">Экономия</div>
+                                    <div class="stat-value">@result.SizeSavingsPercentage.ToString("P1", CultureInfo.CurrentCulture)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <h5>До обрезки (первые @result.OriginalPreviewCount стр. из @result.OriginalPageCount)</h5>
+                                <div class="preview-grid">
+                                    @foreach (var preview in result.OriginalPreviewSources)
+                                    {
+                                        <iframe src="@preview" class="preview-frame" title="Оригинальный документ"></iframe>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <h5>После обрезки (первые @result.CroppedPreviewCount стр. из @result.CroppedPageCount)</h5>
+                                <div class="preview-grid">
+                                    @foreach (var preview in result.CroppedPreviewSources)
+                                    {
+                                        <iframe src="@preview" class="preview-frame" title="Обрезанный документ"></iframe>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (result.LogMessages.Count > 0)
+                        {
+                            <details class="mt-3">
+                                <summary>Журнал обработки</summary>
+                                <pre class="log-output">@string.Join("\n", result.LogMessages)</pre>
+                            </details>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private const long MaxUploadFileSizeInBytes = 50 * 1024 * 1024;
+    private const int PreviewLimit = 3;
+
+    private static readonly CropMethod[] CropMethods = { CropMethod.ContentBased };
+    private static readonly IReadOnlyList<CompressionOption> CompressionOptions = BuildCompressionOptions();
+    private static readonly IReadOnlyList<TargetVersionOption> TargetVersionOptions = BuildTargetVersionOptions();
+
+    private readonly PdfCropperOptions _options = new()
+    {
+        CompressionLevelKey = CompressionOptions[0].Value,
+        TargetPdfVersionValue = TargetVersionOptions[0].Value
+    };
+
+    private readonly List<UploadedPdf> _uploadedFiles = new();
+    private readonly List<string> _uploadErrors = new();
+    private readonly List<string> _processingErrors = new();
+    private readonly List<PdfProcessingResult> _results = new();
+
+    private bool _isProcessing;
+
+    protected override void OnInitialized()
+    {
+        PageTitleService.SetTitle("PDF Cropper");
+    }
+
+    private async Task OnFilesSelected(InputFileChangeEventArgs e)
+    {
+        _uploadErrors.Clear();
+        _processingErrors.Clear();
+        _results.Clear();
+        _uploadedFiles.Clear();
+
+        foreach (var file in e.GetMultipleFiles())
+        {
+            if (!string.Equals(Path.GetExtension(file.Name), ".pdf", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(file.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                _uploadErrors.Add($"Файл {file.Name} не похож на PDF.");
+                continue;
+            }
+
+            if (file.Size > MaxUploadFileSizeInBytes)
+            {
+                _uploadErrors.Add($"Файл {file.Name} превышает ограничение {FormatFileSize(MaxUploadFileSizeInBytes)}.");
+                continue;
+            }
+
+            try
+            {
+                using var stream = file.OpenReadStream(MaxUploadFileSizeInBytes);
+                using var memory = new MemoryStream();
+                await stream.CopyToAsync(memory);
+                var bytes = memory.ToArray();
+                var pageCount = GetPageCount(bytes);
+                _uploadedFiles.Add(new UploadedPdf(file.Name, bytes, pageCount));
+            }
+            catch (Exception ex)
+            {
+                _uploadErrors.Add($"Не удалось прочитать {file.Name}: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task ProcessFiles()
+    {
+        if (_uploadedFiles.Count == 0 || _isProcessing)
+        {
+            return;
+        }
+
+        _processingErrors.Clear();
+        _results.Clear();
+        _isProcessing = true;
+
+        try
+        {
+            var cropSettings = new CropSettings(
+                _options.Method,
+                _options.ExcludeEdgeTouchingObjects,
+                (float)_options.Margin);
+
+            var optimizationSettings = new PdfOptimizationSettings(
+                compressionLevel: ResolveCompressionLevel(_options.CompressionLevelKey),
+                enableFullCompression: _options.EnableFullCompression,
+                enableSmartMode: _options.EnableSmartMode,
+                removeUnusedObjects: _options.RemoveUnusedObjects,
+                removeXmpMetadata: _options.RemoveXmpMetadata,
+                clearDocumentInfo: _options.ClearDocumentInfo,
+                documentInfoKeysToRemove: null,
+                removeEmbeddedStandardFonts: _options.RemoveEmbeddedStandardFonts,
+                targetPdfVersion: ResolveTargetVersion(_options.TargetPdfVersionValue));
+
+            foreach (var file in _uploadedFiles)
+            {
+                var logger = new InMemoryLogger();
+
+                try
+                {
+                    var cropped = await PdfSmartCropper.CropAsync(
+                        file.Content,
+                        cropSettings,
+                        optimizationSettings,
+                        logger);
+
+                    _results.Add(new PdfProcessingResult(file.Name, file.Content, file.PageCount, cropped, logger.Messages));
+                }
+                catch (Exception ex)
+                {
+                    _processingErrors.Add($"Ошибка при обработке {file.Name}: {ex.Message}");
+                }
+            }
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private static int? ResolveCompressionLevel(string key)
+    {
+        if (string.IsNullOrEmpty(key))
+        {
+            return null;
+        }
+
+        var option = CompressionOptions.FirstOrDefault(o => string.Equals(o.Value, key, StringComparison.Ordinal));
+        return option?.Level;
+    }
+
+    private static PdfCompatibilityLevel? ResolveTargetVersion(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return null;
+        }
+
+        var option = TargetVersionOptions.FirstOrDefault(o => string.Equals(o.Value, value, StringComparison.Ordinal));
+        return option?.Level;
+    }
+
+    private static IReadOnlyList<CompressionOption> BuildCompressionOptions()
+    {
+        var options = new List<CompressionOption>
+        {
+            new("По умолчанию (iText)", string.Empty, null)
+        };
+
+        options.Add(CreateCompressionOption("Без сжатия", PdfCompressionLevels.NoCompression));
+        options.Add(CreateCompressionOption("Стандартное сжатие", PdfCompressionLevels.DefaultCompression));
+        options.Add(CreateCompressionOption("Максимальная скорость", PdfCompressionLevels.BestSpeed));
+        options.Add(CreateCompressionOption("Максимальное сжатие", PdfCompressionLevels.BestCompression));
+
+        return options;
+    }
+
+    private static CompressionOption CreateCompressionOption(string label, string key)
+    {
+        if (!PdfCompressionLevels.TryGetValue(key, out var level))
+        {
+            throw new InvalidOperationException($"Неизвестный уровень сжатия: {key}.");
+        }
+
+        return new CompressionOption(label, key, level);
+    }
+
+    private static IReadOnlyList<TargetVersionOption> BuildTargetVersionOptions()
+    {
+        var options = new List<TargetVersionOption>
+        {
+            new("Сохранить оригинальную версию", string.Empty, null)
+        };
+
+        foreach (var level in Enum.GetValues<PdfCompatibilityLevel>())
+        {
+            options.Add(new TargetVersionOption($"PDF {level.ToVersionString()}", level.ToVersionString(), level));
+        }
+
+        return options;
+    }
+
+    private static int GetPageCount(byte[] pdfBytes)
+    {
+        using var stream = new MemoryStream(pdfBytes, writable: false);
+        using var reader = new iText.Kernel.Pdf.PdfReader(stream);
+        using var document = new iText.Kernel.Pdf.PdfDocument(reader);
+        return document.GetNumberOfPages();
+    }
+
+    private static string GetMethodLabel(CropMethod method)
+    {
+        return method switch
+        {
+            CropMethod.ContentBased => "Анализ содержимого (быстрее)",
+            CropMethod.BitmapBased => "Через растеризацию (точнее)",
+            _ => method.ToString()
+        };
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes <= 0)
+        {
+            return "0 B";
+        }
+
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        var order = (int)Math.Floor(Math.Log(bytes, 1024));
+        order = Math.Clamp(order, 0, sizes.Length - 1);
+        var adjusted = bytes / Math.Pow(1024, order);
+        return string.Format(CultureInfo.CurrentCulture, "{0:F1} {1}", adjusted, sizes[order]);
+    }
+
+    private sealed class PdfCropperOptions
+    {
+        public CropMethod Method { get; set; } = CropMethod.ContentBased;
+        public decimal Margin { get; set; } = 0.5m;
+        public bool ExcludeEdgeTouchingObjects { get; set; }
+        public string CompressionLevelKey { get; set; } = string.Empty;
+        public string TargetPdfVersionValue { get; set; } = string.Empty;
+        public bool EnableFullCompression { get; set; }
+        public bool EnableSmartMode { get; set; }
+        public bool RemoveUnusedObjects { get; set; }
+        public bool RemoveXmpMetadata { get; set; }
+        public bool ClearDocumentInfo { get; set; }
+        public bool RemoveEmbeddedStandardFonts { get; set; }
+    }
+
+    private sealed record CompressionOption(string Label, string Value, int? Level);
+
+    private sealed record TargetVersionOption(string Label, string Value, PdfCompatibilityLevel? Level);
+
+    private sealed record UploadedPdf(string Name, byte[] Content, int PageCount);
+
+    private sealed class InMemoryLogger : IPdfCropLogger
+    {
+        private readonly List<string> _messages = new();
+
+        public IReadOnlyList<string> Messages => _messages;
+
+        public void LogInfo(string message) => _messages.Add($"INFO: {message}");
+
+        public void LogWarning(string message) => _messages.Add($"WARN: {message}");
+
+        public void LogError(string message) => _messages.Add($"ERROR: {message}");
+    }
+
+    private sealed class PdfProcessingResult
+    {
+        public PdfProcessingResult(string originalName, byte[] originalBytes, int originalPageCount, byte[] croppedBytes, IReadOnlyList<string> logMessages)
+        {
+            FileName = originalName;
+            OriginalSize = originalBytes.LongLength;
+            CroppedSize = croppedBytes.LongLength;
+            SizeSavingsPercentage = OriginalSize == 0 ? 0 : 1 - (double)CroppedSize / OriginalSize;
+            CroppedFileName = BuildCroppedFileName(originalName);
+            OriginalPageCount = originalPageCount;
+            OriginalPreviewCount = Math.Min(originalPageCount, PreviewLimit);
+            OriginalPreviewSources = BuildPreviewSources(originalBytes, OriginalPreviewCount);
+            CroppedPageCount = GetPageCount(croppedBytes);
+            CroppedPreviewCount = Math.Min(CroppedPageCount, PreviewLimit);
+            CroppedPreviewSources = BuildPreviewSources(croppedBytes, CroppedPreviewCount);
+            CroppedDownloadUrl = BuildDataUrl(croppedBytes);
+            LogMessages = logMessages;
+        }
+
+        public string FileName { get; }
+
+        public string CroppedFileName { get; }
+
+        public long OriginalSize { get; }
+
+        public long CroppedSize { get; }
+
+        public double SizeSavingsPercentage { get; }
+
+        public IReadOnlyList<string> OriginalPreviewSources { get; }
+
+        public IReadOnlyList<string> CroppedPreviewSources { get; }
+
+        public int OriginalPageCount { get; }
+
+        public int OriginalPreviewCount { get; }
+
+        public int CroppedPageCount { get; }
+
+        public int CroppedPreviewCount { get; }
+
+        public string CroppedDownloadUrl { get; }
+
+        public IReadOnlyList<string> LogMessages { get; }
+
+        private static IReadOnlyList<string> BuildPreviewSources(byte[] pdfBytes, int previewCount)
+        {
+            if (previewCount <= 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            var baseUrl = BuildDataUrl(pdfBytes);
+            var list = new List<string>(previewCount);
+            for (var page = 1; page <= previewCount; page++)
+            {
+                list.Add($"{baseUrl}#page={page}");
+            }
+
+            return list;
+        }
+
+        private static string BuildDataUrl(byte[] pdfBytes)
+        {
+            var base64 = Convert.ToBase64String(pdfBytes);
+            return $"data:application/pdf;base64,{base64}";
+        }
+
+        private static string BuildCroppedFileName(string originalName)
+        {
+            var fileName = Path.GetFileNameWithoutExtension(originalName);
+            var extension = Path.GetExtension(originalName);
+            if (string.IsNullOrEmpty(fileName))
+            {
+                fileName = "document";
+            }
+
+            if (!string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                extension = ".pdf";
+            }
+
+            return $"{fileName}-cropped{extension}";
+        }
+    }
+}

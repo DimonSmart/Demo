@@ -1,0 +1,53 @@
+.pdf-cropper-page {
+    padding-bottom: 2rem;
+}
+
+.preview-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.preview-frame {
+    width: 100%;
+    min-height: 280px;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.5rem;
+    background-color: #fff;
+}
+
+.stat-box {
+    background-color: #f8f9fa;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    height: 100%;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.log-output {
+    margin-top: 0.75rem;
+    max-height: 220px;
+    overflow-y: auto;
+    background-color: #1e1e1e;
+    color: #dcdcdc;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.results-list {
+    display: flex;
+    flex-direction: column;
+}
