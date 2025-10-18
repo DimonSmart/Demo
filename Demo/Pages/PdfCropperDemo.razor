@@ -17,15 +17,15 @@
     <h1 class="mb-4">PDF Cropper</h1>
 
     <div class="alert alert-info" role="alert">
-        Обработка выполняется полностью в браузере. Выберите PDF-файлы, настройте параметры обрезки и скачайте результат.
+        Processing happens entirely in the browser. Select PDF files, adjust the crop settings, and download the result.
     </div>
 
     <div class="card mb-4">
-        <div class="card-header">Загрузка файлов</div>
+        <div class="card-header">File upload</div>
         <div class="card-body">
             <div class="mb-3">
                 <InputFile OnChange="OnFilesSelected" multiple accept="application/pdf,.pdf" />
-                <small class="text-muted d-block mt-2">Максимальный размер одного файла — @FormatFileSize(MaxUploadFileSizeInBytes).</small>
+                <small class="text-muted d-block mt-2">Maximum file size — @FormatFileSize(MaxUploadFileSizeInBytes).</small>
             </div>
 
             @if (_uploadErrors.Count > 0)
@@ -44,9 +44,9 @@
                     <table class="table table-sm align-middle">
                         <thead>
                             <tr>
-                                <th>Файл</th>
-                                <th class="text-end">Размер</th>
-                                <th class="text-end">Страниц</th>
+                                <th>File</th>
+                                <th class="text-end">Size</th>
+                                <th class="text-end">Pages</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -67,10 +67,10 @@
 
     <EditForm Model="_options" OnValidSubmit="ProcessFiles">
         <div class="card mb-4">
-            <div class="card-header">Параметры обрезки</div>
+            <div class="card-header">Crop settings</div>
             <div class="card-body row g-3">
                 <div class="col-md-4">
-                    <label class="form-label">Метод обрезки</label>
+                    <label class="form-label">Cropping method</label>
                     <InputSelect @bind-Value="_options.Method" class="form-select">
                         @foreach (var method in CropMethods)
                         {
@@ -79,23 +79,23 @@
                     </InputSelect>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Поле безопасности, pt</label>
+                    <label class="form-label">Safety margin (pt)</label>
                     <InputNumber @bind-Value="_options.Margin" class="form-control" step="0.25" min="0" />
                 </div>
                 <div class="col-md-4 d-flex align-items-center">
                     <div class="form-check mt-4">
                         <InputCheckbox @bind-Value="_options.ExcludeEdgeTouchingObjects" class="form-check-input" id="excludeEdge" />
-                        <label class="form-check-label" for="excludeEdge">Игнорировать объекты, касающиеся края</label>
+                        <label class="form-check-label" for="excludeEdge">Ignore objects touching the edge</label>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="card mb-4">
-            <div class="card-header">Оптимизация PDF</div>
+            <div class="card-header">PDF optimization</div>
             <div class="card-body row g-3">
                 <div class="col-md-6">
-                    <label class="form-label">Уровень сжатия</label>
+                    <label class="form-label">Compression level</label>
                     <InputSelect @bind-Value="_options.CompressionLevelKey" class="form-select">
                         @foreach (var option in CompressionOptions)
                         {
@@ -104,7 +104,7 @@
                     </InputSelect>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Целевая версия PDF</label>
+                    <label class="form-label">Target PDF version</label>
                     <InputSelect @bind-Value="_options.TargetPdfVersionValue" class="form-select">
                         @foreach (var option in TargetVersionOptions)
                         {
@@ -117,37 +117,37 @@
                         <div class="col-md-4">
                             <div class="form-check">
                                 <InputCheckbox @bind-Value="_options.EnableFullCompression" class="form-check-input" id="fullCompression" />
-                                <label class="form-check-label" for="fullCompression">Полное сжатие cross-reference таблицы</label>
+                                <label class="form-check-label" for="fullCompression">Full cross-reference table compression</label>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-check">
                                 <InputCheckbox @bind-Value="_options.EnableSmartMode" class="form-check-input" id="smartMode" />
-                                <label class="form-check-label" for="smartMode">Smart mode (deduplication)</label>
+                                <label class="form-check-label" for="smartMode">Smart mode (deduplicate objects)</label>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-check">
                                 <InputCheckbox @bind-Value="_options.RemoveUnusedObjects" class="form-check-input" id="removeUnused" />
-                                <label class="form-check-label" for="removeUnused">Удалять неиспользуемые объекты</label>
+                                <label class="form-check-label" for="removeUnused">Remove unused objects</label>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-check">
                                 <InputCheckbox @bind-Value="_options.RemoveXmpMetadata" class="form-check-input" id="removeXmp" />
-                                <label class="form-check-label" for="removeXmp">Удалять XMP-метаданные</label>
+                                <label class="form-check-label" for="removeXmp">Remove XMP metadata</label>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-check">
                                 <InputCheckbox @bind-Value="_options.ClearDocumentInfo" class="form-check-input" id="clearInfo" />
-                                <label class="form-check-label" for="clearInfo">Очищать документную информацию</label>
+                                <label class="form-check-label" for="clearInfo">Clear document info</label>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-check">
                                 <InputCheckbox @bind-Value="_options.RemoveEmbeddedStandardFonts" class="form-check-input" id="removeFonts" />
-                                <label class="form-check-label" for="removeFonts">Удалять встроенные стандартные шрифты</label>
+                                <label class="form-check-label" for="removeFonts">Remove embedded standard fonts</label>
                             </div>
                         </div>
                     </div>
@@ -156,18 +156,18 @@
         </div>
 
         <div class="d-flex align-items-center gap-3 mb-4">
-            <button type="submit" class="btn btn-primary" disabled="@(_isProcessing || _uploadedFiles.Count == 0)">Запустить обрезку</button>
+            <button type="submit" class="btn btn-primary" disabled="@(_isProcessing || _uploadedFiles.Count == 0)">Start cropping</button>
         </div>
     </EditForm>
 
-    @if (_isProcessing)
+                    @if (_isProcessing)
     {
         var progressMessages = GetProgressMessagesSnapshot();
         <div class="processing-card mb-4">
             <div class="d-flex align-items-start gap-3">
                 <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
                 <div class="flex-grow-1">
-                    <div class="fw-semibold">@(_activeFileName != null ? $"Обработка файла {_activeFileName}" : "Подготовка к обработке...")</div>
+                    <div class="fw-semibold">@(_activeFileName != null ? $"Processing {_activeFileName}" : "Preparing for processing...")</div>
                     @if (!string.IsNullOrEmpty(_latestLogMessage))
                     {
                         <div class="text-muted small mb-2">@_latestLogMessage</div>
@@ -206,25 +206,25 @@
                 <div class="card mb-4">
                     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                         <span>@result.FileName</span>
-                        <a class="btn btn-success btn-sm" href="@result.CroppedDownloadUrl" download="@result.CroppedFileName">Скачать обрезанный PDF</a>
+                        <a class="btn btn-success btn-sm" href="@result.CroppedDownloadUrl" download="@result.CroppedFileName">Download cropped PDF</a>
                     </div>
                     <div class="card-body">
                         <div class="row g-3 mb-3">
                             <div class="col-md-4">
                                 <div class="stat-box">
-                                    <div class="stat-label">Размер до</div>
+                                    <div class="stat-label">Size before</div>
                                     <div class="stat-value">@FormatFileSize(result.OriginalSize)</div>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="stat-box">
-                                    <div class="stat-label">Размер после</div>
+                                    <div class="stat-label">Size after</div>
                                     <div class="stat-value">@FormatFileSize(result.CroppedSize)</div>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="stat-box">
-                                    <div class="stat-label">Экономия</div>
+                                    <div class="stat-label">Savings</div>
                                     <div class="stat-value">@result.SizeSavingsPercentage.ToString("P1", CultureInfo.CurrentCulture)</div>
                                 </div>
                             </div>
@@ -232,13 +232,13 @@
 
                         <div class="row g-4">
                             <div class="col-lg-6">
-                                <h5>До обрезки (первые @result.OriginalPreviewCount стр. из @result.OriginalPageCount)</h5>
+                                <h5>Before cropping (first @result.OriginalPreviewCount pages of @result.OriginalPageCount)</h5>
                                 <div class="preview-grid">
                                     @if (result.IsOriginalPreviewLoading)
                                     {
                                         <div class="preview-placeholder">
                                             <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
-                                            <span class="mt-2">Готовим превью...</span>
+                                            <span class="mt-2">Preparing previews...</span>
                                         </div>
                                     }
                                     else if (!string.IsNullOrEmpty(result.OriginalPreviewError))
@@ -247,25 +247,25 @@
                                     }
                                     else if (result.OriginalPreviewImages.Count == 0)
                                     {
-                                        <div class="preview-message text-muted">Нет страниц для отображения.</div>
+                                        <div class="preview-message text-muted">No pages to display.</div>
                                     }
                                     else
                                     {
                                         @foreach (var preview in result.OriginalPreviewImages)
                                         {
-                                            <img src="@preview" class="preview-image" alt="Страница оригинального документа" loading="lazy" />
+                                            <img src="@preview" class="preview-image" alt="Original document page" loading="lazy" />
                                         }
                                     }
                                 </div>
                             </div>
                             <div class="col-lg-6">
-                                <h5>После обрезки (первые @result.CroppedPreviewCount стр. из @result.CroppedPageCount)</h5>
+                                <h5>After cropping (first @result.CroppedPreviewCount pages of @result.CroppedPageCount)</h5>
                                 <div class="preview-grid">
                                     @if (result.IsCroppedPreviewLoading)
                                     {
                                         <div class="preview-placeholder">
                                             <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
-                                            <span class="mt-2">Готовим превью...</span>
+                                            <span class="mt-2">Preparing previews...</span>
                                         </div>
                                     }
                                     else if (!string.IsNullOrEmpty(result.CroppedPreviewError))
@@ -274,13 +274,13 @@
                                     }
                                     else if (result.CroppedPreviewImages.Count == 0)
                                     {
-                                        <div class="preview-message text-muted">Нет страниц для отображения.</div>
+                                        <div class="preview-message text-muted">No pages to display.</div>
                                     }
                                     else
                                     {
                                         @foreach (var preview in result.CroppedPreviewImages)
                                         {
-                                            <img src="@preview" class="preview-image" alt="Страница обрезанного документа" loading="lazy" />
+                                            <img src="@preview" class="preview-image" alt="Cropped document page" loading="lazy" />
                                         }
                                     }
                                 </div>
@@ -290,7 +290,7 @@
                         @if (result.LogMessages.Count > 0)
                         {
                             <details class="mt-3">
-                                <summary>Журнал обработки</summary>
+                                <summary>Processing log</summary>
                                 <pre class="log-output">@string.Join("\n", result.LogMessages)</pre>
                             </details>
                         }
@@ -347,13 +347,13 @@
             if (!string.Equals(Path.GetExtension(file.Name), ".pdf", StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(file.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase))
             {
-                _uploadErrors.Add($"Файл {file.Name} не похож на PDF.");
+                _uploadErrors.Add($"File {file.Name} does not look like a PDF.");
                 continue;
             }
 
             if (file.Size > MaxUploadFileSizeInBytes)
             {
-                _uploadErrors.Add($"Файл {file.Name} превышает ограничение {FormatFileSize(MaxUploadFileSizeInBytes)}.");
+                _uploadErrors.Add($"File {file.Name} exceeds the {FormatFileSize(MaxUploadFileSizeInBytes)} limit.");
                 continue;
             }
 
@@ -368,7 +368,7 @@
             }
             catch (Exception ex)
             {
-                _uploadErrors.Add($"Не удалось прочитать {file.Name}: {ex.Message}");
+                _uploadErrors.Add($"Failed to read {file.Name}: {ex.Message}");
             }
         }
     }
@@ -412,7 +412,7 @@
             foreach (var file in _uploadedFiles)
             {
                 _activeFileName = file.Name;
-                _latestLogMessage = "Запуск обрезки...";
+                _latestLogMessage = "Starting cropping...";
                 ClearProgressLog();
                 await InvokeAsync(StateHasChanged);
 
@@ -437,7 +437,7 @@
 
                     _results.Add(result);
                     await InvokeAsync(StateHasChanged);
-                    _latestLogMessage = "Готовим превью...";
+                    _latestLogMessage = "Preparing previews...";
                     result.BeginPreviewGeneration();
                     await InvokeAsync(StateHasChanged);
                     await Task.Yield();
@@ -447,7 +447,7 @@
                 }
                 catch (Exception ex)
                 {
-                    _processingErrors.Add($"Ошибка при обработке {file.Name}: {ex.Message}");
+                    _processingErrors.Add($"Failed to process {file.Name}: {ex.Message}");
                 }
                 finally
                 {
@@ -493,13 +493,13 @@
     {
         var options = new List<CompressionOption>
         {
-            new("По умолчанию (iText)", string.Empty, null)
+            new("Default (iText)", string.Empty, null)
         };
 
-        options.Add(CreateCompressionOption("Без сжатия", PdfCompressionLevels.NoCompression));
-        options.Add(CreateCompressionOption("Стандартное сжатие", PdfCompressionLevels.DefaultCompression));
-        options.Add(CreateCompressionOption("Максимальная скорость", PdfCompressionLevels.BestSpeed));
-        options.Add(CreateCompressionOption("Максимальное сжатие", PdfCompressionLevels.BestCompression));
+        options.Add(CreateCompressionOption("No compression", PdfCompressionLevels.NoCompression));
+        options.Add(CreateCompressionOption("Standard compression", PdfCompressionLevels.DefaultCompression));
+        options.Add(CreateCompressionOption("Best speed", PdfCompressionLevels.BestSpeed));
+        options.Add(CreateCompressionOption("Best compression", PdfCompressionLevels.BestCompression));
 
         return options;
     }
@@ -508,7 +508,7 @@
     {
         if (!PdfCompressionLevels.TryGetValue(key, out var level))
         {
-            throw new InvalidOperationException($"Неизвестный уровень сжатия: {key}.");
+            throw new InvalidOperationException($"Unknown compression level: {key}.");
         }
 
         return new CompressionOption(label, key, level);
@@ -518,7 +518,7 @@
     {
         var options = new List<TargetVersionOption>
         {
-            new("Сохранить оригинальную версию", string.Empty, null)
+            new("Keep original version", string.Empty, null)
         };
 
         foreach (var level in Enum.GetValues<PdfCompatibilityLevel>())
@@ -541,8 +541,8 @@
     {
         return method switch
         {
-            CropMethod.ContentBased => "Анализ содержимого (быстрее)",
-            CropMethod.BitmapBased => "Через растеризацию (точнее)",
+            CropMethod.ContentBased => "Content analysis (faster)",
+            CropMethod.BitmapBased => "Rasterization (more precise)",
             _ => method.ToString()
         };
     }
@@ -787,7 +787,7 @@
                     }
                     catch (Exception ex)
                     {
-                        OriginalPreviewError = $"Не удалось построить превью оригинала: {ex.Message}";
+                        OriginalPreviewError = $"Failed to render the original preview: {ex.Message}";
                     }
 
                     IsOriginalPreviewLoading = false;
@@ -804,7 +804,7 @@
                     }
                     catch (Exception ex)
                     {
-                        CroppedPreviewError = $"Не удалось построить превью результата: {ex.Message}";
+                        CroppedPreviewError = $"Failed to render the cropped preview: {ex.Message}";
                     }
 
                     IsCroppedPreviewLoading = false;
