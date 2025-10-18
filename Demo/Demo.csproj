@@ -22,11 +22,12 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.3" />
     <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="9.0.3" />
     <PackageReference Include="SkiaSharp.Views.Blazor" Version="3.116.1" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.58.0" /> 
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.58.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.Ollama" Version="1.58.0-alpha" />
     <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.58.0" />
     <PackageReference Include="itext" Version="8.0.1" />
     <PackageReference Include="itext.bouncy-castle-adapter" Version="8.0.1" />
+    <PackageReference Include="PDFtoImage" Version="5.1.1" />
   </ItemGroup>
 
   <ItemGroup>

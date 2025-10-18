@@ -8,12 +8,52 @@
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
-.preview-frame {
+.preview-image {
     width: 100%;
-    min-height: 280px;
     border: 1px solid var(--bs-border-color, #dee2e6);
     border-radius: 0.5rem;
     background-color: #fff;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.08);
+    display: block;
+}
+
+.preview-placeholder,
+.preview-message {
+    min-height: 280px;
+    border: 1px dashed var(--bs-border-color, #dee2e6);
+    border-radius: 0.5rem;
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.preview-message {
+    border-style: solid;
+}
+
+.preview-placeholder .spinner-border {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.processing-card {
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.75rem;
+    background-color: #f8fbff;
+    padding: 1rem 1.25rem;
+}
+
+.progress-log {
+    list-style: none;
+    padding-left: 1.25rem;
+}
+
+.progress-log li::marker {
+    color: var(--bs-primary);
 }
 
 .stat-box {
