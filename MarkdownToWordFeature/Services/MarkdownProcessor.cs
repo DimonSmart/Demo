@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 
-namespace Demo.Demos.MarkdownToWord
+namespace MarkdownToWordFeature.Services
 {
     public static class MarkdownProcessor
     {

@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace Demo.Demos.MarkdownToWord
+namespace MarkdownToWordFeature.Services
 {
     /// <summary>
     /// Advanced invisible character cleaner using System.Text.Rune for proper Unicode handling

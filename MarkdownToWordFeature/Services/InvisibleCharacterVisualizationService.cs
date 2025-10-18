@@ -1,7 +1,7 @@
 using System.Text;
 using System.Web;
 
-namespace Demo.Demos.MarkdownToWord
+namespace MarkdownToWordFeature.Services
 {
     public class InvisibleCharacterVisualizationService
     {

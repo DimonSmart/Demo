@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Demo.Demos.MarkdownToWord
+namespace MarkdownToWordFeature.Services
 {
     /// <summary>
     /// Defines the action to take when cleaning an invisible character

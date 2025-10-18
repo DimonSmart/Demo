@@ -1,4 +1,4 @@
-using Demo.Demos.MarkdownToWord;
+using MarkdownToWordFeature.Services;
 using Xunit;
 
 namespace DemoTests.MarkdownToWord

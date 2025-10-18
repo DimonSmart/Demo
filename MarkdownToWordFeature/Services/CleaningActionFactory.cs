@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Demo.Demos.MarkdownToWord
+namespace MarkdownToWordFeature.Services
 {
     /// <summary>
     /// Factory class that creates appropriate CleaningActions based on character category and preset

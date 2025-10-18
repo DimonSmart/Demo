@@ -3,13 +3,13 @@ using BlazorImageProcessing;
 using Demo;
 using Demo.Demos.Common;
 using Demo.Demos.HashX;
-using Demo.Demos.MarkdownToWord;
 using Demo.Demos.MazeRunner;
 using Demo.Demos.Pdd;
 using Demo.Services;
 using DimonSmart.Hash.Interfaces;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.AspNetCore.Components.WebAssembly.Services;
 using Microsoft.Extensions.Options;
 
 // Existing code
@@ -26,9 +26,7 @@ builder.Services.AddSingleton<PageTitleService>();
 builder.Services.AddSingleton<LogStore>();
 builder.Services.AddScoped<BrowserService>();
 builder.Services.AddScoped<ImageProcessingService>();
-builder.Services.AddScoped<InvisibleCharacterDetectorService>();
-builder.Services.AddScoped<InvisibleCharacterCleanerService>();
-builder.Services.AddScoped<InvisibleCharacterVisualizationService>();
+builder.Services.AddScoped<LazyAssemblyLoader>();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
 // Hash demo

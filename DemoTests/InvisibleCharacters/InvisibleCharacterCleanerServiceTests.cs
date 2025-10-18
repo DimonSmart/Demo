@@ -2,7 +2,7 @@ using Xunit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Demo.Demos.MarkdownToWord;
+using MarkdownToWordFeature.Services;
 
 namespace DemoTests.InvisibleCharacters
 {

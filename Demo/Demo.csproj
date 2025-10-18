@@ -42,6 +42,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GeneticAlgorithm\GeneticAlgorithm.csproj" />
+    <ProjectReference Include="..\MarkdownToWordFeature\MarkdownToWordFeature.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <BlazorWebAssemblyLazyLoad Include="MarkdownToWordFeature.dll" />
   </ItemGroup>
 
 </Project>

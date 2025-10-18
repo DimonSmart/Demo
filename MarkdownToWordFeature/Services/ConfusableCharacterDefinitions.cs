@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Demo.Demos.MarkdownToWord;
+namespace MarkdownToWordFeature.Services;
 
 internal static class ConfusableCharacterDefinitions
 {
