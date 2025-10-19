@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "Demo",
   "resources": {
-    "hash": "sha256-U4f1ACe5P2e5ldzfn8KUUBLJpFbekVOoVa6Y4dotgBQ=",
+    "hash": "sha256-09/4x6rqfZ+bixFyODthLSsXBuSEiNfB6QATxzzVVvI=",
     "fingerprinting": {
       "Azure.AI.OpenAI.ecygy6jkg0.wasm": "Azure.AI.OpenAI.wasm",
       "Azure.Core.hkbwo49z6f.wasm": "Azure.Core.wasm",
@@ -138,13 +138,18 @@
       "System.8rv0tdtrxz.wasm": "System.wasm",
       "netstandard.axaccz7kgl.wasm": "netstandard.wasm",
       "System.Private.CoreLib.sjnhievpeq.wasm": "System.Private.CoreLib.wasm",
-      "Demo.Abstractions.c2vq5bla0q.wasm": "Demo.Abstractions.wasm",
-      "GeneticAlgorithm.g3e4toxf8w.wasm": "GeneticAlgorithm.wasm",
-      "MarkdownToWordDemo.gcv93numi8.wasm": "MarkdownToWordDemo.wasm",
-      "PdfCropperDemo.kg7onnj3g4.wasm": "PdfCropperDemo.wasm",
-      "Demo.d4p47rg7ox.wasm": "Demo.wasm",
-      "dotnet.native.4kb4sx2fjj.js": "dotnet.native.js",
-      "dotnet.native.oe5ykz72mt.wasm": "dotnet.native.wasm",
+      "BlackjackDemo.Core.f6n1mg6tna.wasm": "BlackjackDemo.Core.wasm",
+      "BlackjackDemoModule.lgrzu8tn8x.wasm": "BlackjackDemoModule.wasm",
+      "Demo.Abstractions.18y42b2ed2.wasm": "Demo.Abstractions.wasm",
+      "GeneticAlgorithm.rmsbiqzgo9.wasm": "GeneticAlgorithm.wasm",
+      "HashXDemoModule.0htehj1ozo.wasm": "HashXDemoModule.wasm",
+      "MarkdownToWordDemo.kyjaztlcul.wasm": "MarkdownToWordDemo.wasm",
+      "PdfCropperDemo.gke2bnz5kg.wasm": "PdfCropperDemo.wasm",
+      "TravellingSalesmanDemo.Core.f8yysmzvoo.wasm": "TravellingSalesmanDemo.Core.wasm",
+      "TravellingSalesmanDemoModule.3nv912udfu.wasm": "TravellingSalesmanDemoModule.wasm",
+      "Demo.mz2ng1b40k.wasm": "Demo.wasm",
+      "dotnet.native.2dxwjt6hue.js": "dotnet.native.js",
+      "dotnet.native.5nyreznis3.wasm": "dotnet.native.wasm",
       "dotnet.js": "dotnet.js",
       "dotnet.runtime.drv0pr9n5o.js": "dotnet.runtime.js",
       "icudt_CJK.tjcz0u77k5.dat": "icudt_CJK.dat",
@@ -152,13 +157,13 @@
       "icudt_no_CJK.lfu7j35m59.dat": "icudt_no_CJK.dat"
     },
     "jsModuleNative": {
-      "dotnet.native.4kb4sx2fjj.js": "sha256-hLNiWTTIb3tPb2GStC3+o50TcZWeaIDC9ZEnS1IH03o="
+      "dotnet.native.2dxwjt6hue.js": "sha256-Gmi6f/3ru4X4do9keDXePh4Oo6ORbAQ/xwih6cKPFQM="
     },
     "jsModuleRuntime": {
       "dotnet.runtime.drv0pr9n5o.js": "sha256-yfXUv1l/B489E8p12JxUvxly0JvHL9CCsoZUDlfGH9c="
     },
     "wasmNative": {
-      "dotnet.native.oe5ykz72mt.wasm": "sha256-IMACh4Nj9T6Q27YTZN0lCKE9dSTx1yeUUYpKkrV2R5A="
+      "dotnet.native.5nyreznis3.wasm": "sha256-IRIy6dTKcFwQOX46oZ8TAOfv5QRZMOkQCCe7k4/VTyk="
     },
     "icu": {
       "icudt_CJK.tjcz0u77k5.dat": "sha256-SZLtQnRc0JkwqHab0VUVP7T3uBPSeYzxzDnpxPpUnHk=",
@@ -301,14 +306,19 @@
       "System.8rv0tdtrxz.wasm": "sha256-xMF0eauQ5DkSzUozHLFFMQnL6DSJO09nJLtgag+Dzbw=",
       "netstandard.axaccz7kgl.wasm": "sha256-stUE2dBRe3KS8dC3X8Acws3ODEev2c5LsQPS2Aa7PhM=",
       "System.Private.CoreLib.sjnhievpeq.wasm": "sha256-eAs8ntE8D3070FfVPlDSv38TDZA3APH1kU0RyRHoWY4=",
-      "Demo.Abstractions.c2vq5bla0q.wasm": "sha256-xCA7plIRPFwcRDPfk2vQv5IWZWb1RpKfNHuAd+TmMqc=",
-      "GeneticAlgorithm.g3e4toxf8w.wasm": "sha256-XI1YCQrvCLEUCfcx8YQ49cYheRGCiqFXL1C1L1SC15Q=",
-      "Demo.d4p47rg7ox.wasm": "sha256-LcvWQLuQNEoOH+D7i8kg8LHsl3u2PXQgDsI7I11MIO8="
+      "BlackjackDemo.Core.f6n1mg6tna.wasm": "sha256-l+H1Vb4qIF8Jllr/nBcFkeFIxvCB9mDY0vBN5XZJhJ0=",
+      "Demo.Abstractions.18y42b2ed2.wasm": "sha256-QXRGudGFRpQ9pSItP9QiSsF/Jj758bqQxSk9l597+6k=",
+      "GeneticAlgorithm.rmsbiqzgo9.wasm": "sha256-s4/ZtIpw545K9HisrJ5jjeCBjOLCTJSWFRScHLdCYtE=",
+      "TravellingSalesmanDemo.Core.f8yysmzvoo.wasm": "sha256-z4VR/0WmGVUy/vyZLfWIId/guvYw4dNohGJR7XkGB8Y=",
+      "Demo.mz2ng1b40k.wasm": "sha256-Hi0crBA7x5DSy9z3JXc4hTyHef8KLTpbm2XQ7sma7zU="
     },
     "assembly": {},
     "lazyAssembly": {
-      "MarkdownToWordDemo.gcv93numi8.wasm": "sha256-EPo3tOGTyHjQlChm7/tnJYxIRlc87HzSdzPXXzKdgHY=",
-      "PdfCropperDemo.kg7onnj3g4.wasm": "sha256-xF7MTx/VyXgE2QxPF2GH5EKq0LitjdHEAwooZ06I+DY="
+      "BlackjackDemoModule.lgrzu8tn8x.wasm": "sha256-O/y3eZYXhN+CXRS9G3NGr+sWOO17q+M4aQih58pU4dU=",
+      "HashXDemoModule.0htehj1ozo.wasm": "sha256-TIbPknW40LnxLeCpDxQdn+J/gXdWaIeGbw3Vup1AzWw=",
+      "MarkdownToWordDemo.kyjaztlcul.wasm": "sha256-dJUpwCVv0rCql9OVGmz8CW481dJJmDgvLBs40KbP4TM=",
+      "PdfCropperDemo.gke2bnz5kg.wasm": "sha256-wDKVuoyDLiLmYchLZhxYu+eL1t3H6DLhTGVxYo40D2o=",
+      "TravellingSalesmanDemoModule.3nv912udfu.wasm": "sha256-ke4lrRH1icLSuGHb7HZwRaAuCcH343GiFP/sAjUqSIo="
     }
   },
   "cacheBootResources": true,
