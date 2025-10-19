@@ -459,13 +459,23 @@
                     {
                         _results.Add(result);
                         _latestLogMessage = "Preparing previews...";
+                        _currentProgressPercentage = null;
                         StateHasChanged();
                     });
 
                     result.BeginPreviewGeneration();
                     await InvokeAsync(StateHasChanged);
                     await Task.Yield();
-                    result.GeneratePreviews(PreviewScale);
+                    
+                    await result.GeneratePreviewsAsync(PreviewScale, async progressMessage =>
+                    {
+                        await InvokeAsync(() =>
+                        {
+                            _latestLogMessage = progressMessage;
+                            StateHasChanged();
+                        });
+                        await Task.Delay(1);
+                    });
 
                     await InvokeAsync(() =>
                     {
@@ -805,7 +815,7 @@
             }
         }
 
-        public void GeneratePreviews(double scale)
+        public async Task GeneratePreviewsAsync(double scale, Func<string, Task>? progressCallback = null)
         {
             if (_previewsLoaded)
             {
@@ -819,7 +829,18 @@
                     OriginalPreviewError = null;
                     try
                     {
-                        var images = PdfPreviewGenerator.GeneratePreviews(_originalBytes, OriginalPreviewCount, scale);
+                        if (progressCallback != null)
+                        {
+                            await progressCallback("Generating original previews...");
+                        }
+                        await Task.Yield();
+                        var images = await PdfPreviewGenerator.GeneratePreviewsAsync(_originalBytes, OriginalPreviewCount, scale, async msg =>
+                        {
+                            if (progressCallback != null)
+                            {
+                                await progressCallback(msg);
+                            }
+                        });
                         _originalPreviewImages.Clear();
                         _originalPreviewImages.AddRange(images);
                     }
@@ -836,7 +857,18 @@
                     CroppedPreviewError = null;
                     try
                     {
-                        var images = PdfPreviewGenerator.GeneratePreviews(_croppedBytes, CroppedPreviewCount, scale);
+                        if (progressCallback != null)
+                        {
+                            await progressCallback("Generating cropped previews...");
+                        }
+                        await Task.Yield();
+                        var images = await PdfPreviewGenerator.GeneratePreviewsAsync(_croppedBytes, CroppedPreviewCount, scale, async msg =>
+                        {
+                            if (progressCallback != null)
+                            {
+                                await progressCallback(msg);
+                            }
+                        });
                         _croppedPreviewImages.Clear();
                         _croppedPreviewImages.AddRange(images);
                     }

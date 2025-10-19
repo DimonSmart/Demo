@@ -6,7 +6,7 @@ namespace Demo.PdfProcessing;
 
 internal static class PdfPreviewGenerator
 {
-    public static IReadOnlyList<string> GeneratePreviews(byte[] pdfBytes, int maxPages, double scale, CancellationToken cancellationToken = default)
+    public static async Task<IReadOnlyList<string>> GeneratePreviewsAsync(byte[] pdfBytes, int maxPages, double scale, Func<string, Task>? progressCallback = null, CancellationToken cancellationToken = default)
     {
         if (pdfBytes == null)
         {
@@ -27,6 +27,11 @@ internal static class PdfPreviewGenerator
         for (var pageIndex = 0; pageIndex < pageLimit; pageIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
+
+            if (progressCallback != null)
+            {
+                await progressCallback($"Rendering preview {pageIndex + 1}/{pageLimit}...");
+            }
 
             using var bitmap = RenderPageToBitmap(pdfBytes, pageIndex);
             using var scaledBitmap = CreateScaledBitmap(bitmap, normalizedScale);
