@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Demo/Demo.csproj" />
+    <ProjectReference Include="../MarkdownToWordDemo/MarkdownToWordDemo.csproj" />
   </ItemGroup>
 
 </Project>
