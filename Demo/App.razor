@@ -20,18 +20,29 @@
 @code {
     private readonly List<Assembly> _additionalAssemblies = new();
     private bool _markdownModuleLoaded;
+    private bool _pdfCropperModuleLoaded;
 
     private async Task HandleNavigationAsync(NavigationContext args)
     {
-        if (_markdownModuleLoaded)
-            return;
+        var path = args.Path ?? string.Empty;
 
-        if (args.Path.StartsWith("markdown-to-word", StringComparison.OrdinalIgnoreCase))
+        if (!_markdownModuleLoaded && path.StartsWith("markdown-to-word", StringComparison.OrdinalIgnoreCase))
         {
-            var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "MarkdownToWordDemo.dll" });
-            _additionalAssemblies.AddRange(assemblies);
+            await LoadModuleAsync("MarkdownToWordDemo.dll");
             _markdownModuleLoaded = true;
-            StateHasChanged();
         }
+
+        if (!_pdfCropperModuleLoaded && path.StartsWith("pdf-cropper", StringComparison.OrdinalIgnoreCase))
+        {
+            await LoadModuleAsync("PdfCropperDemo.dll");
+            _pdfCropperModuleLoaded = true;
+        }
+    }
+
+    private async Task LoadModuleAsync(string assemblyName)
+    {
+        var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { assemblyName });
+        _additionalAssemblies.AddRange(assemblies);
+        StateHasChanged();
     }
 }

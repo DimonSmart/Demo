@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.3" />
+    <PackageReference Include="itext" Version="8.0.1" />
+    <PackageReference Include="itext.bouncy-castle-adapter" Version="8.0.1" />
+    <PackageReference Include="PDFtoImage" Version="5.1.1" />
+    <PackageReference Include="SkiaSharp" Version="3.119.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Demo.Abstractions\Demo.Abstractions.csproj" />
+  </ItemGroup>
+</Project>
