@@ -1,0 +1,914 @@
+@page "/pdf-cropper"
+@using System.Collections.Generic
+@using System.Globalization
+@using System.IO
+@using System.Linq
+@using System.Threading
+@using System.Threading.Tasks
+@using Demo.Services
+@using Demo.PdfProcessing
+@inject PageTitleService PageTitleService
+
+@implements IDisposable
+
+<PageTitle>PDF Cropper</PageTitle>
+
+<div class="pdf-cropper-page">
+    <h1 class="mb-4">PDF Cropper</h1>
+
+    <div class="alert alert-info" role="alert">
+        Processing happens entirely in the browser. Select PDF files, adjust the crop settings, and download the result.
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">File upload</div>
+        <div class="card-body">
+            <div class="mb-3">
+                <InputFile OnChange="OnFilesSelected" multiple accept="application/pdf,.pdf" />
+                <small class="text-muted d-block mt-2">Maximum file size — @FormatFileSize(MaxUploadFileSizeInBytes).</small>
+            </div>
+
+            @if (_uploadErrors.Count > 0)
+            {
+                <ul class="text-danger">
+                    @foreach (var error in _uploadErrors)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            }
+
+            @if (_uploadedFiles.Count > 0)
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>File</th>
+                                <th class="text-end">Size</th>
+                                <th class="text-end">Pages</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var file in _uploadedFiles)
+                            {
+                                <tr>
+                                    <td>@file.Name</td>
+                                    <td class="text-end">@FormatFileSize(file.Content.Length)</td>
+                                    <td class="text-end">@file.PageCount</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <EditForm Model="_options" OnValidSubmit="ProcessFiles">
+        <div class="card mb-4">
+            <div class="card-header">Crop settings</div>
+            <div class="card-body row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Cropping method</label>
+                    <InputSelect @bind-Value="_options.Method" class="form-select">
+                        @foreach (var method in CropMethods)
+                        {
+                            <option value="@method">@GetMethodLabel(method)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Safety margin (pt)</label>
+                    <InputNumber @bind-Value="_options.Margin" class="form-control" step="0.25" min="0" />
+                </div>
+                <div class="col-md-4 d-flex align-items-center">
+                    <div class="form-check mt-4">
+                        <InputCheckbox @bind-Value="_options.ExcludeEdgeTouchingObjects" class="form-check-input" id="excludeEdge" />
+                        <label class="form-check-label" for="excludeEdge">Ignore objects touching the edge</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">PDF optimization</div>
+            <div class="card-body row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Compression level</label>
+                    <InputSelect @bind-Value="_options.CompressionLevelKey" class="form-select">
+                        @foreach (var option in CompressionOptions)
+                        {
+                            <option value="@option.Value">@option.Label</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Target PDF version</label>
+                    <InputSelect @bind-Value="_options.TargetPdfVersionValue" class="form-select">
+                        @foreach (var option in TargetVersionOptions)
+                        {
+                            <option value="@option.Value">@option.Label</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-12">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="_options.EnableFullCompression" class="form-check-input" id="fullCompression" />
+                                <label class="form-check-label" for="fullCompression">Full cross-reference table compression</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="_options.EnableSmartMode" class="form-check-input" id="smartMode" />
+                                <label class="form-check-label" for="smartMode">Smart mode (deduplicate objects)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="_options.RemoveUnusedObjects" class="form-check-input" id="removeUnused" />
+                                <label class="form-check-label" for="removeUnused">Remove unused objects</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="_options.RemoveXmpMetadata" class="form-check-input" id="removeXmp" />
+                                <label class="form-check-label" for="removeXmp">Remove XMP metadata</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="_options.ClearDocumentInfo" class="form-check-input" id="clearInfo" />
+                                <label class="form-check-label" for="clearInfo">Clear document info</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="_options.RemoveEmbeddedStandardFonts" class="form-check-input" id="removeFonts" />
+                                <label class="form-check-label" for="removeFonts">Remove embedded standard fonts</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <button type="submit" class="btn btn-primary" disabled="@(_isProcessing || _uploadedFiles.Count == 0)">Start cropping</button>
+        </div>
+    </EditForm>
+
+                    @if (_isProcessing)
+    {
+        var progressMessages = GetProgressMessagesSnapshot();
+        <div class="processing-card mb-4">
+            <div class="d-flex align-items-start gap-3">
+                <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                <div class="flex-grow-1">
+                    <div class="fw-semibold">@(_activeFileName != null ? $"Processing {_activeFileName}" : "Preparing for processing...")</div>
+                    @if (_currentProgressPercentage.HasValue)
+                    {
+                        <div class="text-muted small mb-2">Progress: @_currentProgressPercentage%</div>
+                    }
+                    @if (!string.IsNullOrEmpty(_latestLogMessage))
+                    {
+                        <div class="text-muted small mb-2">@_latestLogMessage</div>
+                    }
+                    @if (progressMessages.Length > 0)
+                    {
+                        <ul class="progress-log small mb-0">
+                            @foreach (var message in progressMessages.Reverse())
+                            {
+                                <li>@message</li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (_processingErrors.Count > 0)
+    {
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach (var message in _processingErrors)
+                {
+                    <li>@message</li>
+                }
+            </ul>
+        </div>
+    }
+
+    @if (_results.Count > 0)
+    {
+        <div class="results-list">
+            @foreach (var result in _results)
+            {
+                <div class="card mb-4">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <span>@result.FileName</span>
+                        <a class="btn btn-success btn-sm" href="@result.CroppedDownloadUrl" download="@result.CroppedFileName">Download cropped PDF</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <div class="stat-box">
+                                    <div class="stat-label">Size before</div>
+                                    <div class="stat-value">@FormatFileSize(result.OriginalSize)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="stat-box">
+                                    <div class="stat-label">Size after</div>
+                                    <div class="stat-value">@FormatFileSize(result.CroppedSize)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="stat-box">
+                                    <div class="stat-label">Savings</div>
+                                    <div class="stat-value">@result.SizeSavingsPercentage.ToString("P1", CultureInfo.CurrentCulture)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <h5>Before cropping (first @result.OriginalPreviewCount pages of @result.OriginalPageCount)</h5>
+                                <div class="preview-grid">
+                                    @if (result.IsOriginalPreviewLoading)
+                                    {
+                                        <div class="preview-placeholder">
+                                            <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                                            <span class="mt-2">Preparing previews...</span>
+                                        </div>
+                                    }
+                                    else if (!string.IsNullOrEmpty(result.OriginalPreviewError))
+                                    {
+                                        <div class="preview-message alert alert-warning mb-0">@result.OriginalPreviewError</div>
+                                    }
+                                    else if (result.OriginalPreviewImages.Count == 0)
+                                    {
+                                        <div class="preview-message text-muted">No pages to display.</div>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var preview in result.OriginalPreviewImages)
+                                        {
+                                            <img src="@preview" class="preview-image" alt="Original document page" loading="lazy" />
+                                        }
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <h5>After cropping (first @result.CroppedPreviewCount pages of @result.CroppedPageCount)</h5>
+                                <div class="preview-grid">
+                                    @if (result.IsCroppedPreviewLoading)
+                                    {
+                                        <div class="preview-placeholder">
+                                            <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                                            <span class="mt-2">Preparing previews...</span>
+                                        </div>
+                                    }
+                                    else if (!string.IsNullOrEmpty(result.CroppedPreviewError))
+                                    {
+                                        <div class="preview-message alert alert-warning mb-0">@result.CroppedPreviewError</div>
+                                    }
+                                    else if (result.CroppedPreviewImages.Count == 0)
+                                    {
+                                        <div class="preview-message text-muted">No pages to display.</div>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var preview in result.CroppedPreviewImages)
+                                        {
+                                            <img src="@preview" class="preview-image" alt="Cropped document page" loading="lazy" />
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (result.LogMessages.Count > 0)
+                        {
+                            <details class="mt-3">
+                                <summary>Processing log</summary>
+                                <pre class="log-output">@string.Join("\n", result.LogMessages)</pre>
+                            </details>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private const long MaxUploadFileSizeInBytes = 50 * 1024 * 1024;
+    private const int PreviewLimit = 3;
+    private const double PreviewScale = 1.5;
+    private const int ProgressLogLimit = 8;
+    private static readonly TimeSpan ProgressUiUpdateInterval = TimeSpan.FromMilliseconds(150);
+
+    private static readonly CropMethod[] CropMethods = { CropMethod.ContentBased };
+    private static readonly IReadOnlyList<CompressionOption> CompressionOptions = BuildCompressionOptions();
+    private static readonly IReadOnlyList<TargetVersionOption> TargetVersionOptions = BuildTargetVersionOptions();
+
+    private readonly PdfCropperOptions _options = new()
+    {
+        CompressionLevelKey = CompressionOptions[0].Value,
+        TargetPdfVersionValue = TargetVersionOptions[0].Value
+    };
+
+    private readonly List<UploadedPdf> _uploadedFiles = new();
+    private readonly List<string> _uploadErrors = new();
+    private readonly List<string> _processingErrors = new();
+    private readonly List<PdfProcessingResult> _results = new();
+    private readonly List<string> _progressLog = new();
+    private readonly object _progressLogLock = new();
+    private CancellationTokenSource? _progressUiUpdateCancellation;
+
+    private bool _isProcessing;
+    private string? _activeFileName;
+    private string? _latestLogMessage;
+    private int? _currentProgressPercentage;
+
+    protected override void OnInitialized()
+    {
+        PageTitleService.SetTitle("PDF Cropper");
+    }
+
+    private async Task OnFilesSelected(InputFileChangeEventArgs e)
+    {
+        _uploadErrors.Clear();
+        _processingErrors.Clear();
+        _results.Clear();
+        _uploadedFiles.Clear();
+
+        foreach (var file in e.GetMultipleFiles())
+        {
+            if (!string.Equals(Path.GetExtension(file.Name), ".pdf", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(file.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                _uploadErrors.Add($"File {file.Name} does not look like a PDF.");
+                continue;
+            }
+
+            if (file.Size > MaxUploadFileSizeInBytes)
+            {
+                _uploadErrors.Add($"File {file.Name} exceeds the {FormatFileSize(MaxUploadFileSizeInBytes)} limit.");
+                continue;
+            }
+
+            try
+            {
+                using var stream = file.OpenReadStream(MaxUploadFileSizeInBytes);
+                using var memory = new MemoryStream();
+                await stream.CopyToAsync(memory);
+                var bytes = memory.ToArray();
+                var pageCount = GetPageCount(bytes);
+                _uploadedFiles.Add(new UploadedPdf(file.Name, bytes, pageCount));
+            }
+            catch (Exception ex)
+            {
+                _uploadErrors.Add($"Failed to read {file.Name}: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task ProcessFiles()
+    {
+        if (_uploadedFiles.Count == 0 || _isProcessing)
+        {
+            return;
+        }
+
+        _processingErrors.Clear();
+        _results.Clear();
+        _isProcessing = true;
+        _activeFileName = null;
+        _latestLogMessage = null;
+        ClearProgressLog();
+        StartProgressUiUpdates();
+
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+
+        try
+        {
+            var cropSettings = new CropSettings(
+                _options.Method,
+                _options.ExcludeEdgeTouchingObjects,
+                (float)_options.Margin);
+
+            var optimizationSettings = new PdfOptimizationSettings(
+                compressionLevel: ResolveCompressionLevel(_options.CompressionLevelKey),
+                enableFullCompression: _options.EnableFullCompression,
+                enableSmartMode: _options.EnableSmartMode,
+                removeUnusedObjects: _options.RemoveUnusedObjects,
+                removeXmpMetadata: _options.RemoveXmpMetadata,
+                clearDocumentInfo: _options.ClearDocumentInfo,
+                documentInfoKeysToRemove: null,
+                removeEmbeddedStandardFonts: _options.RemoveEmbeddedStandardFonts,
+                targetPdfVersion: ResolveTargetVersion(_options.TargetPdfVersionValue));
+
+            foreach (var file in _uploadedFiles)
+            {
+                await InvokeAsync(() =>
+                {
+                    _activeFileName = file.Name;
+                    _latestLogMessage = "Starting cropping...";
+                    _currentProgressPercentage = null;
+                    ClearProgressLog();
+                    StateHasChanged();
+                });
+
+                var logger = new InMemoryLogger();
+                logger.MessageLogged += OnLoggerMessage;
+
+                var progressReporter = new Progress<int>(async percentage =>
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        _currentProgressPercentage = percentage;
+                        StateHasChanged();
+                        await Task.Yield();
+                    });
+                });
+
+                try
+                {
+                    var cropped = await PdfSmartCropper.CropAsync(
+                        file.Content,
+                        cropSettings,
+                        optimizationSettings,
+                        logger,
+                        progressReporter);
+
+                    var result = new PdfProcessingResult(
+                        file.Name,
+                        file.Content,
+                        file.PageCount,
+                        cropped,
+                        logger.Messages,
+                        PreviewLimit);
+
+                    await InvokeAsync(() =>
+                    {
+                        _results.Add(result);
+                        _latestLogMessage = "Preparing previews...";
+                        _currentProgressPercentage = null;
+                        StateHasChanged();
+                    });
+
+                    result.BeginPreviewGeneration();
+                    await InvokeAsync(StateHasChanged);
+                    await Task.Yield();
+                    
+                    await result.GeneratePreviewsAsync(PreviewScale, async progressMessage =>
+                    {
+                        await InvokeAsync(() =>
+                        {
+                            _latestLogMessage = progressMessage;
+                            StateHasChanged();
+                        });
+                        await Task.Delay(1);
+                    });
+
+                    await InvokeAsync(() =>
+                    {
+                        _latestLogMessage = null;
+                        _currentProgressPercentage = null;
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        _processingErrors.Add($"Failed to process {file.Name}: {ex.Message}");
+                        _currentProgressPercentage = null;
+                        StateHasChanged();
+                    });
+                }
+                finally
+                {
+                    logger.MessageLogged -= OnLoggerMessage;
+                }
+            }
+        }
+        finally
+        {
+            StopProgressUiUpdates();
+
+            await InvokeAsync(() =>
+            {
+                _isProcessing = false;
+                _activeFileName = null;
+                _latestLogMessage = null;
+                _currentProgressPercentage = null;
+                ClearProgressLog();
+                StateHasChanged();
+            });
+        }
+    }
+
+    private static int? ResolveCompressionLevel(string key)
+    {
+        if (string.IsNullOrEmpty(key))
+        {
+            return null;
+        }
+
+        var option = CompressionOptions.FirstOrDefault(o => string.Equals(o.Value, key, StringComparison.Ordinal));
+        return option?.Level;
+    }
+
+    private static PdfCompatibilityLevel? ResolveTargetVersion(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return null;
+        }
+
+        var option = TargetVersionOptions.FirstOrDefault(o => string.Equals(o.Value, value, StringComparison.Ordinal));
+        return option?.Level;
+    }
+
+    private static IReadOnlyList<CompressionOption> BuildCompressionOptions()
+    {
+        var options = new List<CompressionOption>
+        {
+            new("Default (iText)", string.Empty, null)
+        };
+
+        options.Add(CreateCompressionOption("No compression", PdfCompressionLevels.NoCompression));
+        options.Add(CreateCompressionOption("Standard compression", PdfCompressionLevels.DefaultCompression));
+        options.Add(CreateCompressionOption("Best speed", PdfCompressionLevels.BestSpeed));
+        options.Add(CreateCompressionOption("Best compression", PdfCompressionLevels.BestCompression));
+
+        return options;
+    }
+
+    private static CompressionOption CreateCompressionOption(string label, string key)
+    {
+        if (!PdfCompressionLevels.TryGetValue(key, out var level))
+        {
+            throw new InvalidOperationException($"Unknown compression level: {key}.");
+        }
+
+        return new CompressionOption(label, key, level);
+    }
+
+    private static IReadOnlyList<TargetVersionOption> BuildTargetVersionOptions()
+    {
+        var options = new List<TargetVersionOption>
+        {
+            new("Keep original version", string.Empty, null)
+        };
+
+        foreach (var level in Enum.GetValues<PdfCompatibilityLevel>())
+        {
+            options.Add(new TargetVersionOption($"PDF {level.ToVersionString()}", level.ToVersionString(), level));
+        }
+
+        return options;
+    }
+
+    private static int GetPageCount(byte[] pdfBytes)
+    {
+        using var stream = new MemoryStream(pdfBytes, writable: false);
+        using var reader = new iText.Kernel.Pdf.PdfReader(stream);
+        using var document = new iText.Kernel.Pdf.PdfDocument(reader);
+        return document.GetNumberOfPages();
+    }
+
+    private static string GetMethodLabel(CropMethod method)
+    {
+        return method switch
+        {
+            CropMethod.ContentBased => "Content analysis (faster)",
+            CropMethod.BitmapBased => "Rasterization (more precise)",
+            _ => method.ToString()
+        };
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes <= 0)
+        {
+            return "0 B";
+        }
+
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        var order = (int)Math.Floor(Math.Log(bytes, 1024));
+        order = Math.Clamp(order, 0, sizes.Length - 1);
+        var adjusted = bytes / Math.Pow(1024, order);
+        return string.Format(CultureInfo.CurrentCulture, "{0:F1} {1}", adjusted, sizes[order]);
+    }
+
+    private sealed class PdfCropperOptions
+    {
+        public CropMethod Method { get; set; } = CropMethod.ContentBased;
+        public decimal Margin { get; set; } = 0.5m;
+        public bool ExcludeEdgeTouchingObjects { get; set; }
+        public string CompressionLevelKey { get; set; } = string.Empty;
+        public string TargetPdfVersionValue { get; set; } = string.Empty;
+        public bool EnableFullCompression { get; set; }
+        public bool EnableSmartMode { get; set; }
+        public bool RemoveUnusedObjects { get; set; }
+        public bool RemoveXmpMetadata { get; set; }
+        public bool ClearDocumentInfo { get; set; }
+        public bool RemoveEmbeddedStandardFonts { get; set; }
+    }
+
+    private sealed record CompressionOption(string Label, string Value, int? Level);
+
+    private sealed record TargetVersionOption(string Label, string Value, PdfCompatibilityLevel? Level);
+
+    private sealed record UploadedPdf(string Name, byte[] Content, int PageCount);
+
+    private void OnLoggerMessage(string message)
+    {
+        lock (_progressLogLock)
+        {
+            _progressLog.Add(message);
+            if (_progressLog.Count > ProgressLogLimit)
+            {
+                _progressLog.RemoveRange(0, _progressLog.Count - ProgressLogLimit);
+            }
+            _latestLogMessage = message;
+        }
+    }
+
+    private void ClearProgressLog()
+    {
+        lock (_progressLogLock)
+        {
+            _progressLog.Clear();
+        }
+    }
+
+    private string[] GetProgressMessagesSnapshot()
+    {
+        lock (_progressLogLock)
+        {
+            return _progressLog.ToArray();
+        }
+    }
+
+    private void StartProgressUiUpdates()
+    {
+        StopProgressUiUpdates();
+
+        var cts = new CancellationTokenSource();
+        _progressUiUpdateCancellation = cts;
+        _ = RunProgressUiUpdatesAsync(cts.Token);
+    }
+
+    private void StopProgressUiUpdates()
+    {
+        var cts = Interlocked.Exchange(ref _progressUiUpdateCancellation, null);
+        if (cts is not null)
+        {
+            try
+            {
+                cts.Cancel();
+            }
+            catch
+            {
+            }
+            finally
+            {
+                cts.Dispose();
+            }
+        }
+    }
+
+    private async Task RunProgressUiUpdatesAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(ProgressUiUpdateInterval);
+
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    public void Dispose()
+    {
+        StopProgressUiUpdates();
+    }
+
+    private sealed class InMemoryLogger : IPdfCropLogger
+    {
+        private readonly List<string> _messages = new();
+
+        public IReadOnlyList<string> Messages => _messages;
+
+        public event Action<string>? MessageLogged;
+
+        public void LogInfo(string message) => AddMessage("INFO", message);
+
+        public void LogWarning(string message) => AddMessage("WARN", message);
+
+        public void LogError(string message) => AddMessage("ERROR", message);
+
+        private void AddMessage(string level, string message)
+        {
+            var formatted = $"{level}: {message}";
+            _messages.Add(formatted);
+            MessageLogged?.Invoke(formatted);
+        }
+    }
+
+    private sealed class PdfProcessingResult
+    {
+        private readonly List<string> _originalPreviewImages = new();
+        private readonly List<string> _croppedPreviewImages = new();
+        private byte[] _originalBytes;
+        private byte[] _croppedBytes;
+        private bool _previewsLoaded;
+
+        public PdfProcessingResult(string originalName, byte[] originalBytes, int originalPageCount, byte[] croppedBytes, IReadOnlyList<string> logMessages, int previewLimit)
+        {
+            FileName = originalName;
+            _originalBytes = originalBytes;
+            _croppedBytes = croppedBytes;
+            OriginalSize = originalBytes.LongLength;
+            CroppedSize = croppedBytes.LongLength;
+            SizeSavingsPercentage = OriginalSize == 0 ? 0 : 1 - (double)CroppedSize / OriginalSize;
+            CroppedFileName = BuildCroppedFileName(originalName);
+            OriginalPageCount = originalPageCount;
+            OriginalPreviewCount = Math.Min(originalPageCount, previewLimit);
+            CroppedPageCount = GetPageCount(croppedBytes);
+            CroppedPreviewCount = Math.Min(CroppedPageCount, previewLimit);
+            CroppedDownloadUrl = BuildDataUrl(croppedBytes);
+            LogMessages = logMessages;
+        }
+
+        public string FileName { get; }
+
+        public string CroppedFileName { get; }
+
+        public long OriginalSize { get; }
+
+        public long CroppedSize { get; }
+
+        public double SizeSavingsPercentage { get; }
+
+        public IReadOnlyList<string> OriginalPreviewImages => _originalPreviewImages;
+
+        public IReadOnlyList<string> CroppedPreviewImages => _croppedPreviewImages;
+
+        public int OriginalPageCount { get; }
+
+        public int OriginalPreviewCount { get; }
+
+        public int CroppedPageCount { get; }
+
+        public int CroppedPreviewCount { get; }
+
+        public string CroppedDownloadUrl { get; }
+
+        public IReadOnlyList<string> LogMessages { get; }
+
+        public bool IsOriginalPreviewLoading { get; private set; }
+
+        public bool IsCroppedPreviewLoading { get; private set; }
+
+        public string? OriginalPreviewError { get; private set; }
+
+        public string? CroppedPreviewError { get; private set; }
+
+        public void BeginPreviewGeneration()
+        {
+            if (_previewsLoaded)
+            {
+                return;
+            }
+
+            if (OriginalPreviewCount > 0)
+            {
+                IsOriginalPreviewLoading = true;
+            }
+
+            if (CroppedPreviewCount > 0)
+            {
+                IsCroppedPreviewLoading = true;
+            }
+        }
+
+        public async Task GeneratePreviewsAsync(double scale, Func<string, Task>? progressCallback = null)
+        {
+            if (_previewsLoaded)
+            {
+                return;
+            }
+
+            try
+            {
+                if (IsOriginalPreviewLoading)
+                {
+                    OriginalPreviewError = null;
+                    try
+                    {
+                        if (progressCallback != null)
+                        {
+                            await progressCallback("Generating original previews...");
+                        }
+                        await Task.Yield();
+                        var images = await PdfPreviewGenerator.GeneratePreviewsAsync(_originalBytes, OriginalPreviewCount, scale, async msg =>
+                        {
+                            if (progressCallback != null)
+                            {
+                                await progressCallback(msg);
+                            }
+                        });
+                        _originalPreviewImages.Clear();
+                        _originalPreviewImages.AddRange(images);
+                    }
+                    catch (Exception ex)
+                    {
+                        OriginalPreviewError = $"Failed to render the original preview: {ex.Message}";
+                    }
+
+                    IsOriginalPreviewLoading = false;
+                }
+
+                if (IsCroppedPreviewLoading)
+                {
+                    CroppedPreviewError = null;
+                    try
+                    {
+                        if (progressCallback != null)
+                        {
+                            await progressCallback("Generating cropped previews...");
+                        }
+                        await Task.Yield();
+                        var images = await PdfPreviewGenerator.GeneratePreviewsAsync(_croppedBytes, CroppedPreviewCount, scale, async msg =>
+                        {
+                            if (progressCallback != null)
+                            {
+                                await progressCallback(msg);
+                            }
+                        });
+                        _croppedPreviewImages.Clear();
+                        _croppedPreviewImages.AddRange(images);
+                    }
+                    catch (Exception ex)
+                    {
+                        CroppedPreviewError = $"Failed to render the cropped preview: {ex.Message}";
+                    }
+
+                    IsCroppedPreviewLoading = false;
+                }
+            }
+            finally
+            {
+                _originalBytes = Array.Empty<byte>();
+                _croppedBytes = Array.Empty<byte>();
+                _previewsLoaded = true;
+            }
+        }
+
+        private static string BuildDataUrl(byte[] pdfBytes)
+        {
+            var base64 = Convert.ToBase64String(pdfBytes);
+            return $"data:application/pdf;base64,{base64}";
+        }
+
+        private static string BuildCroppedFileName(string originalName)
+        {
+            var fileName = Path.GetFileNameWithoutExtension(originalName);
+            var extension = Path.GetExtension(originalName);
+            if (string.IsNullOrEmpty(fileName))
+            {
+                fileName = "document";
+            }
+
+            if (!string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                extension = ".pdf";
+            }
+
+            return $"{fileName}-cropped{extension}";
+        }
+    }
+}
