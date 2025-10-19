@@ -168,6 +168,10 @@
                 <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
                 <div class="flex-grow-1">
                     <div class="fw-semibold">@(_activeFileName != null ? $"Processing {_activeFileName}" : "Preparing for processing...")</div>
+                    @if (_currentProgressPercentage.HasValue)
+                    {
+                        <div class="text-muted small mb-2">Progress: @_currentProgressPercentage%</div>
+                    }
                     @if (!string.IsNullOrEmpty(_latestLogMessage))
                     {
                         <div class="text-muted small mb-2">@_latestLogMessage</div>
@@ -329,6 +333,7 @@
     private bool _isProcessing;
     private string? _activeFileName;
     private string? _latestLogMessage;
+    private int? _currentProgressPercentage;
 
     protected override void OnInitialized()
     {
@@ -411,13 +416,27 @@
 
             foreach (var file in _uploadedFiles)
             {
-                _activeFileName = file.Name;
-                _latestLogMessage = "Starting cropping...";
-                ClearProgressLog();
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(() =>
+                {
+                    _activeFileName = file.Name;
+                    _latestLogMessage = "Starting cropping...";
+                    _currentProgressPercentage = null;
+                    ClearProgressLog();
+                    StateHasChanged();
+                });
 
                 var logger = new InMemoryLogger();
                 logger.MessageLogged += OnLoggerMessage;
+
+                var progressReporter = new Progress<int>(async percentage =>
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        _currentProgressPercentage = percentage;
+                        StateHasChanged();
+                        await Task.Yield();
+                    });
+                });
 
                 try
                 {
@@ -425,7 +444,8 @@
                         file.Content,
                         cropSettings,
                         optimizationSettings,
-                        logger);
+                        logger,
+                        progressReporter);
 
                     var result = new PdfProcessingResult(
                         file.Name,
@@ -435,19 +455,33 @@
                         logger.Messages,
                         PreviewLimit);
 
-                    _results.Add(result);
-                    await InvokeAsync(StateHasChanged);
-                    _latestLogMessage = "Preparing previews...";
+                    await InvokeAsync(() =>
+                    {
+                        _results.Add(result);
+                        _latestLogMessage = "Preparing previews...";
+                        StateHasChanged();
+                    });
+
                     result.BeginPreviewGeneration();
                     await InvokeAsync(StateHasChanged);
                     await Task.Yield();
                     result.GeneratePreviews(PreviewScale);
-                    _latestLogMessage = null;
-                    await InvokeAsync(StateHasChanged);
+
+                    await InvokeAsync(() =>
+                    {
+                        _latestLogMessage = null;
+                        _currentProgressPercentage = null;
+                        StateHasChanged();
+                    });
                 }
                 catch (Exception ex)
                 {
-                    _processingErrors.Add($"Failed to process {file.Name}: {ex.Message}");
+                    await InvokeAsync(() =>
+                    {
+                        _processingErrors.Add($"Failed to process {file.Name}: {ex.Message}");
+                        _currentProgressPercentage = null;
+                        StateHasChanged();
+                    });
                 }
                 finally
                 {
@@ -457,14 +491,18 @@
         }
         finally
         {
-            _isProcessing = false;
-            _activeFileName = null;
-            _latestLogMessage = null;
-            ClearProgressLog();
             StopProgressUiUpdates();
-        }
 
-        await InvokeAsync(StateHasChanged);
+            await InvokeAsync(() =>
+            {
+                _isProcessing = false;
+                _activeFileName = null;
+                _latestLogMessage = null;
+                _currentProgressPercentage = null;
+                ClearProgressLog();
+                StateHasChanged();
+            });
+        }
     }
 
     private static int? ResolveCompressionLevel(string key)

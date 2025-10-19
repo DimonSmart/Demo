@@ -19,15 +19,17 @@ public static class PdfSmartCropper
     /// <param name="inputPdf">The input PDF as a byte array.</param>
     /// <param name="method">The cropping method to use.</param>
     /// <param name="logger">Optional logger for cropping operations.</param>
+    /// <param name="progress">Optional progress reporter (reports percentage 0-100).</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The cropped PDF as a byte array.</returns>
     public static Task<byte[]> CropAsync(
         byte[] inputPdf,
         CropMethod method = CropMethod.ContentBased,
         IPdfCropLogger? logger = null,
+        IProgress<int>? progress = null,
         CancellationToken ct = default)
     {
-        return CropAsync(inputPdf, new CropSettings(method), logger, ct);
+        return CropAsync(inputPdf, new CropSettings(method), logger, progress, ct);
     }
 
     /// <summary>
@@ -36,15 +38,17 @@ public static class PdfSmartCropper
     /// <param name="inputPdf">The input PDF as a byte array.</param>
     /// <param name="settings">Cropping settings to apply.</param>
     /// <param name="logger">Optional logger for cropping operations.</param>
+    /// <param name="progress">Optional progress reporter (reports percentage 0-100).</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The cropped PDF as a byte array.</returns>
     public static Task<byte[]> CropAsync(
         byte[] inputPdf,
         CropSettings settings,
         IPdfCropLogger? logger = null,
+        IProgress<int>? progress = null,
         CancellationToken ct = default)
     {
-        return CropAsync(inputPdf, settings, PdfOptimizationSettings.Default, logger, ct);
+        return CropAsync(inputPdf, settings, PdfOptimizationSettings.Default, logger, progress, ct);
     }
 
     /// <summary>
@@ -54,6 +58,7 @@ public static class PdfSmartCropper
     /// <param name="cropSettings">Cropping settings to apply.</param>
     /// <param name="optimizationSettings">Optimization settings that control PDF serialization.</param>
     /// <param name="logger">Optional logger for cropping operations.</param>
+    /// <param name="progress">Optional progress reporter (reports percentage 0-100).</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The cropped PDF as a byte array.</returns>
     public static Task<byte[]> CropAsync(
@@ -61,6 +66,7 @@ public static class PdfSmartCropper
         CropSettings cropSettings,
         PdfOptimizationSettings optimizationSettings,
         IPdfCropLogger? logger = null,
+        IProgress<int>? progress = null,
         CancellationToken ct = default)
     {
         if (inputPdf is null)
@@ -98,14 +104,15 @@ public static class PdfSmartCropper
         logger.LogInfo($"  Smart mode: {optimizationSettings.EnableSmartMode}");
         logger.LogInfo($"  Remove unused objects: {optimizationSettings.RemoveUnusedObjects}");
 
-        return Task.Run(() => CropInternal(inputPdf, cropSettings, optimizationSettings, logger, ct), ct);
+        return CropInternalAsync(inputPdf, cropSettings, optimizationSettings, logger, progress, ct);
     }
 
-    private static byte[] CropInternal(
+    private static async Task<byte[]> CropInternalAsync(
         byte[] inputPdf,
         CropSettings cropSettings,
         PdfOptimizationSettings optimizationSettings,
         IPdfCropLogger logger,
+        IProgress<int>? progress,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -131,6 +138,14 @@ public static class PdfSmartCropper
             var pageCount = pdfDocument.GetNumberOfPages();
             logger.LogInfo($"Processing PDF with {pageCount} page(s) using {cropSettings.Method} method");
 
+            // Initial progress report (0%)
+            if (pageCount > 0)
+            {
+                progress?.Report(0);
+            }
+
+            await Task.Yield();
+
             if (cropSettings.Method == CropMethod.ContentBased && cropSettings.ExcludeEdgeTouchingObjects)
             {
                 logger.LogInfo("Edge-touching content will be ignored during bounds detection");
@@ -146,6 +161,13 @@ public static class PdfSmartCropper
             for (var pageIndex = 1; pageIndex <= pageCount; pageIndex++)
             {
                 ct.ThrowIfCancellationRequested();
+                
+                // Report progress (0-100%)
+                var progressPercentage = (pageIndex * 100) / pageCount;
+                progress?.Report(progressPercentage);
+                
+                await Task.Delay(1);
+
                 var page = pdfDocument.GetPage(pageIndex);
                 var pageStopwatch = Stopwatch.StartNew();
                 var pageSize = page.GetPageSize();
