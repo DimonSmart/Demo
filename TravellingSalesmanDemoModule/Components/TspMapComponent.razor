@@ -1,6 +1,4 @@
 ﻿@page "/tsp-map"
-@using Demo.Demos.TSM
-@using Demo.Services
 @using Excubo.Blazor.Canvas
 @using Excubo.Blazor.Canvas.Contexts
 @using GeneticAlgorithm.GeneralGenetic
@@ -19,7 +17,7 @@
     [Parameter] public ChromosomeWithScore<TsmChromosome>? BestSolution { get; set; }
     [Parameter] public string? Class { get; set; }
 
-    [Inject] protected BrowserService BrowserService { get; set; } = null!;
+    [Inject] protected IBrowserService BrowserService { get; set; } = null!;
     private const string CanvasId = "tsm_canvas";
     private Canvas? _canvasReference;
     private int _canvasWidth;

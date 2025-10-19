@@ -1,4 +1,4 @@
-﻿namespace Demo.Services
+﻿namespace Demo.Abstractions
 {
     public class Dimension
     {

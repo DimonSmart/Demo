@@ -21,6 +21,9 @@
     private readonly List<Assembly> _additionalAssemblies = new();
     private bool _markdownModuleLoaded;
     private bool _pdfCropperModuleLoaded;
+    private bool _hashXModuleLoaded;
+    private bool _travellingSalesmanModuleLoaded;
+    private bool _blackjackModuleLoaded;
 
     private async Task HandleNavigationAsync(NavigationContext args)
     {
@@ -36,6 +39,24 @@
         {
             await LoadModuleAsync("PdfCropperDemo.dll");
             _pdfCropperModuleLoaded = true;
+        }
+
+        if (!_hashXModuleLoaded && path.StartsWith("hashxdemo", StringComparison.OrdinalIgnoreCase))
+        {
+            await LoadModuleAsync("HashXDemoModule.dll");
+            _hashXModuleLoaded = true;
+        }
+
+        if (!_travellingSalesmanModuleLoaded && path.StartsWith("tsm", StringComparison.OrdinalIgnoreCase))
+        {
+            await LoadModuleAsync("TravellingSalesmanDemoModule.dll");
+            _travellingSalesmanModuleLoaded = true;
+        }
+
+        if (!_blackjackModuleLoaded && path.StartsWith("bjgame", StringComparison.OrdinalIgnoreCase))
+        {
+            await LoadModuleAsync("BlackjackDemoModule.dll");
+            _blackjackModuleLoaded = true;
         }
     }
 
