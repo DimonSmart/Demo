@@ -1,9 +1,8 @@
-﻿@page "/tsm"
-@using Demo.Components
-@using Demo.Demos.TSM
-@using Demo.Services
+@page "/tsm"
+@using TSMDemo.Components
+@using TSMDemo.Demos.TSM
 @using GeneticAlgorithm.GeneralGenetic
-@inject PageTitleService PageTitleService
+@inject IPageTitleService PageTitleService
 
 <link rel="stylesheet" href="css/demos.css" />
 
@@ -198,6 +197,7 @@
         } while (IsAuto && Iteration < MaxIterationsWithoutChangeValue);
     }
 
+}
 }
 
 <style>

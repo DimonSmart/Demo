@@ -1,4 +1,4 @@
-﻿using Demo.Demos.TSM;
+using TSMDemo.Demos.TSM;
 
 namespace GeneticAlgorithmTests.TsmTests
 {

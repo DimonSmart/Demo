@@ -11,10 +11,8 @@
   <ItemGroup>
     <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
     <PackageReference Include="DimonSmart.AiUtils" Version="1.25624.1027" />
-    <PackageReference Include="DimonSmart.HashX" Version="1.24813.951" />
     <PackageReference Include="DimonSmart.MazeGenerator" Version="1.25609.1440" />
     <PackageReference Include="DimonSmart.StringDiff" Version="1.25319.2041" />
-    <PackageReference Include="Excubo.Blazor.Canvas" Version="3.2.66" />
     <PackageReference Include="Markdig" Version="0.39.1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.3" PrivateAssets="all" />
@@ -46,11 +44,15 @@
   <ItemGroup>
     <ProjectReference Include="..\Demo.Abstractions\Demo.Abstractions.csproj" />
     <ProjectReference Include="..\GeneticAlgorithm\GeneticAlgorithm.csproj" />
+    <ProjectReference Include="..\HashXResearchDemo\HashXResearchDemo.csproj" />
     <ProjectReference Include="..\MarkdownToWordDemo\MarkdownToWordDemo.csproj" />
+    <ProjectReference Include="..\TSMDemo\TSMDemo.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <BlazorWebAssemblyLazyLoad Include="MarkdownToWordDemo.dll" />
+    <BlazorWebAssemblyLazyLoad Include="HashXResearchDemo.dll" />
+    <BlazorWebAssemblyLazyLoad Include="TSMDemo.dll" />
   </ItemGroup>
 
 </Project>
