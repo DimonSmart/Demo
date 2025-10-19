@@ -1,9 +1,9 @@
 using Blazored.LocalStorage;
 using BlazorImageProcessing;
 using Demo;
+using Demo.Abstractions;
 using Demo.Demos.Common;
 using Demo.Demos.HashX;
-using Demo.Demos.MarkdownToWord;
 using Demo.Demos.MazeRunner;
 using Demo.Demos.Pdd;
 using Demo.Services;
@@ -23,12 +23,10 @@ builder.Services.AddBlazoredLocalStorageAsSingleton(options =>
 });
 
 builder.Services.AddSingleton<PageTitleService>();
+builder.Services.AddSingleton<IPageTitleService>(sp => sp.GetRequiredService<PageTitleService>());
 builder.Services.AddSingleton<LogStore>();
 builder.Services.AddScoped<BrowserService>();
 builder.Services.AddScoped<ImageProcessingService>();
-builder.Services.AddScoped<InvisibleCharacterDetectorService>();
-builder.Services.AddScoped<InvisibleCharacterCleanerService>();
-builder.Services.AddScoped<InvisibleCharacterVisualizationService>();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
 // Hash demo

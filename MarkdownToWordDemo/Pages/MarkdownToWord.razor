@@ -1,13 +1,11 @@
 ﻿@page "/markdown-to-word"
+@using Demo.Abstractions
 @using Demo.Demos.MarkdownToWord
-@using Demo.Services
 @using Markdig
+@using System.Text
 
-@inject PageTitleService PageTitleService
+@inject IPageTitleService? TitleService
 @inject IJSRuntime JSRuntime
-@inject InvisibleCharacterDetectorService CharacterDetector
-@inject InvisibleCharacterVisualizationService CharacterVisualizer
-@inject InvisibleCharacterCleanerService CharacterCleaner
 <link rel="stylesheet" href="css/demos.css" />
 <style>
 @((MarkupString)CharacterVisualizer.GenerateVisualizationCSS())
@@ -256,6 +254,9 @@
     private string VisualizedPreview { get; set; } = string.Empty;
     private string DownloadUrl { get; set; } = string.Empty;
     private DetectionResult LatestDetectionResult { get; set; } = new();
+    private InvisibleCharacterDetectorService CharacterDetector { get; } = new();
+    private InvisibleCharacterVisualizationService CharacterVisualizer { get; } = new();
+    private InvisibleCharacterCleanerService CharacterCleaner { get; } = new();
     private Markdig.MarkdownPipeline MarkdownPipeline =
         new Markdig.MarkdownPipelineBuilder()
         .UseEmphasisExtras()
@@ -404,7 +405,7 @@
     protected override async Task OnInitializedAsync()
     {
         base.OnInitialized();
-        PageTitleService.SetTitle("Markdown to Word");
+        TitleService?.SetTitle("Markdown to Word");
 
         // Initialize with Safe preset by default
         ApplyPresetCategories(CleaningPreset.Safe);
@@ -528,7 +529,7 @@
         if (!HasCharactersToClean)
             return;
 
-        // Используем новый метод селективной очистки для удаления только выбранных категорий
+        // Remove only the categories selected by the user
         var cleaningOptions = new CleaningOptions
         {
             SkipCodeBlocks = true,
