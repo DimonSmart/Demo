@@ -1,5 +1,5 @@
-﻿using Demo.Demos.TSM;
 using GeneticAlgorithm.GeneralGenetic;
+using TSMDemo.Demos.TSM;
 
 namespace BJTableCalculator
 {

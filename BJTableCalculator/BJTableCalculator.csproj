@@ -14,6 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Demo\Demo.csproj" />
     <ProjectReference Include="..\GeneticAlgorithm\GeneticAlgorithm.csproj" />
+    <ProjectReference Include="..\TSMDemo\TSMDemo.csproj" />
   </ItemGroup>
 
 </Project>

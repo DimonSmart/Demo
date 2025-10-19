@@ -1,12 +1,11 @@
-﻿@page "/hashxdemo"
-@using Demo.Components
-@using Demo.Demos.HashX
+@page "/hashxdemo"
+@using HashXResearchDemo.Components
+@using HashXResearchDemo.Demos.HashX
 @using DimonSmart.Hash
 @using DimonSmart.Hash.Interfaces
-@using Demo.Services
-@using GeneticAlgorithm.GeneralGenetic
-@inject PageTitleService PageTitleService
-@inject IHashAlgorithm Md5Algorithm
+@using Microsoft.JSInterop
+@inject IPageTitleService PageTitleService
+@inject IJSRuntime JsRuntime
 
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>HashX Research</PageTitle>
@@ -138,6 +137,10 @@
     <LogViewer @ref="_logViewer" />
 </div>
 @code {
+    private JsMd5Algorithm? _md5Algorithm;
+
+    private JsMd5Algorithm Md5Algorithm => _md5Algorithm ??= new JsMd5Algorithm(JsRuntime);
+
     protected override void OnInitialized()
     {
         base.OnInitialized();

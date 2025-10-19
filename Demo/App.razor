@@ -20,17 +20,35 @@
 @code {
     private readonly List<Assembly> _additionalAssemblies = new();
     private bool _markdownModuleLoaded;
+    private bool _hashModuleLoaded;
+    private bool _tsmModuleLoaded;
 
     private async Task HandleNavigationAsync(NavigationContext args)
     {
-        if (_markdownModuleLoaded)
-            return;
+        var path = args.Path;
 
-        if (args.Path.StartsWith("markdown-to-word", StringComparison.OrdinalIgnoreCase))
+        if (!_markdownModuleLoaded && path.StartsWith("markdown-to-word", StringComparison.OrdinalIgnoreCase))
         {
             var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "MarkdownToWordDemo.dll" });
             _additionalAssemblies.AddRange(assemblies);
             _markdownModuleLoaded = true;
+            StateHasChanged();
+        }
+
+        if (!_hashModuleLoaded && path.StartsWith("hashx", StringComparison.OrdinalIgnoreCase))
+        {
+            var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "HashXResearchDemo.dll" });
+            _additionalAssemblies.AddRange(assemblies);
+            _hashModuleLoaded = true;
+            StateHasChanged();
+        }
+
+        if (!_tsmModuleLoaded && (path.StartsWith("tsm", StringComparison.OrdinalIgnoreCase) ||
+                                  path.StartsWith("tsp-map", StringComparison.OrdinalIgnoreCase)))
+        {
+            var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "TSMDemo.dll" });
+            _additionalAssemblies.AddRange(assemblies);
+            _tsmModuleLoaded = true;
             StateHasChanged();
         }
     }
