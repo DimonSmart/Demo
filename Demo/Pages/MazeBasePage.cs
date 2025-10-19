@@ -1,3 +1,4 @@
+using Demo.Abstractions;
 using Demo.Services;
 using DimonSmart.MazeGenerator;
 using Microsoft.AspNetCore.Components;
@@ -7,7 +8,7 @@ namespace Demo.Pages;
 public abstract class MazeBaseComponent<TCell> : ComponentBase where TCell : ICell
 {
     [Inject]
-    public required BrowserService BrowserService { get; set; }
+    public required IBrowserService BrowserService { get; set; }
 
     private int _xSize = 31;
     protected int XSize

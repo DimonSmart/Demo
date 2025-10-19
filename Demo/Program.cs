@@ -25,7 +25,7 @@ builder.Services.AddBlazoredLocalStorageAsSingleton(options =>
 builder.Services.AddSingleton<PageTitleService>();
 builder.Services.AddSingleton<IPageTitleService>(sp => sp.GetRequiredService<PageTitleService>());
 builder.Services.AddSingleton<LogStore>();
-builder.Services.AddScoped<BrowserService>();
+builder.Services.AddScoped<IBrowserService, BrowserService>();
 builder.Services.AddScoped<ImageProcessingService>();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 

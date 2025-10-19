@@ -1,8 +1,9 @@
-﻿using Microsoft.JSInterop;
+﻿using Demo.Abstractions;
+using Microsoft.JSInterop;
 
 namespace Demo.Services
 {
-    public class BrowserService(IJSRuntime js)
+    public class BrowserService(IJSRuntime js) : IBrowserService
     {
         public async Task<Dimension> GetPageDimensionsWithoutPaddingAsync(string elementId)
         {
