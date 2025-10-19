@@ -1,6 +1,8 @@
-﻿namespace Demo.Services
+using Demo.Abstractions;
+
+namespace Demo.Services
 {
-    public class PageTitleService
+    public class PageTitleService : IPageTitleService
     {
         public event Func<string, Task>? TitleChanged;
 

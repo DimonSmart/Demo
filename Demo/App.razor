@@ -1,4 +1,10 @@
-﻿<Router AppAssembly="@typeof(App).Assembly">
+@using System.Reflection
+@using Microsoft.AspNetCore.Components.WebAssembly.Services
+@inject LazyAssemblyLoader AssemblyLoader
+
+<Router AppAssembly="@typeof(App).Assembly"
+        AdditionalAssemblies="@_additionalAssemblies"
+        OnNavigateAsync="HandleNavigationAsync">
     <Found Context="routeData">
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
@@ -10,3 +16,22 @@
         </LayoutView>
     </NotFound>
 </Router>
+
+@code {
+    private readonly List<Assembly> _additionalAssemblies = new();
+    private bool _markdownModuleLoaded;
+
+    private async Task HandleNavigationAsync(NavigationContext args)
+    {
+        if (_markdownModuleLoaded)
+            return;
+
+        if (args.Path.StartsWith("markdown-to-word", StringComparison.OrdinalIgnoreCase))
+        {
+            var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "MarkdownToWordDemo.dll" });
+            _additionalAssemblies.AddRange(assemblies);
+            _markdownModuleLoaded = true;
+            StateHasChanged();
+        }
+    }
+}
