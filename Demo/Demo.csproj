@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
-    <PackageReference Include="DimonSmart.PdfCropper" Version="1.0.14" />
+    <PackageReference Include="DimonSmart.PdfCropper" Version="1.1.0" />
     <PackageReference Include="DimonSmart.AiUtils" Version="1.25624.1027" />
     <PackageReference Include="DimonSmart.HashX" Version="1.24813.951" />
     <PackageReference Include="DimonSmart.MazeGenerator" Version="1.25609.1440" />
