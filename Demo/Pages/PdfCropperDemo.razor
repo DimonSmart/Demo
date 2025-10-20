@@ -99,6 +99,25 @@
                         <label class="form-check-label" for="excludeEdge">Ignore objects touching the edge</label>
                     </div>
                 </div>
+                <div class="col-md-4 d-flex align-items-center">
+                    <div class="form-check mt-4">
+                        <InputCheckbox @bind-Value="_options.DetectRepeatedObjects" class="form-check-input" id="detectRepeatedObjects" />
+                        <label class="form-check-label" for="detectRepeatedObjects">Analyze repeated headers and footers</label>
+                    </div>
+                </div>
+                @if (_options.DetectRepeatedObjects)
+                {
+                    <div class="col-md-4">
+                        <label class="form-label">Occurrence threshold (%)</label>
+                        <InputNumber @bind-Value="_options.RepeatedObjectOccurrenceThreshold" class="form-control" step="1" min="1" max="100" />
+                        <div class="form-text">Objects seen on at least this percentage of pages are ignored.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Minimum page count</label>
+                        <InputNumber @bind-Value="_options.RepeatedObjectMinimumPageCount" class="form-control" step="1" min="1" />
+                        <div class="form-text">Detection is skipped for shorter documents.</div>
+                    </div>
+                }
             </div>
         </div>
 
@@ -500,7 +519,11 @@
         var cropSettings = new CropSettings(
             _options.Method,
             _options.ExcludeEdgeTouchingObjects,
-            (float)_options.Margin);
+            (float)_options.Margin,
+            edgeExclusionTolerance: CropSettings.Default.EdgeExclusionTolerance,
+            detectRepeatedObjects: _options.DetectRepeatedObjects,
+            repeatedObjectOccurrenceThreshold: (double)_options.RepeatedObjectOccurrenceThreshold,
+            repeatedObjectMinimumPageCount: _options.RepeatedObjectMinimumPageCount);
 
         var optimizationSettings = new PdfOptimizationSettings(
             compressionLevel: ResolveCompressionLevel(_options.CompressionLevelKey),
@@ -815,6 +838,9 @@
         public CropMethod Method { get; set; } = CropMethod.ContentBased;
         public decimal Margin { get; set; } = 0.5m;
         public bool ExcludeEdgeTouchingObjects { get; set; } = true;
+        public bool DetectRepeatedObjects { get; set; }
+        public decimal RepeatedObjectOccurrenceThreshold { get; set; } = 40m;
+        public int RepeatedObjectMinimumPageCount { get; set; } = 3;
         public string CompressionLevelKey { get; set; } = string.Empty;
         public string TargetPdfVersionValue { get; set; } = string.Empty;
         public bool EnableFullCompression { get; set; }
