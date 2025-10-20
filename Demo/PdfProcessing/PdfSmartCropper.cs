@@ -249,6 +249,11 @@ public static class PdfSmartCropper
 
             await Task.Yield();
 
+            if (cropSettings.DetectRepeatedObjects)
+            {
+                logger.LogWarning("Repeated object analysis is not available in this demo build.");
+            }
+
             if (cropSettings.Method == CropMethod.ContentBased && cropSettings.ExcludeEdgeTouchingObjects)
             {
                 logger.LogInfo("Edge-touching content will be ignored during bounds detection");
@@ -292,6 +297,7 @@ public static class PdfSmartCropper
                     pageIndex,
                     cropSettings.ExcludeEdgeTouchingObjects,
                     cropSettings.Margin,
+                    cropSettings.EdgeExclusionTolerance,
                     ct);
 
                 if (cropRectangle == null)
