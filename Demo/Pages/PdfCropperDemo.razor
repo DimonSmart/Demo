@@ -155,6 +155,16 @@
             </div>
         </div>
 
+        <div class="card mb-4">
+            <div class="card-header">Output options</div>
+            <div class="card-body">
+                <div class="form-check">
+                    <InputCheckbox @bind-Value="_options.MergeIntoSingleDocument" class="form-check-input" id="mergeDocuments" />
+                    <label class="form-check-label" for="mergeDocuments">Merge cropped documents into a single PDF</label>
+                </div>
+            </div>
+        </div>
+
         <div class="d-flex align-items-center gap-3 mb-4">
             <button type="submit" class="btn btn-primary" disabled="@(_isProcessing || _uploadedFiles.Count == 0)">Start cropping</button>
         </div>
@@ -450,6 +460,7 @@
                     var result = new PdfProcessingResult(
                         file.Name,
                         file.Content,
+                        file.Content.LongLength,
                         file.PageCount,
                         cropped,
                         logger.Messages,
@@ -496,6 +507,87 @@
                 finally
                 {
                     logger.MessageLogged -= OnLoggerMessage;
+                }
+            }
+
+            if (_options.MergeIntoSingleDocument && _uploadedFiles.Count > 1)
+            {
+                var originalDocuments = _uploadedFiles.Select(f => f.Content).ToList();
+
+                await InvokeAsync(() =>
+                {
+                    _activeFileName = "Merged document";
+                    _latestLogMessage = "Starting merge...";
+                    _currentProgressPercentage = null;
+                    ClearProgressLog();
+                    StateHasChanged();
+                });
+
+                var mergeLogger = new InMemoryLogger();
+                mergeLogger.MessageLogged += OnLoggerMessage;
+
+                try
+                {
+                    var mergedBytes = await PdfSmartCropper.CropAndMergeAsync(
+                        originalDocuments,
+                        cropSettings,
+                        optimizationSettings,
+                        mergeLogger);
+
+                    var mergedOriginal = MergeOriginalDocuments(originalDocuments);
+                    var totalOriginalSize = _uploadedFiles.Sum(f => (long)f.Content.Length);
+                    var mergedOriginalPageCount = GetPageCount(mergedOriginal);
+
+                    var mergedResult = new PdfProcessingResult(
+                        "Merged document.pdf",
+                        mergedOriginal,
+                        totalOriginalSize,
+                        mergedOriginalPageCount,
+                        mergedBytes,
+                        mergeLogger.Messages,
+                        PreviewLimit);
+
+                    await InvokeAsync(() =>
+                    {
+                        _results.Add(mergedResult);
+                        _latestLogMessage = "Preparing merged previews...";
+                        _currentProgressPercentage = null;
+                        StateHasChanged();
+                    });
+
+                    mergedResult.BeginPreviewGeneration();
+                    await InvokeAsync(StateHasChanged);
+                    await Task.Yield();
+
+                    await mergedResult.GeneratePreviewsAsync(PreviewScale, async progressMessage =>
+                    {
+                        await InvokeAsync(() =>
+                        {
+                            _latestLogMessage = progressMessage;
+                            StateHasChanged();
+                        });
+                        await Task.Delay(1);
+                    });
+
+                    await InvokeAsync(() =>
+                    {
+                        _latestLogMessage = null;
+                        _currentProgressPercentage = null;
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        _processingErrors.Add($"Failed to merge documents: {ex.Message}");
+                        _currentProgressPercentage = null;
+                        StateHasChanged();
+                    });
+                }
+                finally
+                {
+                    mergeLogger.MessageLogged -= OnLoggerMessage;
                 }
             }
         }
@@ -585,6 +677,31 @@
         return document.GetNumberOfPages();
     }
 
+    private static byte[] MergeOriginalDocuments(IReadOnlyList<byte[]> documents)
+    {
+        ArgumentNullException.ThrowIfNull(documents);
+
+        if (documents.Count == 0)
+        {
+            return Array.Empty<byte>();
+        }
+
+        using var outputStream = new MemoryStream();
+        using var writer = new iText.Kernel.Pdf.PdfWriter(outputStream);
+        using var mergedDocument = new iText.Kernel.Pdf.PdfDocument(writer);
+
+        foreach (var bytes in documents)
+        {
+            using var inputStream = new MemoryStream(bytes, writable: false);
+            using var reader = new iText.Kernel.Pdf.PdfReader(inputStream);
+            using var pdfDocument = new iText.Kernel.Pdf.PdfDocument(reader);
+            pdfDocument.CopyPagesTo(1, pdfDocument.GetNumberOfPages(), mergedDocument);
+        }
+
+        mergedDocument.Close();
+        return outputStream.ToArray();
+    }
+
     private static string GetMethodLabel(CropMethod method)
     {
         return method switch
@@ -613,7 +730,7 @@
     {
         public CropMethod Method { get; set; } = CropMethod.ContentBased;
         public decimal Margin { get; set; } = 0.5m;
-        public bool ExcludeEdgeTouchingObjects { get; set; }
+        public bool ExcludeEdgeTouchingObjects { get; set; } = true;
         public string CompressionLevelKey { get; set; } = string.Empty;
         public string TargetPdfVersionValue { get; set; } = string.Empty;
         public bool EnableFullCompression { get; set; }
@@ -622,6 +739,7 @@
         public bool RemoveXmpMetadata { get; set; }
         public bool ClearDocumentInfo { get; set; }
         public bool RemoveEmbeddedStandardFonts { get; set; }
+        public bool MergeIntoSingleDocument { get; set; }
     }
 
     private sealed record CompressionOption(string Label, string Value, int? Level);
@@ -746,12 +864,12 @@
         private byte[] _croppedBytes;
         private bool _previewsLoaded;
 
-        public PdfProcessingResult(string originalName, byte[] originalBytes, int originalPageCount, byte[] croppedBytes, IReadOnlyList<string> logMessages, int previewLimit)
+        public PdfProcessingResult(string originalName, byte[] originalBytes, long originalSize, int originalPageCount, byte[] croppedBytes, IReadOnlyList<string> logMessages, int previewLimit)
         {
             FileName = originalName;
             _originalBytes = originalBytes;
             _croppedBytes = croppedBytes;
-            OriginalSize = originalBytes.LongLength;
+            OriginalSize = originalSize;
             CroppedSize = croppedBytes.LongLength;
             SizeSavingsPercentage = OriginalSize == 0 ? 0 : 1 - (double)CroppedSize / OriginalSize;
             CroppedFileName = BuildCroppedFileName(originalName);
