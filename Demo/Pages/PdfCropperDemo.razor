@@ -6,6 +6,7 @@
 @using System.Threading
 @using System.Threading.Tasks
 @using Demo.Services
+@using DimonSmart.PdfCropper
 @using Demo.PdfProcessing
 @inject PageTitleService PageTitleService
 
@@ -178,6 +179,12 @@
                             <div class="form-check">
                                 <InputCheckbox @bind-Value="_options.RemoveEmbeddedStandardFonts" class="form-check-input" id="removeFonts" />
                                 <label class="form-check-label" for="removeFonts">Remove embedded standard fonts</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="_options.MergeDuplicateFontSubsets" class="form-check-input" id="mergeFontSubsets" />
+                                <label class="form-check-label" for="mergeFontSubsets">Merge duplicate font subsets</label>
                             </div>
                         </div>
                     </div>
@@ -461,15 +468,16 @@
 
         try
         {
-            var settings = CreateProcessingSettings();
+            var cropSettings = GetCropSettings();
+            var optimizationSettings = GetOptimizationSettings();
             
             if (_options.MergeIntoSingleDocument && _uploadedFiles.Count > 1)
             {
-                await ProcessMergedDocumentEfficiently(settings.CropSettings, settings.OptimizationSettings);
+                await ProcessMergedDocumentEfficiently(cropSettings, optimizationSettings);
             }
             else
             {
-                await ProcessIndividualFiles(settings.CropSettings, settings.OptimizationSettings);
+                await ProcessIndividualFiles(cropSettings, optimizationSettings);
             }
         }
         finally
@@ -514,9 +522,9 @@
         await Task.Yield();
     }
 
-    private ProcessingSettings CreateProcessingSettings()
+    private CropSettings GetCropSettings()
     {
-        var cropSettings = new CropSettings(
+        return new CropSettings(
             _options.Method,
             _options.ExcludeEdgeTouchingObjects,
             (float)_options.Margin,
@@ -524,8 +532,11 @@
             detectRepeatedObjects: _options.DetectRepeatedObjects,
             repeatedObjectOccurrenceThreshold: (double)_options.RepeatedObjectOccurrenceThreshold,
             repeatedObjectMinimumPageCount: _options.RepeatedObjectMinimumPageCount);
+    }
 
-        var optimizationSettings = new PdfOptimizationSettings(
+    private PdfOptimizationSettings GetOptimizationSettings()
+    {
+        return new PdfOptimizationSettings(
             compressionLevel: ResolveCompressionLevel(_options.CompressionLevelKey),
             enableFullCompression: _options.EnableFullCompression,
             enableSmartMode: _options.EnableSmartMode,
@@ -534,9 +545,8 @@
             clearDocumentInfo: _options.ClearDocumentInfo,
             documentInfoKeysToRemove: null,
             removeEmbeddedStandardFonts: _options.RemoveEmbeddedStandardFonts,
-            targetPdfVersion: ResolveTargetVersion(_options.TargetPdfVersionValue));
-
-        return new ProcessingSettings(cropSettings, optimizationSettings);
+            targetPdfVersion: ResolveTargetVersion(_options.TargetPdfVersionValue),
+            mergeDuplicateFontSubsets: _options.MergeDuplicateFontSubsets);
     }
 
     private async Task ProcessIndividualFiles(CropSettings cropSettings, PdfOptimizationSettings optimizationSettings)
@@ -558,7 +568,8 @@
         try
         {
             var progressReporter = CreateProgressReporter();
-            var cropped = await PdfSmartCropper.CropAsync(file.Content, cropSettings, optimizationSettings, logger, progressReporter);
+            var cropper = new PdfCropper();
+            var cropped = await cropper.CropAsync(file.Content, cropSettings, optimizationSettings, logger, progressReporter, CancellationToken.None);
             
             var result = new PdfProcessingResult(file.Name, file.Content, file.Content.LongLength, file.PageCount, cropped, logger.Messages, PreviewLimit);
             await AddResultWithPreview(result);
@@ -589,7 +600,9 @@
         try
         {
             var originalDocuments = _uploadedFiles.Select(f => f.Content).ToList();
-            var mergedBytes = await PdfSmartCropper.CropAndMergeAsync(originalDocuments, cropSettings, optimizationSettings, mergeLogger);
+            var cropper = new PdfCropper();
+            var progressReporter = CreateProgressReporter();
+            var mergedBytes = await cropper.CropAndMergeAsync(originalDocuments, cropSettings, optimizationSettings, mergeLogger, progressReporter, CancellationToken.None);
             
             var mergedOriginal = MergeOriginalDocuments(originalDocuments);
             var totalOriginalSize = _uploadedFiles.Sum(f => (long)f.Content.Length);
@@ -635,7 +648,8 @@
             await UpdateProcessingState(message: "Cropping merged document...");
             
             var progressReporter = CreateProgressReporter();
-            var croppedMerged = await PdfSmartCropper.CropAsync(mergedOriginal, cropSettings, optimizationSettings, logger, progressReporter);
+            var cropper = new PdfCropper();
+            var croppedMerged = await cropper.CropAsync(mergedOriginal, cropSettings, optimizationSettings, logger, progressReporter, CancellationToken.None);
             
             // Phase 3: Create result and make download available immediately
             var mergedResult = new PdfProcessingResult(
@@ -682,15 +696,14 @@
         }
     }
 
-    private Progress<int> CreateProgressReporter()
+    private Progress<string> CreateProgressReporter()
     {
-        return new Progress<int>(async percentage =>
+        return new Progress<string>(async message =>
         {
-            await InvokeAsync(async () =>
+            await InvokeAsync(() =>
             {
-                _currentProgressPercentage = percentage;
+                OnLoggerMessage(message);
                 StateHasChanged();
-                await Task.Yield();
             });
         });
     }
@@ -711,8 +724,6 @@
 
         await UpdateProcessingState(message: null, percentage: null);
     }
-
-    private sealed record ProcessingSettings(CropSettings CropSettings, PdfOptimizationSettings OptimizationSettings);
 
     private static int? ResolveCompressionLevel(string key)
     {
@@ -849,6 +860,7 @@
         public bool RemoveXmpMetadata { get; set; }
         public bool ClearDocumentInfo { get; set; }
         public bool RemoveEmbeddedStandardFonts { get; set; }
+        public bool MergeDuplicateFontSubsets { get; set; }
         public bool MergeIntoSingleDocument { get; set; }
     }
 
@@ -944,7 +956,7 @@
         StopProgressUiUpdates();
     }
 
-    private sealed class InMemoryLogger : IPdfCropLogger
+    private sealed class InMemoryLogger : DimonSmart.PdfCropper.IPdfCropLogger
     {
         private readonly List<string> _messages = new();
 
