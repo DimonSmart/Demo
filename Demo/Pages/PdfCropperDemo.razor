@@ -10,8 +10,6 @@
 @using Demo.PdfProcessing
 @inject PageTitleService PageTitleService
 
-@implements IDisposable
-
 <PageTitle>PDF Cropper</PageTitle>
 
 <div class="pdf-cropper-page">
@@ -357,7 +355,6 @@
     private const int PreviewLimit = 3;
     private const double PreviewScale = 1.5;
     private const int ProgressLogLimit = 8;
-    private static readonly TimeSpan ProgressUiUpdateInterval = TimeSpan.FromMilliseconds(150);
 
     private static readonly CropMethod[] CropMethods = { CropMethod.ContentBased };
     private static readonly IReadOnlyList<CompressionOption> CompressionOptions = BuildCompressionOptions();
@@ -375,7 +372,6 @@
     private readonly List<PdfProcessingResult> _results = new();
     private readonly List<string> _progressLog = new();
     private readonly object _progressLogLock = new();
-    private CancellationTokenSource? _progressUiUpdateCancellation;
 
     private bool _isProcessing;
     private bool _isAnalyzingFiles;
@@ -492,13 +488,11 @@
         _results.Clear();
         _isProcessing = true;
         await UpdateProcessingState(null, null);
-        StartProgressUiUpdates();
         await InvokeAsync(StateHasChanged);
     }
 
     private async Task FinalizeProcessing()
     {
-        StopProgressUiUpdates();
         await UpdateProcessingState(false, null, null, null);
     }
 
@@ -698,13 +692,10 @@
 
     private Progress<string> CreateProgressReporter()
     {
-        return new Progress<string>(async message =>
+        return new Progress<string>(message =>
         {
-            await InvokeAsync(() =>
-            {
-                OnLoggerMessage(message);
-                StateHasChanged();
-            });
+            AppendProgressMessage(message);
+            RequestProgressUiRefresh();
         });
     }
 
@@ -872,6 +863,12 @@
 
     private void OnLoggerMessage(string message)
     {
+        AppendProgressMessage(message);
+        RequestProgressUiRefresh();
+    }
+
+    private void AppendProgressMessage(string message)
+    {
         lock (_progressLogLock)
         {
             _progressLog.Add(message);
@@ -881,6 +878,11 @@
             }
             _latestLogMessage = message;
         }
+    }
+
+    private void RequestProgressUiRefresh()
+    {
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private void ClearProgressLog()
@@ -897,63 +899,6 @@
         {
             return _progressLog.ToArray();
         }
-    }
-
-    private void StartProgressUiUpdates()
-    {
-        StopProgressUiUpdates();
-
-        var cts = new CancellationTokenSource();
-        _progressUiUpdateCancellation = cts;
-        _ = RunProgressUiUpdatesAsync(cts.Token);
-    }
-
-    private void StopProgressUiUpdates()
-    {
-        var cts = Interlocked.Exchange(ref _progressUiUpdateCancellation, null);
-        if (cts is not null)
-        {
-            try
-            {
-                cts.Cancel();
-            }
-            catch
-            {
-            }
-            finally
-            {
-                cts.Dispose();
-            }
-        }
-    }
-
-    private async Task RunProgressUiUpdatesAsync(CancellationToken cancellationToken)
-    {
-        using var timer = new PeriodicTimer(ProgressUiUpdateInterval);
-
-        try
-        {
-            await InvokeAsync(StateHasChanged);
-
-            while (await timer.WaitForNextTickAsync(cancellationToken))
-            {
-                await InvokeAsync(StateHasChanged);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (ObjectDisposedException)
-        {
-        }
-        catch (InvalidOperationException)
-        {
-        }
-    }
-
-    public void Dispose()
-    {
-        StopProgressUiUpdates();
     }
 
     private sealed class InMemoryLogger : DimonSmart.PdfCropper.IPdfCropLogger
