@@ -8,6 +8,7 @@
 @using Demo.Services
 @using DimonSmart.PdfCropper
 @using Demo.PdfProcessing
+@using static Demo.PdfProcessing.PdfCropperUtilities
 @inject PageTitleService PageTitleService
 
 <PageTitle>PDF Cropper</PageTitle>
@@ -207,7 +208,7 @@
 
     @if (_isProcessing)
     {
-        var progressMessages = GetProgressMessagesSnapshot();
+        var progressMessages = _progressLog.ToArray();
         <div class="processing-card mb-4">
             <div class="d-flex align-items-start gap-3">
                 <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
@@ -216,10 +217,6 @@
                     @if (_currentProgressPercentage.HasValue)
                     {
                         <div class="text-muted small mb-2">Progress: @_currentProgressPercentage%</div>
-                    }
-                    @if (!string.IsNullOrEmpty(_latestLogMessage))
-                    {
-                        <div class="text-muted small mb-2">@_latestLogMessage</div>
                     }
                     @if (progressMessages.Length > 0)
                     {
@@ -376,7 +373,6 @@
     private bool _isProcessing;
     private bool _isAnalyzingFiles;
     private string? _activeFileName;
-    private string? _latestLogMessage;
     private int? _currentProgressPercentage;
     private DateTime _lastProgressUiRefresh;
 
@@ -499,16 +495,31 @@
 
     private async Task UpdateProcessingState(bool? isProcessing = null, string? fileName = null, string? message = null, int? percentage = null)
     {
-        if (isProcessing.HasValue) _isProcessing = isProcessing.Value;
-        if (fileName != null) _activeFileName = fileName;
-        if (message != null) _latestLogMessage = message;
-        if (percentage.HasValue) _currentProgressPercentage = percentage;
+        if (isProcessing.HasValue)
+        {
+            _isProcessing = isProcessing.Value;
+        }
+
+        if (fileName != null)
+        {
+            _activeFileName = fileName;
+        }
+
+        if (percentage.HasValue)
+        {
+            _currentProgressPercentage = percentage;
+        }
+
+        if (message != null)
+        {
+            AppendProgressMessage(message);
+        }
+
         if (message == null && percentage == null)
         {
             _activeFileName = null;
-            _latestLogMessage = null;
             _currentProgressPercentage = null;
-            ClearProgressLog();
+            _progressLog.Clear();
         }
 
         await InvokeAsync(StateHasChanged);
@@ -552,11 +563,10 @@
 
     private async Task ProcessSingleFile(UploadedPdf file, CropSettings cropSettings, PdfOptimizationSettings optimizationSettings)
     {
+        _progressLog.Clear();
         await UpdateProcessingState(fileName: file.Name, message: "Starting cropping...");
-        ClearProgressLog();
 
-        var logger = new InMemoryLogger();
-        logger.MessageLogged += async (message) => await OnLoggerMessageAsync(message);
+        var logger = new InMemoryLogger(OnLoggerMessageAsync);
 
         try
         {
@@ -574,19 +584,14 @@
             StateHasChanged();
 
         }
-        finally
-        {
-            logger.MessageLogged -= async (message) => await OnLoggerMessageAsync(message);
-        }
     }
 
     private async Task ProcessMergedDocument(CropSettings cropSettings, PdfOptimizationSettings optimizationSettings)
     {
+        _progressLog.Clear();
         await UpdateProcessingState(fileName: "Merged document", message: "Starting merge...");
-        ClearProgressLog();
 
-        var mergeLogger = new InMemoryLogger();
-        mergeLogger.MessageLogged += async (message) => await OnLoggerMessageAsync(message);
+        var mergeLogger = new InMemoryLogger(OnLoggerMessageAsync);
 
         try
         {
@@ -608,21 +613,16 @@
             _currentProgressPercentage = null;
             StateHasChanged();
         }
-        finally
-        {
-            mergeLogger.MessageLogged -= async (message) => await OnLoggerMessageAsync(message);
-        }
     }
 
     private async Task ProcessMergedDocumentEfficiently(CropSettings cropSettings, PdfOptimizationSettings optimizationSettings)
     {
         // Phase 1: Merge original documents first
+        _progressLog.Clear();
         await UpdateProcessingState(fileName: "Merging documents", message: "Combining documents...");
-        ClearProgressLog();
         await Task.Delay(50); // Даем UI время показать начало процесса
 
-        var logger = new InMemoryLogger();
-        logger.MessageLogged += async (message) => await OnLoggerMessageAsync(message);
+        var logger = new InMemoryLogger(OnLoggerMessageAsync);
 
         try
         {
@@ -675,10 +675,6 @@
             _processingErrors.Add($"Failed to process merged document: {ex.Message}");
             _currentProgressPercentage = null;
             StateHasChanged();
-        }
-        finally
-        {
-            logger.MessageLogged -= async (message) => await OnLoggerMessageAsync(message);
         }
     }
 
@@ -761,89 +757,6 @@
         return options;
     }
 
-    private static int GetPageCount(byte[] pdfBytes)
-    {
-        using var stream = new MemoryStream(pdfBytes, writable: false);
-        using var reader = new iText.Kernel.Pdf.PdfReader(stream);
-        using var document = new iText.Kernel.Pdf.PdfDocument(reader);
-        return document.GetNumberOfPages();
-    }
-
-    private static byte[] MergeOriginalDocuments(IReadOnlyList<byte[]> documents)
-    {
-        ArgumentNullException.ThrowIfNull(documents);
-
-        if (documents.Count == 0)
-        {
-            return Array.Empty<byte>();
-        }
-
-        using var outputStream = new MemoryStream();
-        using var writer = new iText.Kernel.Pdf.PdfWriter(outputStream);
-        using var mergedDocument = new iText.Kernel.Pdf.PdfDocument(writer);
-
-        foreach (var bytes in documents)
-        {
-            using var inputStream = new MemoryStream(bytes, writable: false);
-            using var reader = new iText.Kernel.Pdf.PdfReader(inputStream);
-            using var pdfDocument = new iText.Kernel.Pdf.PdfDocument(reader);
-            pdfDocument.CopyPagesTo(1, pdfDocument.GetNumberOfPages(), mergedDocument);
-        }
-
-        mergedDocument.Close();
-        return outputStream.ToArray();
-    }
-
-    private static string GetMethodLabel(CropMethod method)
-    {
-        return method switch
-        {
-            CropMethod.ContentBased => "Content analysis (faster)",
-            CropMethod.BitmapBased => "Rasterization (more precise)",
-            _ => method.ToString()
-        };
-    }
-
-    private static string FormatFileSize(long bytes)
-    {
-        if (bytes <= 0)
-        {
-            return "0 B";
-        }
-
-        string[] sizes = { "B", "KB", "MB", "GB" };
-        var order = (int)Math.Floor(Math.Log(bytes, 1024));
-        order = Math.Clamp(order, 0, sizes.Length - 1);
-        var adjusted = bytes / Math.Pow(1024, order);
-        return string.Format(CultureInfo.CurrentCulture, "{0:F1} {1}", adjusted, sizes[order]);
-    }
-
-    private sealed class PdfCropperOptions
-    {
-        public CropMethod Method { get; set; } = CropMethod.ContentBased;
-        public decimal Margin { get; set; } = 0.5m;
-        public bool ExcludeEdgeTouchingObjects { get; set; } = true;
-        public bool DetectRepeatedObjects { get; set; }
-        public decimal RepeatedObjectOccurrenceThreshold { get; set; } = 40m;
-        public int RepeatedObjectMinimumPageCount { get; set; } = 3;
-        public string CompressionLevelKey { get; set; } = string.Empty;
-        public string TargetPdfVersionValue { get; set; } = string.Empty;
-        public bool EnableFullCompression { get; set; }
-        public bool EnableSmartMode { get; set; }
-        public bool RemoveUnusedObjects { get; set; }
-        public bool RemoveXmpMetadata { get; set; }
-        public bool ClearDocumentInfo { get; set; }
-        public bool RemoveEmbeddedStandardFonts { get; set; }
-        public bool MergeDuplicateFontSubsets { get; set; }
-        public bool MergeIntoSingleDocument { get; set; }
-    }
-
-    private sealed record CompressionOption(string Label, string Value, int? Level);
-
-    private sealed record TargetVersionOption(string Label, string Value, PdfCompatibilityLevel? Level);
-
-    private sealed record UploadedPdf(string Name, byte[] Content, int PageCount);
-
     private async Task OnLoggerMessageAsync(string message)
     {
         AppendProgressMessage(message);
@@ -857,8 +770,6 @@
         {
             _progressLog.RemoveRange(0, _progressLog.Count - ProgressLogLimit);
         }
-
-        _latestLogMessage = message;
     }
 
     private async Task RequestProgressUiRefresh()
@@ -875,212 +786,4 @@
         }
     }
 
-    private void ClearProgressLog()
-    {
-        _progressLog.Clear();
-    }
-
-    private string[] GetProgressMessagesSnapshot()
-    {
-        return _progressLog.ToArray();
-    }
-
-    private sealed class InMemoryLogger : DimonSmart.PdfCropper.IPdfCropLogger
-    {
-        private readonly List<string> _messages = new();
-
-        public IReadOnlyList<string> Messages => _messages;
-
-        public event Func<string, Task>? MessageLogged;
-
-        public async Task LogInfoAsync(string message) => await AddMessageAsync("INFO", message);
-
-        public async Task LogWarningAsync(string message) => await AddMessageAsync("WARN", message);
-
-        public async Task LogErrorAsync(string message) => await AddMessageAsync("ERROR", message);
-
-        private async Task AddMessageAsync(string level, string message)
-        {
-            var formatted = $"{level}: {message}";
-            _messages.Add(formatted);
-            if (MessageLogged != null)
-            {
-                await MessageLogged(formatted);
-            }
-        }
-    }
-
-    private sealed class PdfProcessingResult
-    {
-        private readonly List<string> _originalPreviewImages = new();
-        private readonly List<string> _croppedPreviewImages = new();
-        private byte[] _originalBytes;
-        private byte[] _croppedBytes;
-        private bool _previewsLoaded;
-
-        public PdfProcessingResult(string originalName, byte[] originalBytes, long originalSize, int originalPageCount, byte[] croppedBytes, IReadOnlyList<string> logMessages, int previewLimit)
-        {
-            FileName = originalName;
-            _originalBytes = originalBytes;
-            _croppedBytes = croppedBytes;
-            OriginalSize = originalSize;
-            CroppedSize = croppedBytes.LongLength;
-            SizeSavingsPercentage = OriginalSize == 0 ? 0 : 1 - (double)CroppedSize / OriginalSize;
-            CroppedFileName = BuildCroppedFileName(originalName);
-            OriginalPageCount = originalPageCount;
-            OriginalPreviewCount = Math.Min(originalPageCount, previewLimit);
-            CroppedPageCount = GetPageCount(croppedBytes);
-            CroppedPreviewCount = Math.Min(CroppedPageCount, previewLimit);
-            CroppedDownloadUrl = BuildDataUrl(croppedBytes);
-            LogMessages = logMessages;
-        }
-
-        public string FileName { get; }
-
-        public string CroppedFileName { get; }
-
-        public long OriginalSize { get; }
-
-        public long CroppedSize { get; }
-
-        public double SizeSavingsPercentage { get; }
-
-        public IReadOnlyList<string> OriginalPreviewImages => _originalPreviewImages;
-
-        public IReadOnlyList<string> CroppedPreviewImages => _croppedPreviewImages;
-
-        public int OriginalPageCount { get; }
-
-        public int OriginalPreviewCount { get; }
-
-        public int CroppedPageCount { get; }
-
-        public int CroppedPreviewCount { get; }
-
-        public string CroppedDownloadUrl { get; }
-
-        public IReadOnlyList<string> LogMessages { get; }
-
-        public bool IsOriginalPreviewLoading { get; private set; }
-
-        public bool IsCroppedPreviewLoading { get; private set; }
-
-        public string? OriginalPreviewError { get; private set; }
-
-        public string? CroppedPreviewError { get; private set; }
-
-        public void BeginPreviewGeneration()
-        {
-            if (_previewsLoaded)
-            {
-                return;
-            }
-
-            if (OriginalPreviewCount > 0)
-            {
-                IsOriginalPreviewLoading = true;
-            }
-
-            if (CroppedPreviewCount > 0)
-            {
-                IsCroppedPreviewLoading = true;
-            }
-        }
-
-        public async Task GeneratePreviewsAsync(double scale, Func<string, Task>? progressCallback = null)
-        {
-            if (_previewsLoaded)
-            {
-                return;
-            }
-
-            try
-            {
-                if (IsOriginalPreviewLoading)
-                {
-                    OriginalPreviewError = null;
-                    try
-                    {
-                        if (progressCallback != null)
-                        {
-                            await progressCallback("Generating original previews...");
-                        }
-                        await Task.Yield();
-                        var images = await PdfPreviewGenerator.GeneratePreviewsAsync(_originalBytes, OriginalPreviewCount, scale, async msg =>
-                        {
-                            if (progressCallback != null)
-                            {
-                                await progressCallback(msg);
-                            }
-                        });
-                        _originalPreviewImages.Clear();
-                        _originalPreviewImages.AddRange(images);
-                    }
-                    catch (Exception ex)
-                    {
-                        OriginalPreviewError = $"Failed to render the original preview: {ex.Message}";
-                    }
-
-                    IsOriginalPreviewLoading = false;
-                }
-
-                if (IsCroppedPreviewLoading)
-                {
-                    CroppedPreviewError = null;
-                    try
-                    {
-                        if (progressCallback != null)
-                        {
-                            await progressCallback("Generating cropped previews...");
-                        }
-                        await Task.Yield();
-                        var images = await PdfPreviewGenerator.GeneratePreviewsAsync(_croppedBytes, CroppedPreviewCount, scale, async msg =>
-                        {
-                            if (progressCallback != null)
-                            {
-                                await progressCallback(msg);
-                            }
-                        });
-                        _croppedPreviewImages.Clear();
-                        _croppedPreviewImages.AddRange(images);
-                    }
-                    catch (Exception ex)
-                    {
-                        CroppedPreviewError = $"Failed to render the cropped preview: {ex.Message}";
-                    }
-
-                    IsCroppedPreviewLoading = false;
-                }
-            }
-            finally
-            {
-                _originalBytes = Array.Empty<byte>();
-                _croppedBytes = Array.Empty<byte>();
-                _previewsLoaded = true;
-            }
-        }
-
-        private static string BuildDataUrl(byte[] pdfBytes)
-        {
-            var base64 = Convert.ToBase64String(pdfBytes);
-            return $"data:application/pdf;base64,{base64}";
-        }
-
-        private static string BuildCroppedFileName(string originalName)
-        {
-            var fileName = Path.GetFileNameWithoutExtension(originalName);
-            var extension = Path.GetExtension(originalName);
-            if (string.IsNullOrEmpty(fileName))
-            {
-                fileName = "document";
-            }
-
-            if (!string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase))
-            {
-                extension = ".pdf";
-            }
-
-            return $"{fileName}-cropped{extension}";
-        }
-    }
 }
