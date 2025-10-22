@@ -75,7 +75,7 @@
         </div>
     }
 
-    <EditForm Model="_options" OnValidSubmit="ProcessFiles">
+    <EditForm Model="_options">
         <div class="card mb-4">
             <div class="card-header">Crop settings</div>
             <div class="card-body row g-3">
@@ -201,7 +201,7 @@
         </div>
 
         <div class="d-flex align-items-center gap-3 mb-4">
-            <button type="submit" class="btn btn-primary" disabled="@(_isProcessing || _isAnalyzingFiles || _uploadedFiles.Count == 0)">Start cropping</button>
+            <button type="button" class="btn btn-primary" disabled="@(_isProcessing || _isAnalyzingFiles || _uploadedFiles.Count == 0)" @onclick="ProcessFiles">Start cropping</button>
         </div>
     </EditForm>
 
@@ -499,7 +499,6 @@
 
     private async Task UpdateProcessingState(bool? isProcessing = null, string? fileName = null, string? message = null, int? percentage = null)
     {
-
         if (isProcessing.HasValue) _isProcessing = isProcessing.Value;
         if (fileName != null) _activeFileName = fileName;
         if (message != null) _latestLogMessage = message;
@@ -511,8 +510,8 @@
             _currentProgressPercentage = null;
             ClearProgressLog();
         }
-        StateHasChanged();
 
+        await InvokeAsync(StateHasChanged);
         await Task.Yield();
     }
 
@@ -569,6 +568,7 @@
         }
         catch (Exception ex)
         {
+
             _processingErrors.Add($"Failed to process {file.Name}: {ex.Message}");
             _currentProgressPercentage = null;
             StateHasChanged();
@@ -607,7 +607,6 @@
             _processingErrors.Add($"Failed to merge documents: {ex.Message}");
             _currentProgressPercentage = null;
             StateHasChanged();
-
         }
         finally
         {
@@ -620,6 +619,7 @@
         // Phase 1: Merge original documents first
         await UpdateProcessingState(fileName: "Merging documents", message: "Combining documents...");
         ClearProgressLog();
+        await Task.Delay(50); // Даем UI время показать начало процесса
 
         var logger = new InMemoryLogger();
         logger.MessageLogged += async (message) => await OnLoggerMessageAsync(message);
@@ -635,6 +635,7 @@
 
             // Phase 2: Crop the merged document
             await UpdateProcessingState(message: "Cropping merged document...");
+            await Task.Delay(50); // Даем UI время обновиться
 
             var cropper = new PdfCropper();
             var croppedMerged = await cropper.CropAsync(mergedOriginal, cropSettings, optimizationSettings, logger, CancellationToken.None);
@@ -664,19 +665,16 @@
             await mergedResult.GeneratePreviewsAsync(PreviewScale, async progressMessage =>
             {
                 await UpdateProcessingState(message: progressMessage);
-                await Task.Delay(1);
+                await Task.Delay(50);
             });
 
             await UpdateProcessingState(message: null, percentage: null);
         }
         catch (Exception ex)
         {
-            await InvokeAsync(() =>
-            {
-                _processingErrors.Add($"Failed to process merged document: {ex.Message}");
-                _currentProgressPercentage = null;
-                StateHasChanged();
-            });
+            _processingErrors.Add($"Failed to process merged document: {ex.Message}");
+            _currentProgressPercentage = null;
+            StateHasChanged();
         }
         finally
         {
@@ -695,7 +693,7 @@
         await result.GeneratePreviewsAsync(PreviewScale, async progressMessage =>
         {
             await UpdateProcessingState(message: progressMessage);
-            await Task.Delay(1);
+            await Task.Delay(50);
         });
 
         await UpdateProcessingState(message: null, percentage: null);
@@ -871,13 +869,11 @@
         if (elapsed >= ProgressUiDebounceInterval)
         {
             _lastProgressUiRefresh = now;
-            StateHasChanged();
-            await Task.Yield();
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(10);
             return;
         }
     }
-
-
 
     private void ClearProgressLog()
     {
