@@ -3,7 +3,6 @@
 @using System.Globalization
 @using System.IO
 @using System.Linq
-@using System.Reflection
 @using System.Threading
 @using System.Threading.Tasks
 @using Demo.Services
@@ -565,7 +564,7 @@
         try
         {
             var cropper = new PdfCropper();
-            var cropped = await PdfCropperCompatibility.CropAsync(cropper, file.Content, cropSettings, optimizationSettings, logger, CancellationToken.None);
+            var cropped = await cropper.CropAsync(file.Content, cropSettings, optimizationSettings, logger, null, CancellationToken.None);
             
             var result = new PdfProcessingResult(file.Name, file.Content, file.Content.LongLength, file.PageCount, cropped, logger.Messages, PreviewLimit);
             await AddResultWithPreview(result);
@@ -597,7 +596,7 @@
         {
             var originalDocuments = _uploadedFiles.Select(f => f.Content).ToList();
             var cropper = new PdfCropper();
-            var mergedBytes = await PdfCropperCompatibility.CropAndMergeAsync(cropper, originalDocuments, cropSettings, optimizationSettings, mergeLogger, CancellationToken.None);
+            var mergedBytes = await cropper.CropAndMergeAsync(originalDocuments, cropSettings, optimizationSettings, mergeLogger, null, CancellationToken.None);
             
             var mergedOriginal = MergeOriginalDocuments(originalDocuments);
             var totalOriginalSize = _uploadedFiles.Sum(f => (long)f.Content.Length);
@@ -643,7 +642,7 @@
             await UpdateProcessingState(message: "Cropping merged document...");
             
             var cropper = new PdfCropper();
-            var croppedMerged = await PdfCropperCompatibility.CropAsync(cropper, mergedOriginal, cropSettings, optimizationSettings, logger, CancellationToken.None);
+            var croppedMerged = await cropper.CropAsync(mergedOriginal, cropSettings, optimizationSettings, logger, null, CancellationToken.None);
             
             // Phase 3: Create result and make download available immediately
             var mergedResult = new PdfProcessingResult(
@@ -922,128 +921,6 @@
     private string[] GetProgressMessagesSnapshot()
     {
         return _progressLog.ToArray();
-    }
-
-    private static class PdfCropperCompatibility
-    {
-        private static readonly MethodInfo? CropAsyncWithoutProgress = typeof(PdfCropper).GetMethod(
-            nameof(PdfCropper.CropAsync),
-            new[]
-            {
-                typeof(byte[]),
-                typeof(CropSettings),
-                typeof(PdfOptimizationSettings),
-                typeof(IPdfCropLogger),
-                typeof(CancellationToken)
-            });
-
-        private static readonly MethodInfo? CropAsyncWithProgress = typeof(PdfCropper).GetMethod(
-            nameof(PdfCropper.CropAsync),
-            new[]
-            {
-                typeof(byte[]),
-                typeof(CropSettings),
-                typeof(PdfOptimizationSettings),
-                typeof(IPdfCropLogger),
-                typeof(IProgress<string>),
-                typeof(CancellationToken)
-            });
-
-        private static readonly MethodInfo? CropAndMergeAsyncWithoutProgress = typeof(PdfCropper).GetMethod(
-            nameof(PdfCropper.CropAndMergeAsync),
-            new[]
-            {
-                typeof(IEnumerable<byte[]>),
-                typeof(CropSettings),
-                typeof(PdfOptimizationSettings),
-                typeof(IPdfCropLogger),
-                typeof(CancellationToken)
-            });
-
-        private static readonly MethodInfo? CropAndMergeAsyncWithProgress = typeof(PdfCropper).GetMethod(
-            nameof(PdfCropper.CropAndMergeAsync),
-            new[]
-            {
-                typeof(IEnumerable<byte[]>),
-                typeof(CropSettings),
-                typeof(PdfOptimizationSettings),
-                typeof(IPdfCropLogger),
-                typeof(IProgress<string>),
-                typeof(CancellationToken)
-            });
-
-        public static Task<byte[]> CropAsync(PdfCropper cropper, byte[] document, CropSettings cropSettings, PdfOptimizationSettings optimizationSettings, IPdfCropLogger logger, CancellationToken cancellationToken)
-        {
-            if (CropAsyncWithoutProgress is not null)
-            {
-                return (Task<byte[]>)CropAsyncWithoutProgress.Invoke(cropper, new object?[]
-                {
-                    document,
-                    cropSettings,
-                    optimizationSettings,
-                    logger,
-                    cancellationToken
-                })!;
-            }
-
-            if (CropAsyncWithProgress is not null)
-            {
-                return (Task<byte[]>)CropAsyncWithProgress.Invoke(cropper, new object?[]
-                {
-                    document,
-                    cropSettings,
-                    optimizationSettings,
-                    logger,
-                    NoOpProgress.Instance,
-                    cancellationToken
-                })!;
-            }
-
-            throw new MissingMethodException(typeof(PdfCropper).FullName, nameof(PdfCropper.CropAsync));
-        }
-
-        public static Task<byte[]> CropAndMergeAsync(PdfCropper cropper, IEnumerable<byte[]> documents, CropSettings cropSettings, PdfOptimizationSettings optimizationSettings, IPdfCropLogger logger, CancellationToken cancellationToken)
-        {
-            if (CropAndMergeAsyncWithoutProgress is not null)
-            {
-                return (Task<byte[]>)CropAndMergeAsyncWithoutProgress.Invoke(cropper, new object?[]
-                {
-                    documents,
-                    cropSettings,
-                    optimizationSettings,
-                    logger,
-                    cancellationToken
-                })!;
-            }
-
-            if (CropAndMergeAsyncWithProgress is not null)
-            {
-                return (Task<byte[]>)CropAndMergeAsyncWithProgress.Invoke(cropper, new object?[]
-                {
-                    documents,
-                    cropSettings,
-                    optimizationSettings,
-                    logger,
-                    NoOpProgress.Instance,
-                    cancellationToken
-                })!;
-            }
-
-            throw new MissingMethodException(typeof(PdfCropper).FullName, nameof(PdfCropper.CropAndMergeAsync));
-        }
-
-        private sealed class NoOpProgress : IProgress<string>
-        {
-            public static readonly NoOpProgress Instance = new();
-
-            private NoOpProgress()
-            {
-            }
-
-            public void Report(string? value)
-            {
-            }
-        }
     }
 
     private sealed class InMemoryLogger : DimonSmart.PdfCropper.IPdfCropLogger
