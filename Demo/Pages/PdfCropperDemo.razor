@@ -379,7 +379,6 @@
     private string? _latestLogMessage;
     private int? _currentProgressPercentage;
     private DateTime _lastProgressUiRefresh;
-    private bool _isProgressUiRefreshScheduled;
 
     protected override void OnInitialized()
     {
@@ -558,12 +557,12 @@
         ClearProgressLog();
 
         var logger = new InMemoryLogger();
-        logger.MessageLogged += OnLoggerMessage;
+        logger.MessageLogged += async (message) => await OnLoggerMessageAsync(message);
 
         try
         {
             var cropper = new PdfCropper();
-            var cropped = await cropper.CropAsync(file.Content, cropSettings, optimizationSettings, logger, null, CancellationToken.None);
+            var cropped = await cropper.CropAsync(file.Content, cropSettings, optimizationSettings, logger, CancellationToken.None);
 
             var result = new PdfProcessingResult(file.Name, file.Content, file.Content.LongLength, file.PageCount, cropped, logger.Messages, PreviewLimit);
             await AddResultWithPreview(result);
@@ -577,7 +576,7 @@
         }
         finally
         {
-            logger.MessageLogged -= OnLoggerMessage;
+            logger.MessageLogged -= async (message) => await OnLoggerMessageAsync(message);
         }
     }
 
@@ -587,13 +586,13 @@
         ClearProgressLog();
 
         var mergeLogger = new InMemoryLogger();
-        mergeLogger.MessageLogged += OnLoggerMessage;
+        mergeLogger.MessageLogged += async (message) => await OnLoggerMessageAsync(message);
 
         try
         {
             var originalDocuments = _uploadedFiles.Select(f => f.Content).ToList();
             var cropper = new PdfCropper();
-            var mergedBytes = await cropper.CropAndMergeAsync(originalDocuments, cropSettings, optimizationSettings, mergeLogger, null, CancellationToken.None);
+            var mergedBytes = await cropper.CropAndMergeAsync(originalDocuments, cropSettings, optimizationSettings, mergeLogger, CancellationToken.None);
 
             var mergedOriginal = MergeOriginalDocuments(originalDocuments);
             var totalOriginalSize = _uploadedFiles.Sum(f => (long)f.Content.Length);
@@ -612,7 +611,7 @@
         }
         finally
         {
-            mergeLogger.MessageLogged -= OnLoggerMessage;
+            mergeLogger.MessageLogged -= async (message) => await OnLoggerMessageAsync(message);
         }
     }
 
@@ -623,7 +622,7 @@
         ClearProgressLog();
 
         var logger = new InMemoryLogger();
-        logger.MessageLogged += OnLoggerMessage;
+        logger.MessageLogged += async (message) => await OnLoggerMessageAsync(message);
 
         try
         {
@@ -638,7 +637,7 @@
             await UpdateProcessingState(message: "Cropping merged document...");
 
             var cropper = new PdfCropper();
-            var croppedMerged = await cropper.CropAsync(mergedOriginal, cropSettings, optimizationSettings, logger, null, CancellationToken.None);
+            var croppedMerged = await cropper.CropAsync(mergedOriginal, cropSettings, optimizationSettings, logger, CancellationToken.None);
 
             // Phase 3: Create result and make download available immediately
             var mergedResult = new PdfProcessingResult(
@@ -681,7 +680,7 @@
         }
         finally
         {
-            logger.MessageLogged -= OnLoggerMessage;
+            logger.MessageLogged -= async (message) => await OnLoggerMessageAsync(message);
         }
     }
 
@@ -847,10 +846,10 @@
 
     private sealed record UploadedPdf(string Name, byte[] Content, int PageCount);
 
-    private void OnLoggerMessage(string message)
+    private async Task OnLoggerMessageAsync(string message)
     {
         AppendProgressMessage(message);
-        RequestProgressUiRefresh();
+        await RequestProgressUiRefresh();
     }
 
     private void AppendProgressMessage(string message)
@@ -896,19 +895,22 @@
 
         public IReadOnlyList<string> Messages => _messages;
 
-        public event Action<string>? MessageLogged;
+        public event Func<string, Task>? MessageLogged;
 
-        public void LogInfo(string message) => AddMessage("INFO", message);
+        public async Task LogInfoAsync(string message) => await AddMessageAsync("INFO", message);
 
-        public void LogWarning(string message) => AddMessage("WARN", message);
+        public async Task LogWarningAsync(string message) => await AddMessageAsync("WARN", message);
 
-        public void LogError(string message) => AddMessage("ERROR", message);
+        public async Task LogErrorAsync(string message) => await AddMessageAsync("ERROR", message);
 
-        private void AddMessage(string level, string message)
+        private async Task AddMessageAsync(string level, string message)
         {
             var formatted = $"{level}: {message}";
             _messages.Add(formatted);
-            MessageLogged?.Invoke(formatted);
+            if (MessageLogged != null)
+            {
+                await MessageLogged(formatted);
+            }
         }
     }
 
