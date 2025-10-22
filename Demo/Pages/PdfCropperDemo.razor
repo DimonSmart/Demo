@@ -3,6 +3,7 @@
 @using System.Globalization
 @using System.IO
 @using System.Linq
+@using System.Reflection
 @using System.Threading
 @using System.Threading.Tasks
 @using Demo.Services
@@ -355,6 +356,7 @@
     private const int PreviewLimit = 3;
     private const double PreviewScale = 1.5;
     private const int ProgressLogLimit = 8;
+    private static readonly TimeSpan ProgressUiDebounceInterval = TimeSpan.FromMilliseconds(100);
 
     private static readonly CropMethod[] CropMethods = { CropMethod.ContentBased };
     private static readonly IReadOnlyList<CompressionOption> CompressionOptions = BuildCompressionOptions();
@@ -371,13 +373,14 @@
     private readonly List<string> _processingErrors = new();
     private readonly List<PdfProcessingResult> _results = new();
     private readonly List<string> _progressLog = new();
-    private readonly object _progressLogLock = new();
 
     private bool _isProcessing;
     private bool _isAnalyzingFiles;
     private string? _activeFileName;
     private string? _latestLogMessage;
     private int? _currentProgressPercentage;
+    private DateTime _lastProgressUiRefresh;
+    private bool _isProgressUiRefreshScheduled;
 
     protected override void OnInitialized()
     {
@@ -561,9 +564,8 @@
 
         try
         {
-            var progressReporter = CreateProgressReporter();
             var cropper = new PdfCropper();
-            var cropped = await cropper.CropAsync(file.Content, cropSettings, optimizationSettings, logger, progressReporter, CancellationToken.None);
+            var cropped = await PdfCropperCompatibility.CropAsync(cropper, file.Content, cropSettings, optimizationSettings, logger, CancellationToken.None);
             
             var result = new PdfProcessingResult(file.Name, file.Content, file.Content.LongLength, file.PageCount, cropped, logger.Messages, PreviewLimit);
             await AddResultWithPreview(result);
@@ -595,8 +597,7 @@
         {
             var originalDocuments = _uploadedFiles.Select(f => f.Content).ToList();
             var cropper = new PdfCropper();
-            var progressReporter = CreateProgressReporter();
-            var mergedBytes = await cropper.CropAndMergeAsync(originalDocuments, cropSettings, optimizationSettings, mergeLogger, progressReporter, CancellationToken.None);
+            var mergedBytes = await PdfCropperCompatibility.CropAndMergeAsync(cropper, originalDocuments, cropSettings, optimizationSettings, mergeLogger, CancellationToken.None);
             
             var mergedOriginal = MergeOriginalDocuments(originalDocuments);
             var totalOriginalSize = _uploadedFiles.Sum(f => (long)f.Content.Length);
@@ -641,9 +642,8 @@
             // Phase 2: Crop the merged document
             await UpdateProcessingState(message: "Cropping merged document...");
             
-            var progressReporter = CreateProgressReporter();
             var cropper = new PdfCropper();
-            var croppedMerged = await cropper.CropAsync(mergedOriginal, cropSettings, optimizationSettings, logger, progressReporter, CancellationToken.None);
+            var croppedMerged = await PdfCropperCompatibility.CropAsync(cropper, mergedOriginal, cropSettings, optimizationSettings, logger, CancellationToken.None);
             
             // Phase 3: Create result and make download available immediately
             var mergedResult = new PdfProcessingResult(
@@ -688,15 +688,6 @@
         {
             logger.MessageLogged -= OnLoggerMessage;
         }
-    }
-
-    private Progress<string> CreateProgressReporter()
-    {
-        return new Progress<string>(message =>
-        {
-            AppendProgressMessage(message);
-            RequestProgressUiRefresh();
-        });
     }
 
     private async Task AddResultWithPreview(PdfProcessingResult result)
@@ -869,35 +860,189 @@
 
     private void AppendProgressMessage(string message)
     {
-        lock (_progressLogLock)
+        _progressLog.Add(message);
+        if (_progressLog.Count > ProgressLogLimit)
         {
-            _progressLog.Add(message);
-            if (_progressLog.Count > ProgressLogLimit)
-            {
-                _progressLog.RemoveRange(0, _progressLog.Count - ProgressLogLimit);
-            }
-            _latestLogMessage = message;
+            _progressLog.RemoveRange(0, _progressLog.Count - ProgressLogLimit);
         }
+
+        _latestLogMessage = message;
     }
 
     private void RequestProgressUiRefresh()
     {
-        _ = InvokeAsync(StateHasChanged);
+        var now = DateTime.UtcNow;
+        var elapsed = now - _lastProgressUiRefresh;
+
+        if (elapsed >= ProgressUiDebounceInterval)
+        {
+            _lastProgressUiRefresh = now;
+            _ = InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        if (_isProgressUiRefreshScheduled)
+        {
+            return;
+        }
+
+        var delay = ProgressUiDebounceInterval - elapsed;
+        _isProgressUiRefreshScheduled = true;
+        _ = ScheduleProgressUiRefreshAsync(delay);
+    }
+
+    private async Task ScheduleProgressUiRefreshAsync(TimeSpan delay)
+    {
+        try
+        {
+            await Task.Delay(delay);
+            await InvokeAsync(() =>
+            {
+                _lastProgressUiRefresh = DateTime.UtcNow;
+                StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        finally
+        {
+            _isProgressUiRefreshScheduled = false;
+        }
     }
 
     private void ClearProgressLog()
     {
-        lock (_progressLogLock)
-        {
-            _progressLog.Clear();
-        }
+        _progressLog.Clear();
     }
 
     private string[] GetProgressMessagesSnapshot()
     {
-        lock (_progressLogLock)
+        return _progressLog.ToArray();
+    }
+
+    private static class PdfCropperCompatibility
+    {
+        private static readonly MethodInfo? CropAsyncWithoutProgress = typeof(PdfCropper).GetMethod(
+            nameof(PdfCropper.CropAsync),
+            new[]
+            {
+                typeof(byte[]),
+                typeof(CropSettings),
+                typeof(PdfOptimizationSettings),
+                typeof(IPdfCropLogger),
+                typeof(CancellationToken)
+            });
+
+        private static readonly MethodInfo? CropAsyncWithProgress = typeof(PdfCropper).GetMethod(
+            nameof(PdfCropper.CropAsync),
+            new[]
+            {
+                typeof(byte[]),
+                typeof(CropSettings),
+                typeof(PdfOptimizationSettings),
+                typeof(IPdfCropLogger),
+                typeof(IProgress<string>),
+                typeof(CancellationToken)
+            });
+
+        private static readonly MethodInfo? CropAndMergeAsyncWithoutProgress = typeof(PdfCropper).GetMethod(
+            nameof(PdfCropper.CropAndMergeAsync),
+            new[]
+            {
+                typeof(IEnumerable<byte[]>),
+                typeof(CropSettings),
+                typeof(PdfOptimizationSettings),
+                typeof(IPdfCropLogger),
+                typeof(CancellationToken)
+            });
+
+        private static readonly MethodInfo? CropAndMergeAsyncWithProgress = typeof(PdfCropper).GetMethod(
+            nameof(PdfCropper.CropAndMergeAsync),
+            new[]
+            {
+                typeof(IEnumerable<byte[]>),
+                typeof(CropSettings),
+                typeof(PdfOptimizationSettings),
+                typeof(IPdfCropLogger),
+                typeof(IProgress<string>),
+                typeof(CancellationToken)
+            });
+
+        public static Task<byte[]> CropAsync(PdfCropper cropper, byte[] document, CropSettings cropSettings, PdfOptimizationSettings optimizationSettings, IPdfCropLogger logger, CancellationToken cancellationToken)
         {
-            return _progressLog.ToArray();
+            if (CropAsyncWithoutProgress is not null)
+            {
+                return (Task<byte[]>)CropAsyncWithoutProgress.Invoke(cropper, new object?[]
+                {
+                    document,
+                    cropSettings,
+                    optimizationSettings,
+                    logger,
+                    cancellationToken
+                })!;
+            }
+
+            if (CropAsyncWithProgress is not null)
+            {
+                return (Task<byte[]>)CropAsyncWithProgress.Invoke(cropper, new object?[]
+                {
+                    document,
+                    cropSettings,
+                    optimizationSettings,
+                    logger,
+                    NoOpProgress.Instance,
+                    cancellationToken
+                })!;
+            }
+
+            throw new MissingMethodException(typeof(PdfCropper).FullName, nameof(PdfCropper.CropAsync));
+        }
+
+        public static Task<byte[]> CropAndMergeAsync(PdfCropper cropper, IEnumerable<byte[]> documents, CropSettings cropSettings, PdfOptimizationSettings optimizationSettings, IPdfCropLogger logger, CancellationToken cancellationToken)
+        {
+            if (CropAndMergeAsyncWithoutProgress is not null)
+            {
+                return (Task<byte[]>)CropAndMergeAsyncWithoutProgress.Invoke(cropper, new object?[]
+                {
+                    documents,
+                    cropSettings,
+                    optimizationSettings,
+                    logger,
+                    cancellationToken
+                })!;
+            }
+
+            if (CropAndMergeAsyncWithProgress is not null)
+            {
+                return (Task<byte[]>)CropAndMergeAsyncWithProgress.Invoke(cropper, new object?[]
+                {
+                    documents,
+                    cropSettings,
+                    optimizationSettings,
+                    logger,
+                    NoOpProgress.Instance,
+                    cancellationToken
+                })!;
+            }
+
+            throw new MissingMethodException(typeof(PdfCropper).FullName, nameof(PdfCropper.CropAndMergeAsync));
+        }
+
+        private sealed class NoOpProgress : IProgress<string>
+        {
+            public static readonly NoOpProgress Instance = new();
+
+            private NoOpProgress()
+            {
+            }
+
+            public void Report(string? value)
+            {
+            }
         }
     }
 
