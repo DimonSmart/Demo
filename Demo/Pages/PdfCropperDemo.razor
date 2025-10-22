@@ -432,7 +432,7 @@
     private async Task OnFilesSelected(InputFileChangeEventArgs e)
     {
         ClearAllData();
-        
+
         var files = e.GetMultipleFiles().ToArray();
         if (files.Length == 0) return;
 
@@ -468,7 +468,7 @@
         {
             var cropSettings = GetCropSettings();
             var optimizationSettings = GetOptimizationSettings();
-            
+
             if (_options.MergeIntoSingleDocument && _uploadedFiles.Count > 1)
             {
                 await ProcessMergedDocumentEfficiently(cropSettings, optimizationSettings);
@@ -500,21 +500,20 @@
 
     private async Task UpdateProcessingState(bool? isProcessing = null, string? fileName = null, string? message = null, int? percentage = null)
     {
-        await InvokeAsync(() =>
+
+        if (isProcessing.HasValue) _isProcessing = isProcessing.Value;
+        if (fileName != null) _activeFileName = fileName;
+        if (message != null) _latestLogMessage = message;
+        if (percentage.HasValue) _currentProgressPercentage = percentage;
+        if (message == null && percentage == null)
         {
-            if (isProcessing.HasValue) _isProcessing = isProcessing.Value;
-            if (fileName != null) _activeFileName = fileName;
-            if (message != null) _latestLogMessage = message;
-            if (percentage.HasValue) _currentProgressPercentage = percentage;
-            if (message == null && percentage == null)
-            {
-                _activeFileName = null;
-                _latestLogMessage = null;
-                _currentProgressPercentage = null;
-                ClearProgressLog();
-            }
-            StateHasChanged();
-        });
+            _activeFileName = null;
+            _latestLogMessage = null;
+            _currentProgressPercentage = null;
+            ClearProgressLog();
+        }
+        StateHasChanged();
+
         await Task.Yield();
     }
 
@@ -565,18 +564,16 @@
         {
             var cropper = new PdfCropper();
             var cropped = await cropper.CropAsync(file.Content, cropSettings, optimizationSettings, logger, null, CancellationToken.None);
-            
+
             var result = new PdfProcessingResult(file.Name, file.Content, file.Content.LongLength, file.PageCount, cropped, logger.Messages, PreviewLimit);
             await AddResultWithPreview(result);
         }
         catch (Exception ex)
         {
-            await InvokeAsync(() =>
-            {
-                _processingErrors.Add($"Failed to process {file.Name}: {ex.Message}");
-                _currentProgressPercentage = null;
-                StateHasChanged();
-            });
+            _processingErrors.Add($"Failed to process {file.Name}: {ex.Message}");
+            _currentProgressPercentage = null;
+            StateHasChanged();
+
         }
         finally
         {
@@ -597,22 +594,21 @@
             var originalDocuments = _uploadedFiles.Select(f => f.Content).ToList();
             var cropper = new PdfCropper();
             var mergedBytes = await cropper.CropAndMergeAsync(originalDocuments, cropSettings, optimizationSettings, mergeLogger, null, CancellationToken.None);
-            
+
             var mergedOriginal = MergeOriginalDocuments(originalDocuments);
             var totalOriginalSize = _uploadedFiles.Sum(f => (long)f.Content.Length);
             var mergedOriginalPageCount = GetPageCount(mergedOriginal);
-            
+
             var mergedResult = new PdfProcessingResult("Merged document.pdf", mergedOriginal, totalOriginalSize, mergedOriginalPageCount, mergedBytes, mergeLogger.Messages, PreviewLimit);
             await AddResultWithPreview(mergedResult);
         }
         catch (Exception ex)
         {
-            await InvokeAsync(() =>
-            {
-                _processingErrors.Add($"Failed to merge documents: {ex.Message}");
-                _currentProgressPercentage = null;
-                StateHasChanged();
-            });
+
+            _processingErrors.Add($"Failed to merge documents: {ex.Message}");
+            _currentProgressPercentage = null;
+            StateHasChanged();
+
         }
         finally
         {
@@ -632,7 +628,7 @@
         try
         {
             var originalDocuments = _uploadedFiles.Select(f => f.Content).ToList();
-            
+
             // Step 1: Merge original documents without cropping
             var mergedOriginal = MergeOriginalDocuments(originalDocuments);
             var totalOriginalSize = _uploadedFiles.Sum(f => (long)f.Content.Length);
@@ -640,20 +636,20 @@
 
             // Phase 2: Crop the merged document
             await UpdateProcessingState(message: "Cropping merged document...");
-            
+
             var cropper = new PdfCropper();
             var croppedMerged = await cropper.CropAsync(mergedOriginal, cropSettings, optimizationSettings, logger, null, CancellationToken.None);
-            
+
             // Phase 3: Create result and make download available immediately
             var mergedResult = new PdfProcessingResult(
-                "Merged document.pdf", 
-                mergedOriginal, 
-                totalOriginalSize, 
-                mergedOriginalPageCount, 
-                croppedMerged, 
-                logger.Messages, 
+                "Merged document.pdf",
+                mergedOriginal,
+                totalOriginalSize,
+                mergedOriginalPageCount,
+                croppedMerged,
+                logger.Messages,
                 PreviewLimit);
-            
+
             await InvokeAsync(() =>
             {
                 _results.Add(mergedResult);
@@ -662,10 +658,10 @@
 
             // Phase 4: Generate previews in background (download is already available)
             await UpdateProcessingState(message: "Generating previews...", percentage: null);
-            
+
             mergedResult.BeginPreviewGeneration();
             await InvokeAsync(StateHasChanged);
-            
+
             await mergedResult.GeneratePreviewsAsync(PreviewScale, async progressMessage =>
             {
                 await UpdateProcessingState(message: progressMessage);
@@ -696,7 +692,7 @@
 
         result.BeginPreviewGeneration();
         await InvokeAsync(StateHasChanged);
-        
+
         await result.GeneratePreviewsAsync(PreviewScale, async progressMessage =>
         {
             await UpdateProcessingState(message: progressMessage);
@@ -868,7 +864,7 @@
         _latestLogMessage = message;
     }
 
-    private void RequestProgressUiRefresh()
+    private async Task RequestProgressUiRefresh()
     {
         var now = DateTime.UtcNow;
         var elapsed = now - _lastProgressUiRefresh;
@@ -876,42 +872,13 @@
         if (elapsed >= ProgressUiDebounceInterval)
         {
             _lastProgressUiRefresh = now;
-            _ = InvokeAsync(StateHasChanged);
+            StateHasChanged();
+            await Task.Yield();
             return;
         }
-
-        if (_isProgressUiRefreshScheduled)
-        {
-            return;
-        }
-
-        var delay = ProgressUiDebounceInterval - elapsed;
-        _isProgressUiRefreshScheduled = true;
-        _ = ScheduleProgressUiRefreshAsync(delay);
     }
 
-    private async Task ScheduleProgressUiRefreshAsync(TimeSpan delay)
-    {
-        try
-        {
-            await Task.Delay(delay);
-            await InvokeAsync(() =>
-            {
-                _lastProgressUiRefresh = DateTime.UtcNow;
-                StateHasChanged();
-            });
-        }
-        catch (ObjectDisposedException)
-        {
-        }
-        catch (InvalidOperationException)
-        {
-        }
-        finally
-        {
-            _isProgressUiRefreshScheduled = false;
-        }
-    }
+
 
     private void ClearProgressLog()
     {
