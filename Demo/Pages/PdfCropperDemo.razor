@@ -225,9 +225,13 @@
                     <div class="text-success pt-1">Processing finished</div>
                 }
                 <div class="flex-grow-1">
-                    <div class="fw-semibold">@(_isProcessing
-                        ? (_activeFileName != null ? $"Processing {_activeFileName}" : "Preparing for processing...")
-                        : "Processing complete")</div>
+                    @if (_isProcessing)
+                    {
+                        <div class="fw-semibold">@(_activeFileName != null
+                            ? $"Processing {_activeFileName}"
+                            : "Preparing for processing...")</div>
+                    }
+
                     @if (_isProcessing && _currentProgressPercentage.HasValue)
                     {
                         <div class="text-muted small mb-2">Progress: @_currentProgressPercentage%</div>
