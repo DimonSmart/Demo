@@ -1,8 +1,10 @@
 @page "/pdf-cropper"
+@using System
 @using System.Collections.Generic
 @using System.Globalization
 @using System.IO
 @using System.Linq
+@using System.Text
 @using System.Threading
 @using System.Threading.Tasks
 @using Demo.Services
@@ -205,19 +207,32 @@
         </div>
     </EditForm>
 
-    @if (_isProcessing)
+    @{
+        var progressMessages = _isProcessing ? GetProgressMessagesSnapshot() : _completedProgressLogSnapshot;
+        var shouldShowProcessingCard = _isProcessing || progressMessages.Length > 0 || _fullLogDownloadUrl != null;
+    }
+
+    @if (shouldShowProcessingCard)
     {
-        var progressMessages = GetProgressMessagesSnapshot();
         <div class="processing-card mb-4">
             <div class="d-flex align-items-start gap-3">
-                <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                @if (_isProcessing)
+                {
+                    <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                }
+                else
+                {
+                    <div class="text-success pt-1">Processing finished</div>
+                }
                 <div class="flex-grow-1">
-                    <div class="fw-semibold">@(_activeFileName != null ? $"Processing {_activeFileName}" : "Preparing for processing...")</div>
-                    @if (_currentProgressPercentage.HasValue)
+                    <div class="fw-semibold">@(_isProcessing
+                        ? (_activeFileName != null ? $"Processing {_activeFileName}" : "Preparing for processing...")
+                        : "Processing complete")</div>
+                    @if (_isProcessing && _currentProgressPercentage.HasValue)
                     {
                         <div class="text-muted small mb-2">Progress: @_currentProgressPercentage%</div>
                     }
-                    @if (!string.IsNullOrEmpty(_latestLogMessage))
+                    @if (_isProcessing && !string.IsNullOrEmpty(_latestLogMessage))
                     {
                         <div class="text-muted small mb-2">@_latestLogMessage</div>
                     }
@@ -229,6 +244,12 @@
                                 <li>@message</li>
                             }
                         </ul>
+                    }
+                    @if (!_isProcessing && _fullLogDownloadUrl != null)
+                    {
+                        <div class="mt-3">
+                            <a class="btn btn-outline-secondary btn-sm" href="@_fullLogDownloadUrl" download="@FullLogFileName">Download full log</a>
+                        </div>
                     }
                 </div>
             </div>
@@ -355,6 +376,7 @@
     private const int PreviewLimit = 3;
     private const double PreviewScale = 1.5;
     private const int ProgressLogLimit = 8;
+    private const string FullLogFileName = "pdf-cropper-log.txt";
     private static readonly TimeSpan ProgressUiDebounceInterval = TimeSpan.FromMilliseconds(100);
 
     private static readonly CropMethod[] CropMethods = { CropMethod.ContentBased };
@@ -372,6 +394,7 @@
     private readonly List<string> _processingErrors = new();
     private readonly List<PdfProcessingResult> _results = new();
     private readonly List<string> _progressLog = new();
+    private readonly List<string> _fullProgressLog = new();
 
     private bool _isProcessing;
     private bool _isAnalyzingFiles;
@@ -379,6 +402,8 @@
     private string? _latestLogMessage;
     private int? _currentProgressPercentage;
     private DateTime _lastProgressUiRefresh;
+    private string[] _completedProgressLogSnapshot = Array.Empty<string>();
+    private string? _fullLogDownloadUrl;
 
     protected override void OnInitialized()
     {
@@ -391,6 +416,7 @@
         _processingErrors.Clear();
         _results.Clear();
         _uploadedFiles.Clear();
+        ResetProgressTracking();
     }
 
     private bool IsValidPdfFile(IBrowserFile file)
@@ -487,6 +513,7 @@
     {
         _processingErrors.Clear();
         _results.Clear();
+        ResetProgressTracking();
         _isProcessing = true;
         await UpdateProcessingState(null, null);
         await InvokeAsync(StateHasChanged);
@@ -494,6 +521,8 @@
 
     private async Task FinalizeProcessing()
     {
+        _completedProgressLogSnapshot = GetProgressMessagesSnapshot();
+        PrepareFullLogDownload();
         await UpdateProcessingState(false, null, null, null);
     }
 
@@ -858,6 +887,7 @@
             _progressLog.RemoveRange(0, _progressLog.Count - ProgressLogLimit);
         }
 
+        _fullProgressLog.Add(message);
         _latestLogMessage = message;
     }
 
@@ -878,6 +908,31 @@
     private void ClearProgressLog()
     {
         _progressLog.Clear();
+    }
+
+    private void ResetProgressTracking()
+    {
+        _progressLog.Clear();
+        _fullProgressLog.Clear();
+        _completedProgressLogSnapshot = Array.Empty<string>();
+        _fullLogDownloadUrl = null;
+        _latestLogMessage = null;
+        _currentProgressPercentage = null;
+        _activeFileName = null;
+    }
+
+    private void PrepareFullLogDownload()
+    {
+        if (_fullProgressLog.Count == 0)
+        {
+            _fullLogDownloadUrl = null;
+            return;
+        }
+
+        var content = string.Join(Environment.NewLine, _fullProgressLog);
+        var bytes = Encoding.UTF8.GetBytes(content);
+        var base64 = Convert.ToBase64String(bytes);
+        _fullLogDownloadUrl = $"data:text/plain;charset=utf-8;base64,{base64}";
     }
 
     private string[] GetProgressMessagesSnapshot()
