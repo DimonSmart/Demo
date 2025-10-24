@@ -1,8 +1,8 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
@@ -19,10 +19,21 @@ namespace QrTransferDemo.Components;
 
 public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
 {
-    private const long MaxFileSize = 1024L * 1024L * 128L;
+    private const int MaxQueuedFiles = 16;
+    private const int FrameHeaderLength = 6;
+    private const int MinFrameDuration = 50;
+    private const int MaxFrameDuration = 5000;
+    private const int DefaultFrameDuration = 250;
+    private const int MaxPayloadLength = byte.MaxValue;
+    private const int MaxFileSize = ushort.MaxValue;
 
-    private static readonly IReadOnlyList<int> PixelSizes = new List<int> { 256, 320, 384, 448, 512 };
-    private static readonly IReadOnlyList<string> CorrectionLevels = new List<string> { "L", "M", "Q", "H" };
+    private static readonly IReadOnlyList<CorrectionLevelOption> CorrectionLevels = new List<CorrectionLevelOption>
+    {
+        new("L", "L · 7% redundancy (max data)", "Keeps roughly 93% of the codewords for payload."),
+        new("M", "M · 15% redundancy", "Balances capacity and resilience with ~15% dedicated to error correction."),
+        new("Q", "Q · 25% redundancy", "Uses about a quarter of the codewords for correction."),
+        new("H", "H · 30% redundancy (max protection)", "Provides the strongest correction with the lowest payload capacity.")
+    };
 
     private readonly List<QueuedFile> _queue = new();
     private readonly CancellationTokenSource _lifetimeCts = new();
@@ -31,11 +42,10 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     private int _dragCounter;
     private string? _currentQrMarkup;
 
-    private int _selectedQrVersion = 5;
-    private int _qrPixelSize = 320;
-    private int _frameRate = 2;
-    private string _correctionLevel = "M";
-    private int _chunkSize = 128;
+    private int _selectedQrVersion = 10;
+    private int _frameDuration = DefaultFrameDuration;
+    private string _correctionLevel = "L";
+    private int _chunkSize;
     private string? _validationMessage;
 
     private bool _isRunning;
@@ -78,9 +88,31 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
 
         foreach (var file in args.GetMultipleFiles())
         {
+            if (_queue.Count >= MaxQueuedFiles)
+            {
+                _validationMessage = $"Only {MaxQueuedFiles} files can be queued at once.";
+                StateHasChanged();
+                break;
+            }
+
+            if (_chunkSize <= 0)
+            {
+                _validationMessage = "Selected QR configuration cannot encode payloads.";
+                StateHasChanged();
+                break;
+            }
+
             if (file.Size > MaxFileSize)
             {
                 _validationMessage = $"{file.Name} is larger than {FileSizeFormatter.Format(MaxFileSize)}.";
+                StateHasChanged();
+                continue;
+            }
+
+            var nameBytes = Encoding.UTF8.GetByteCount(file.Name);
+            if (nameBytes > byte.MaxValue)
+            {
+                _validationMessage = $"{file.Name} has a UTF-8 name longer than 255 bytes.";
                 StateHasChanged();
                 continue;
             }
@@ -90,9 +122,10 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             await stream.CopyToAsync(memory, _lifetimeCts.Token);
             var data = memory.ToArray();
 
-            var queuedFile = new QueuedFile(file.Name, file.Size, data)
+            var fileIndex = (byte)_queue.Count;
+            var queuedFile = new QueuedFile(fileIndex, file.Name, file.Size, data)
             {
-                Packets = ChunkBuilder.BuildPackets(file.Name, data, _chunkSize)
+                Packets = ChunkBuilder.BuildPackets(fileIndex, file.Name, data, _chunkSize)
             };
             _queue.Add(queuedFile);
         }
@@ -107,9 +140,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
 
     private IReadOnlyList<int> SupportedVersions => CapacityCatalog.SupportedVersions;
 
-    private IReadOnlyList<int> AvailablePixelSizes => PixelSizes;
-
-    private IReadOnlyList<string> AvailableCorrectionLevels => CorrectionLevels;
+    private IReadOnlyList<CorrectionLevelOption> AvailableCorrectionLevels => CorrectionLevels;
 
     private int SelectedQrVersion
     {
@@ -126,16 +157,10 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         }
     }
 
-    private int QrPixelSize
+    private int FrameDuration
     {
-        get => _qrPixelSize;
-        set => _qrPixelSize = value;
-    }
-
-    private int FrameRate
-    {
-        get => _frameRate;
-        set => _frameRate = Math.Clamp(value, 1, 30);
+        get => _frameDuration;
+        set => _frameDuration = Math.Clamp(value, MinFrameDuration, MaxFrameDuration);
     }
 
     private string CorrectionLevel
@@ -165,20 +190,21 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     {
         if (!CapacityCatalog.TryGetCapacity(_selectedQrVersion, _correctionLevel, out var capacity))
         {
+            _chunkSize = 0;
             _validationMessage = "Unsupported QR configuration.";
             return;
         }
 
-        _validationMessage = null;
-
         var recommendedChunkSize = CalculateEffectiveChunkSize(capacity);
         if (recommendedChunkSize <= 0)
         {
+            _chunkSize = 0;
             _validationMessage = "Selected QR configuration cannot fit frame metadata.";
             Logger.LogError("Unable to calculate chunk size for capacity {Capacity}.", capacity);
             return;
         }
 
+        _validationMessage = null;
         var chunkChanged = _chunkSize != recommendedChunkSize;
         _chunkSize = recommendedChunkSize;
 
@@ -195,45 +221,20 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
 
     private static int CalculateEffectiveChunkSize(int qrCapacity)
     {
-        if (qrCapacity <= 0)
+        if (qrCapacity <= FrameHeaderLength)
         {
             return 0;
         }
 
-        var low = 1;
-        var high = qrCapacity;
-        var best = 0;
-
-        while (low <= high)
-        {
-            var middle = (low + high) / 2;
-            if (CanEncodePacket(middle, qrCapacity))
-            {
-                best = middle;
-                low = middle + 1;
-            }
-            else
-            {
-                high = middle - 1;
-            }
-        }
-
-        return best;
-    }
-
-    private static bool CanEncodePacket(int chunkSize, int qrCapacity)
-    {
-        var packet = new QrChunkPacket(Guid.Empty, new string('A', 64), long.MaxValue, int.MaxValue, int.MaxValue, new byte[chunkSize], uint.MaxValue);
-        var serialized = SerializePacket(packet);
-        var length = Encoding.UTF8.GetByteCount(serialized);
-        return length <= qrCapacity;
+        var usable = qrCapacity - FrameHeaderLength;
+        return Math.Min(usable, MaxPayloadLength);
     }
 
     private void RebuildPackets()
     {
         foreach (var file in _queue)
         {
-            file.Packets = ChunkBuilder.BuildPackets(file.Name, file.Data, _chunkSize);
+            file.Packets = ChunkBuilder.BuildPackets(file.FileIndex, file.Name, file.Data, _chunkSize);
             file.Reset();
         }
         ResetTransmissionState();
@@ -258,7 +259,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             EnterFullscreen();
         }
 
-        Logger.LogInformation("Transmission started. Files: {FileCount}, Chunk size: {ChunkSize}, Frame rate: {FrameRate}.", _queue.Count, _chunkSize, _frameRate);
+        Logger.LogInformation("Transmission started. Files: {FileCount}, Payload size: {ChunkSize}, Frame duration: {FrameDuration} ms.", _queue.Count, _chunkSize, _frameDuration);
 
         if (!_loopStarted)
         {
@@ -363,7 +364,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
                     continue;
                 }
 
-                var delay = TimeSpan.FromMilliseconds(Math.Max(1, 1000 / _frameRate));
+                var delay = TimeSpan.FromMilliseconds(_frameDuration);
                 await Task.Delay(delay, token);
             }
         }
@@ -454,7 +455,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         return Task.CompletedTask;
     }
 
-    private string CreateQrMarkup(string payload)
+    private string CreateQrMarkup(byte[] payload)
     {
         var ecc = CorrectionLevel switch
         {
@@ -465,8 +466,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             _ => QrCode.Ecc.Medium
         };
 
-        var data = Encoding.UTF8.GetBytes(payload);
-        var segments = new List<QrSegment> { QrSegment.MakeBytes(data) };
+        var segments = new List<QrSegment> { QrSegment.MakeBytes(payload) };
         var qr = QrCode.EncodeSegments(segments, ecc, _selectedQrVersion, _selectedQrVersion, -1, false);
         var svg = qr.ToSvgString(0);
 
@@ -476,23 +476,24 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             svg = svgTag + "width=\"100%\" height=\"100%\" " + svg.Substring(svgTag.Length);
         }
 
-        return $"<div class=\"qr-frame\" style=\"--qr-size:{_qrPixelSize}px\">{svg}</div>";
+        return $"<div class=\"qr-frame\">{svg}</div>";
     }
 
-    private static string SerializePacket(QrChunkPacket packet)
+    private static byte[] SerializePacket(QrChunkPacket packet)
     {
-        var payload = Convert.ToBase64String(packet.Payload);
-        var dto = new
+        var buffer = new byte[FrameHeaderLength + packet.Payload.Length];
+        var flags = (byte)(packet.FileIndex & 0x0F);
+        if (packet.IsMetadata)
         {
-            packet.FileId,
-            packet.FileNameHash,
-            packet.FileSize,
-            packet.ChunkIndex,
-            packet.TotalChunks,
-            Payload = payload,
-            packet.Crc32
-        };
-        return JsonSerializer.Serialize(dto);
+            flags |= 0x80;
+        }
+
+        buffer[0] = flags;
+        BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(1, 2), packet.Offset);
+        buffer[3] = (byte)packet.Payload.Length;
+        BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(4, 2), packet.TotalLength);
+        packet.Payload.CopyTo(buffer.AsSpan(FrameHeaderLength));
+        return buffer;
     }
 
     private void ResetTransmissionState()
@@ -580,15 +581,19 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         }
     }
 
+    private sealed record CorrectionLevelOption(string Code, string Label, string Hint);
+
     private sealed class QueuedFile
     {
-        public QueuedFile(string name, long size, byte[] data)
+        public QueuedFile(byte fileIndex, string name, long size, byte[] data)
         {
+            FileIndex = fileIndex;
             Name = name;
             Size = size;
             Data = data;
         }
 
+        public byte FileIndex { get; }
         public string Name { get; }
         public long Size { get; }
         public byte[] Data { get; }
