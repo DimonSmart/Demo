@@ -19,6 +19,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     private const string CanvasElementId = "qr-transfer-receiver-canvas";
     private const string CaptureSourceScreen = "screen";
     private const string CaptureSourceCamera = "camera";
+    private const int DiagnosticLogCapacity = 200;
 
     private static readonly IReadOnlyList<KeyValuePair<string, string>> CaptureSourceOptionList = new[]
     {
@@ -41,8 +42,33 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     private int _decodeGuard;
     private long _lastFrameTimestamp;
     private double? _observedIntervalMs;
+    private readonly LinkedList<DiagnosticEntry> _diagnosticLog = new();
+    private readonly object _diagnosticSync = new();
+    private bool _isDisposed;
 
     private IEnumerable<ReceivedFileViewModel> OrderedFiles => _files.OrderByDescending(file => file.LastUpdated);
+
+    private IReadOnlyList<DiagnosticEntry> DiagnosticEntries
+    {
+        get
+        {
+            lock (_diagnosticSync)
+            {
+                return _diagnosticLog.ToList();
+            }
+        }
+    }
+
+    private bool HasDiagnostics
+    {
+        get
+        {
+            lock (_diagnosticSync)
+            {
+                return _diagnosticLog.Count > 0;
+            }
+        }
+    }
 
     private IEnumerable<KeyValuePair<string, string>> CaptureSourceOptions => CaptureSourceOptionList;
 
@@ -539,10 +565,11 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             _captureTask = null;
             _captureCts?.Dispose();
             _captureCts = null;
+            _isDisposed = true;
         }
     }
 
-    private static void LogDiagnostic(string message)
+    private void LogDiagnostic(string message)
     {
         try
         {
@@ -551,6 +578,51 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         catch
         {
         }
+
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        lock (_diagnosticSync)
+        {
+            _diagnosticLog.AddFirst(new DiagnosticEntry(DateTimeOffset.UtcNow, message));
+            while (_diagnosticLog.Count > DiagnosticLogCapacity)
+            {
+                _diagnosticLog.RemoveLast();
+            }
+        }
+
+        try
+        {
+            _ = InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+        }
+    }
+
+    private Task ClearDiagnosticsAsync()
+    {
+        lock (_diagnosticSync)
+        {
+            _diagnosticLog.Clear();
+        }
+
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private sealed class DiagnosticEntry
+    {
+        public DiagnosticEntry(DateTimeOffset timestamp, string message)
+        {
+            Timestamp = timestamp;
+            Message = message;
+        }
+
+        public DateTimeOffset Timestamp { get; }
+
+        public string Message { get; }
     }
 
     private sealed class ReceivedFileViewModel
