@@ -124,7 +124,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             var fileIndex = (byte)_queue.Count;
             var queuedFile = new QueuedFile(fileIndex, file.Name, file.Size, data)
             {
-                Packets = ChunkBuilder.BuildPackets(fileIndex, file.Name, data, _chunkSize, _correctionLevel)
+                Packets = ChunkBuilder.BuildPackets(fileIndex, file.Name, data, _chunkSize)
             };
             _queue.Add(queuedFile);
         }
@@ -233,7 +233,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     {
         foreach (var file in _queue)
         {
-            file.Packets = ChunkBuilder.BuildPackets(file.FileIndex, file.Name, file.Data, _chunkSize, _correctionLevel);
+            file.Packets = ChunkBuilder.BuildPackets(file.FileIndex, file.Name, file.Data, _chunkSize);
             file.Reset();
         }
         ResetTransmissionState();
