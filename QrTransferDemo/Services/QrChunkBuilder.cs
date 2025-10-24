@@ -1,7 +1,5 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Security.Cryptography;
-using System.Text;
 using QrTransferDemo.Models;
 
 namespace QrTransferDemo.Services;
@@ -11,23 +9,32 @@ public sealed class QrChunkBuilder
     private readonly ConcurrentDictionary<string, Guid> _fileIds = new(StringComparer.Ordinal);
     private static readonly uint[] CrcTable = CreateTable();
 
-    public IReadOnlyList<QrChunkPacket> BuildPackets(string fileName, ReadOnlySpan<byte> fileContent, int chunkSize)
+    public IReadOnlyList<QrChunkPacket> BuildPackets(
+        string fileName,
+        ReadOnlySpan<byte> fileContent,
+        int chunkSize,
+        string correctionLevel)
     {
         if (chunkSize <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(chunkSize));
         }
 
+        if (string.IsNullOrWhiteSpace(correctionLevel))
+        {
+            throw new ArgumentException("Correction level must be provided.", nameof(correctionLevel));
+        }
+
         var fileId = _fileIds.GetOrAdd(CreateKey(fileName, fileContent.Length), _ => Guid.NewGuid());
-        var hash = ComputeFileNameHash(fileName);
         var fileSize = (long)fileContent.Length;
+        var fileChecksum = ComputeCrc(fileContent);
 
         if (fileContent.Length == 0)
         {
             var crc = ComputeCrc(ReadOnlySpan<byte>.Empty);
             return new[]
             {
-                new QrChunkPacket(fileId, hash, fileSize, 0, 1, Array.Empty<byte>(), crc)
+                new QrChunkPacket(fileId, fileName, fileSize, chunkSize, correctionLevel, 0, 1, Array.Empty<byte>(), crc, fileChecksum)
             };
         }
 
@@ -40,20 +47,13 @@ public sealed class QrChunkBuilder
             var length = Math.Min(chunkSize, fileContent.Length - start);
             var payload = fileContent.Slice(start, length).ToArray();
             var crc = ComputeCrc(payload);
-            packets.Add(new QrChunkPacket(fileId, hash, fileSize, chunkIndex, totalChunks, payload, crc));
+            packets.Add(new QrChunkPacket(fileId, fileName, fileSize, chunkSize, correctionLevel, chunkIndex, totalChunks, payload, crc, fileChecksum));
         }
 
         return packets;
     }
 
     private static string CreateKey(string fileName, int length) => $"{fileName}:{length}";
-
-    private static string ComputeFileNameHash(string fileName)
-    {
-        using var sha = SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(fileName));
-        return Convert.ToHexString(bytes);
-    }
 
     private static uint ComputeCrc(ReadOnlySpan<byte> data)
     {

@@ -11,6 +11,7 @@ using DimonSmart.Hash.Interfaces;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Options;
+using QrTransferDemo.Services;
 
 // Existing code
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -28,6 +29,11 @@ builder.Services.AddSingleton<LogStore>();
 builder.Services.AddScoped<BrowserService>();
 builder.Services.AddScoped<ImageProcessingService>();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+builder.Services.AddScoped<QrChunkAssembler>();
+builder.Services.AddSingleton<QrFrameDecoder>();
+#pragma warning disable CA1416 // Only used in browser target
+builder.Services.AddScoped<BrowserMediaCapture>();
+#pragma warning restore CA1416
 
 // Hash demo
 builder.Services.AddScoped<IHashAlgorithm, JsMd5Algorithm>();

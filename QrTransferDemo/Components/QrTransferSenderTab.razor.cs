@@ -84,7 +84,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
 
             var queuedFile = new QueuedFile(file.Name, file.Size, data)
             {
-                Packets = ChunkBuilder.BuildPackets(file.Name, data, _chunkSize)
+                Packets = ChunkBuilder.BuildPackets(file.Name, data, _chunkSize, _correctionLevel)
             };
             _queue.Add(queuedFile);
         }
@@ -185,7 +185,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     {
         foreach (var file in _queue)
         {
-            file.Packets = ChunkBuilder.BuildPackets(file.Name, file.Data, _chunkSize);
+            file.Packets = ChunkBuilder.BuildPackets(file.Name, file.Data, _chunkSize, _correctionLevel);
             file.Reset();
         }
         ResetTransmissionState();
@@ -405,13 +405,17 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         var payload = Convert.ToBase64String(packet.Payload);
         var dto = new
         {
-            packet.FileId,
-            packet.FileNameHash,
-            packet.FileSize,
-            packet.ChunkIndex,
-            packet.TotalChunks,
-            Payload = payload,
-            packet.Crc32
+            t = "chunk",
+            fid = packet.FileId,
+            name = packet.FileName,
+            fs = packet.FileSize,
+            cs = packet.ChunkSize,
+            ecc = packet.CorrectionLevel,
+            ci = packet.ChunkIndex,
+            tc = packet.TotalChunks,
+            p = payload,
+            crc = packet.PayloadCrc32,
+            fcrc = packet.FileCrc32
         };
         return JsonSerializer.Serialize(dto);
     }
