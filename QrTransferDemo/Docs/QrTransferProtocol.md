@@ -1,6 +1,7 @@
 # QR Transfer Protocol
 
 ## Frame layout
+
 Each QR frame encodes a compact binary packet. The sender reserves the first six bytes for transport metadata and uses the remaini
 ng bytes for the payload.
 

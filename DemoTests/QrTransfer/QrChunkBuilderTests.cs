@@ -1,3 +1,7 @@
+using System.IO;
+using System.Linq;
+using System.Text;
+using QrTransferDemo.Models;
 using QrTransferDemo.Services;
 
 namespace DemoTests.QrTransfer;
@@ -5,36 +9,71 @@ namespace DemoTests.QrTransfer;
 public class QrChunkBuilderTests
 {
     [Fact]
-    public void BuildPackets_SplitsDataIntoExpectedChunks()
+    public void BuildPackets_SplitsMetadataAndDataStreams()
     {
         var builder = new QrChunkBuilder();
         var data = Enumerable.Range(0, 200).Select(i => (byte)i).ToArray();
 
-        var packets = builder.BuildPackets("test.bin", data, 64);
+        var packets = builder.BuildPackets(2, "test.bin", data, 64, "Q");
 
-        Assert.Equal(4, packets.Count);
-        Assert.All(packets, packet => Assert.Equal(data.Length, packet.FileSize));
-        Assert.Equal(0, packets[0].ChunkIndex);
-        Assert.Equal(3, packets[^1].ChunkIndex);
-        Assert.Equal(4, packets[^1].TotalChunks);
-        Assert.Equal(64, packets[0].Payload.Length);
-        Assert.Equal(64, packets[1].Payload.Length);
-        Assert.Equal(64, packets[2].Payload.Length);
-        Assert.Equal(8, packets[3].Payload.Length);
+        Assert.NotEmpty(packets);
+        Assert.True(packets.All(p => p.FileIndex == 2));
+
+        var metadataPackets = packets.Where(p => p.IsMetadata).ToArray();
+        var dataPackets = packets.Where(p => !p.IsMetadata).ToArray();
+
+        Assert.NotEmpty(metadataPackets);
+        Assert.NotEmpty(dataPackets);
+
+        Assert.True(metadataPackets.Select(p => p.Offset).SequenceEqual(metadataPackets.Select(p => p.Offset).OrderBy(v => v)));
+        Assert.True(dataPackets.Select(p => p.Offset).SequenceEqual(dataPackets.Select(p => p.Offset).OrderBy(v => v)));
+
+        Assert.Equal(data.Length, dataPackets.Last().TotalLength);
+        Assert.Equal(64, dataPackets.First().Payload.Length);
+        Assert.Equal(8, dataPackets.Last().Payload.Length);
     }
 
     [Fact]
-    public void BuildPackets_ReusesFileIdForSameFile()
+    public void BuildPackets_EncodesMetadataWithChecksums()
     {
         var builder = new QrChunkBuilder();
-        var data = new byte[16];
+        var content = Enumerable.Range(0, 512).Select(i => (byte)(i * 3)).ToArray();
 
-        var first = builder.BuildPackets("document.txt", data, 8);
-        var second = builder.BuildPackets("document.txt", data, 8);
-        var other = builder.BuildPackets("another.txt", data, 8);
+        var packets = builder.BuildPackets(1, "document.txt", content, 96, "M");
+        var metadata = packets.Where(p => p.IsMetadata)
+            .OrderBy(p => p.Offset)
+            .SelectMany(p => p.Payload)
+            .ToArray();
 
-        Assert.Equal(first[0].FileId, second[0].FileId);
-        Assert.NotEqual(first[0].FileId, other[0].FileId);
+        using var stream = new MemoryStream(metadata);
+        using var reader = new BinaryReader(stream, Encoding.UTF8);
+
+        var version = reader.ReadByte();
+        var nameLength = reader.ReadByte();
+        var nameBytes = reader.ReadBytes(nameLength);
+        var fileSize = reader.ReadUInt16();
+        var chunkSize = reader.ReadByte();
+        var correction = reader.ReadByte();
+        var blockSize = reader.ReadUInt16();
+        var blockCount = reader.ReadUInt16();
+        var fileChecksum = reader.ReadUInt32();
+
+        Assert.Equal(2, version);
+        Assert.Equal("document.txt", Encoding.UTF8.GetString(nameBytes));
+        Assert.Equal(content.Length, fileSize);
+        Assert.Equal(96, chunkSize);
+        Assert.Equal('M', (char)correction);
+        Assert.Equal(256, blockSize);
+        Assert.Equal(2, blockCount);
+        Assert.NotEqual(0u, fileChecksum);
+
+        var blockChecksums = new uint[blockCount];
+        for (var i = 0; i < blockCount; i++)
+        {
+            blockChecksums[i] = reader.ReadUInt32();
+        }
+
+        Assert.All(blockChecksums, checksum => Assert.NotEqual(0u, checksum));
     }
 
     [Fact]
@@ -42,14 +81,13 @@ public class QrChunkBuilderTests
     {
         var builder = new QrChunkBuilder();
 
-        var packets = builder.BuildPackets("empty.bin", Array.Empty<byte>(), 16);
+        var packets = builder.BuildPackets(0, "empty.bin", Array.Empty<byte>(), 32, "H");
+        var metadata = packets.Single(p => p.IsMetadata);
+        var data = packets.Single(p => !p.IsMetadata);
 
-        Assert.Single(packets);
-        var packet = packets[0];
-        Assert.Equal(0, packet.ChunkIndex);
-        Assert.Equal(1, packet.TotalChunks);
-        Assert.Empty(packet.Payload);
-        Assert.Equal(0L, packet.FileSize);
-        Assert.Equal(0u, packet.Crc32);
+        Assert.Equal((ushort)0, data.TotalLength);
+        Assert.Empty(data.Payload);
+        Assert.Equal((ushort)0, data.Offset);
+        Assert.Equal((ushort)metadata.TotalLength, (ushort)metadata.Payload.Length);
     }
 }
