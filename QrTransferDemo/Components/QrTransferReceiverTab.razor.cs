@@ -79,14 +79,9 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         set => _captureSource = string.Equals(value, CaptureSourceCamera, StringComparison.OrdinalIgnoreCase) ? CaptureSourceCamera : CaptureSourceScreen;
     }
 
-    [Inject]
-    public required QrChunkAssembler ChunkAssembler { get; set; }
-
-    [Inject]
-    public required QrFrameDecoder FrameDecoder { get; set; }
-
-    [Inject]
-    public required BrowserMediaCapture MediaCapture { get; set; }
+    private readonly QrChunkAssembler _chunkAssembler = new();
+    private readonly QrFrameDecoder _frameDecoder = new();
+    private readonly BrowserMediaCapture _mediaCapture = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -105,7 +100,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
         try
         {
-            await MediaCapture.InitializeAsync(VideoElementId, CanvasElementId);
+            await _mediaCapture.InitializeAsync(VideoElementId, CanvasElementId);
             _domInitialized = true;
         }
         catch (Exception ex)
@@ -148,7 +143,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
                 ? BrowserMediaCapture.CaptureSource.Camera
                 : BrowserMediaCapture.CaptureSource.Screen;
 
-            await MediaCapture.StartCaptureAsync(source, options, _captureCts.Token);
+            await _mediaCapture.StartCaptureAsync(source, options, _captureCts.Token);
 
             _isCapturing = true;
             _isPaused = false;
@@ -205,7 +200,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
         try
         {
-            await MediaCapture.StopCaptureAsync();
+            await _mediaCapture.StopCaptureAsync();
         }
         catch (Exception ex)
         {
@@ -263,7 +258,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
                 continue;
             }
 
-            if (!MediaCapture.TryCaptureFrame(out var pixels, out var width, out var height) || pixels is null)
+            if (!_mediaCapture.TryCaptureFrame(out var pixels, out var width, out var height) || pixels is null)
             {
                 continue;
             }
@@ -289,7 +284,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
         try
         {
-            if (FrameDecoder.TryDecode(pixels, width, height, out var data) && data is { Length: > 0 })
+            if (_frameDecoder.TryDecode(pixels, width, height, out var data) && data is { Length: > 0 })
             {
                 decoded = data;
             }
@@ -333,7 +328,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             });
         }
 
-        var result = ChunkAssembler.ProcessChunk(packet);
+        var result = _chunkAssembler.ProcessChunk(packet);
         return InvokeAsync(() =>
         {
             var snapshot = result.Snapshot;
@@ -383,7 +378,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
     private Task ResetFileAsync(ReceivedFileViewModel file)
     {
-        if (ChunkAssembler.Reset(file.FileId))
+        if (_chunkAssembler.Reset(file.FileId))
         {
             file.ResetProgress();
             _statusMessage = $"Reset {file.DisplayName}.";
@@ -395,7 +390,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
     private Task RemoveFileAsync(ReceivedFileViewModel file)
     {
-        ChunkAssembler.Remove(file.FileId);
+        _chunkAssembler.Remove(file.FileId);
         _fileIndex.Remove(file.FileId);
         _files.Remove(file);
         _statusMessage = $"Cleared {file.DisplayName}.";
@@ -407,7 +402,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     {
         foreach (var file in _files.ToList())
         {
-            ChunkAssembler.Remove(file.FileId);
+            _chunkAssembler.Remove(file.FileId);
         }
 
         _files.Clear();
@@ -491,8 +486,8 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
                 }
             }
 
-            await MediaCapture.StopCaptureAsync();
-            await MediaCapture.DisposeAsync();
+            await _mediaCapture.StopCaptureAsync();
+            await _mediaCapture.DisposeAsync();
         }
         catch
         {
