@@ -115,7 +115,8 @@ public sealed partial class BrowserMediaCapture : IAsyncDisposable
 
             if (tracks is not null)
             {
-                var length = tracks.GetPropertyAsInt32("length");
+                var lengthValue = tracks.GetPropertyAsDouble("length");
+                var length = double.IsNaN(lengthValue) ? 0 : (int)Math.Floor(lengthValue);
                 for (var i = 0; i < length; i++)
                 {
                     var track = tracks.GetPropertyAsJSObject(i.ToString());
