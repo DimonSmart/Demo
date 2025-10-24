@@ -29,6 +29,28 @@
     .file-progress {
         height: 0.75rem;
     }
+
+    .diagnostic-log {
+        max-height: 240px;
+        overflow-y: auto;
+        background-color: var(--bs-gray-100);
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+    }
+
+    .diagnostic-log ul {
+        margin: 0;
+    }
+
+    .diagnostic-log li {
+        font-family: var(--bs-font-monospace);
+        line-height: 1.4;
+    }
+
+    .diagnostic-timestamp {
+        color: var(--bs-secondary-color);
+        white-space: nowrap;
+    }
 </style>
 
 <div class="row g-4">
@@ -81,6 +103,32 @@
                         <div class="form-text">Observed delay between captured frames.</div>
                     </div>
                 </div>
+            </div>
+        </div>
+        <div class="card mt-4">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span>Diagnostics</span>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDiagnosticsAsync" disabled="@(!HasDiagnostics)">Clear log</button>
+            </div>
+            <div class="card-body">
+                @if (!HasDiagnostics)
+                {
+                    <div class="text-muted small mb-0">No diagnostic events recorded yet.</div>
+                }
+                else
+                {
+                    <div class="diagnostic-log">
+                        <ul class="list-unstyled">
+                            @foreach (var entry in DiagnosticEntries)
+                            {
+                                <li class="d-flex">
+                                    <span class="diagnostic-timestamp">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>
+                                    <span class="ms-2 flex-grow-1">@entry.Message</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
             </div>
         </div>
     </div>
