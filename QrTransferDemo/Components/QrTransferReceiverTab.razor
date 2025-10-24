@@ -76,22 +76,9 @@
                         </InputSelect>
                     </div>
                     <div class="col-sm-6">
-                        <label class="form-label">Error correction</label>
-                        <InputSelect @bind-Value="CorrectionLevel" class="form-select">
-                            @foreach (var level in CorrectionLevels)
-                            {
-                                <option value="@level">@level</option>
-                            }
-                        </InputSelect>
-                    </div>
-                    <div class="col-sm-6">
-                        <label class="form-label">Chunk size (bytes)</label>
-                        <InputNumber @bind-Value="ExpectedChunkSize" class="form-control" min="16" max="4096" step="16" />
-                        <div class="form-text">Align with sender settings.</div>
-                    </div>
-                    <div class="col-sm-6">
-                        <label class="form-label">Scan interval (ms)</label>
-                        <InputNumber @bind-Value="ScanInterval" class="form-control" min="50" max="2000" step="10" />
+                        <label class="form-label">Scan interval</label>
+                        <div class="form-control-plaintext">@CurrentScanIntervalDisplay</div>
+                        <div class="form-text">Observed delay between captured frames.</div>
                     </div>
                 </div>
             </div>

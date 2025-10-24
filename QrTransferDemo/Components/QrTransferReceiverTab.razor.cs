@@ -1,6 +1,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,7 +20,6 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     private const string CaptureSourceScreen = "screen";
     private const string CaptureSourceCamera = "camera";
 
-    private static readonly string[] CorrectionLevelOptions = { "L", "M", "Q", "H" };
     private static readonly IReadOnlyList<KeyValuePair<string, string>> CaptureSourceOptionList = new[]
     {
         new KeyValuePair<string, string>(CaptureSourceScreen, "Screen"),
@@ -35,17 +35,14 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     private bool _isPaused;
     private string? _statusMessage;
     private string? _errorMessage;
-    private int _expectedChunkSize = 128;
-    private int _scanInterval = 250;
-    private string _correctionLevel = "M";
     private string _captureSource = CaptureSourceScreen;
     private CancellationTokenSource? _captureCts;
     private Task? _captureTask;
     private int _decodeGuard;
+    private long _lastFrameTimestamp;
+    private double? _observedIntervalMs;
 
     private IEnumerable<ReceivedFileViewModel> OrderedFiles => _files.OrderByDescending(file => file.LastUpdated);
-
-    private IReadOnlyList<string> CorrectionLevels => CorrectionLevelOptions;
 
     private IEnumerable<KeyValuePair<string, string>> CaptureSourceOptions => CaptureSourceOptionList;
 
@@ -55,29 +52,14 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
     private bool HasFiles => _files.Count > 0;
 
-    private string CorrectionLevel
-    {
-        get => _correctionLevel;
-        set => _correctionLevel = value;
-    }
-
-    private int ExpectedChunkSize
-    {
-        get => _expectedChunkSize;
-        set => _expectedChunkSize = Math.Clamp(value, 16, 4096);
-    }
-
-    private int ScanInterval
-    {
-        get => _scanInterval;
-        set => _scanInterval = Math.Clamp(value, 50, 5000);
-    }
-
     private string CaptureSource
     {
         get => _captureSource;
         set => _captureSource = string.Equals(value, CaptureSourceCamera, StringComparison.OrdinalIgnoreCase) ? CaptureSourceCamera : CaptureSourceScreen;
     }
+
+    private string CurrentScanIntervalDisplay
+        => _observedIntervalMs is null ? "—" : $"{Math.Max(1, (int)Math.Round(_observedIntervalMs.Value))} ms";
 
     private readonly QrChunkAssembler _chunkAssembler = new();
     private readonly QrFrameDecoder _frameDecoder = new();
@@ -134,7 +116,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             _captureCts = new CancellationTokenSource();
 
             var options = new BrowserMediaCapture.CaptureOptions(
-                FrameRateHint: _scanInterval > 0 ? Math.Min(60d, 1000d / Math.Max(_scanInterval, 1)) : null,
+                FrameRateHint: null,
                 Width: null,
                 Height: null,
                 FacingMode: string.Equals(_captureSource, CaptureSourceCamera, StringComparison.OrdinalIgnoreCase) ? "environment" : null);
@@ -148,6 +130,8 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             _isCapturing = true;
             _isPaused = false;
             _statusMessage = "Capture started.";
+            _lastFrameTimestamp = 0;
+            _observedIntervalMs = null;
             _captureTask = RunCaptureLoopAsync(_captureCts.Token);
         }
         catch (OperationCanceledException)
@@ -211,6 +195,8 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         _isCapturing = false;
         _isPaused = false;
         _statusMessage ??= "Capture stopped.";
+        _observedIntervalMs = null;
+        _lastFrameTimestamp = 0;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -246,7 +232,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         {
             try
             {
-                await Task.Delay(_scanInterval, cancellationToken);
+                await Task.Delay(TimeSpan.FromMilliseconds(1), cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -263,8 +249,26 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
                 continue;
             }
 
+            UpdateObservedInterval();
+
             await ProcessFrameAsync(width, height, pixels);
         }
+    }
+
+    private void UpdateObservedInterval()
+    {
+        var now = Stopwatch.GetTimestamp();
+        if (_lastFrameTimestamp != 0)
+        {
+            var deltaTicks = now - _lastFrameTimestamp;
+            var intervalMs = deltaTicks * 1000d / Stopwatch.Frequency;
+            _observedIntervalMs = _observedIntervalMs is null
+                ? intervalMs
+                : (_observedIntervalMs.Value * 0.8) + (intervalMs * 0.2);
+            _ = InvokeAsync(StateHasChanged);
+        }
+
+        _lastFrameTimestamp = now;
     }
 
     private Task ProcessFrameAsync(int width, int height, byte[] pixels)
@@ -332,7 +336,6 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         return InvokeAsync(() =>
         {
             var snapshot = result.Snapshot;
-            var chunkSizeMismatch = _expectedChunkSize > 0 && snapshot.ChunkSize > 0 && snapshot.ChunkSize != _expectedChunkSize;
             var payloadOverflow = !packet.IsMetadata && snapshot.ChunkSize > 0 && packet.Payload.Length > snapshot.ChunkSize;
             var file = UpdateFileState(result);
             var message = result.Status switch
@@ -352,11 +355,6 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             {
                 _errorMessage = $"Chunk at offset {packet.Offset} exceeds advertised size ({packet.Payload.Length} > {snapshot.ChunkSize}).";
                 _statusMessage = null;
-            }
-            else if (chunkSizeMismatch)
-            {
-                _statusMessage = $"Chunk size mismatch: expected {_expectedChunkSize} bytes, received {snapshot.ChunkSize}.";
-                _errorMessage = null;
             }
             else if (message is not null)
             {
