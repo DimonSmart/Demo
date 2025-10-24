@@ -68,6 +68,8 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             return;
         }
 
+        _validationMessage = null;
+
         foreach (var file in args.GetMultipleFiles())
         {
             if (file.Size > MaxFileSize)
@@ -89,7 +91,10 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             _queue.Add(queuedFile);
         }
 
-        _validationMessage = ValidateChunkSize();
+        if (_validationMessage is null)
+        {
+            UpdateChunkSize();
+        }
         ResetTransmissionState();
         StateHasChanged();
     }
@@ -111,7 +116,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             }
 
             _selectedQrVersion = value;
-            _validationMessage = ValidateChunkSize();
+            UpdateChunkSize(forceRebuild: true);
         }
     }
 
@@ -138,47 +143,35 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             }
 
             _correctionLevel = value;
-            _validationMessage = ValidateChunkSize();
+            UpdateChunkSize(forceRebuild: true);
         }
     }
 
-    private int ChunkSize
-    {
-        get => _chunkSize;
-        set
-        {
-            if (_chunkSize == value)
-            {
-                return;
-            }
+    private int ChunkSize => _chunkSize;
 
-            _chunkSize = value;
-            _validationMessage = ValidateChunkSize();
-            if (_validationMessage is null)
-            {
-                RebuildPackets();
-            }
-        }
+    protected override void OnInitialized()
+    {
+        UpdateChunkSize();
+        base.OnInitialized();
     }
 
-    private string? ValidateChunkSize()
+    private void UpdateChunkSize(bool forceRebuild = false)
     {
-        if (_chunkSize <= 0)
-        {
-            return "Chunk size must be greater than zero.";
-        }
-
         if (!CapacityCatalog.TryGetCapacity(_selectedQrVersion, _correctionLevel, out var capacity))
         {
-            return "Unsupported QR configuration.";
+            _validationMessage = "Unsupported QR configuration.";
+            return;
         }
 
-        if (_chunkSize > capacity)
+        _validationMessage = null;
+
+        var chunkChanged = _chunkSize != capacity;
+        _chunkSize = capacity;
+
+        if (_queue.Count > 0 && (chunkChanged || forceRebuild))
         {
-            return $"Chunk size exceeds QR capacity ({capacity} bytes) for version {_selectedQrVersion} with {_correctionLevel} correction.";
+            RebuildPackets();
         }
-
-        return null;
     }
 
     private void RebuildPackets()
