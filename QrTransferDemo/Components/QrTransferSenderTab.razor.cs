@@ -49,7 +49,6 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     private string? _validationMessage;
 
     private bool _isRunning;
-    private bool _repeat;
     private bool _loopStarted;
     private bool _canRestart;
     private int _currentFileIndex;
@@ -381,23 +380,24 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     private bool MoveToNextFile()
     {
         var nextIndex = FindNextIndex();
-        if (nextIndex < 0)
+        if (nextIndex >= 0)
         {
-            if (_repeat)
-            {
-                foreach (var file in _queue)
-                {
-                    file.Reset();
-                }
-                _currentFileIndex = 0;
-                return _queue.Count > 0;
-            }
+            _currentFileIndex = nextIndex;
+            return true;
+        }
 
+        if (_queue.Count == 0)
+        {
             return false;
         }
 
-        _currentFileIndex = nextIndex;
-        return true;
+        foreach (var file in _queue)
+        {
+            file.Reset();
+        }
+
+        _currentFileIndex = 0;
+        return _queue.Count > 0;
     }
 
     private int FindNextIndex()
