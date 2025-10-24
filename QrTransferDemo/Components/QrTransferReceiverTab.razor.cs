@@ -65,6 +65,27 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     private readonly QrFrameDecoder _frameDecoder = new();
     private readonly BrowserMediaCapture _mediaCapture = new();
 
+    private DiagnosticEntry[] DiagnosticSnapshot
+    {
+        get
+        {
+            lock (_diagnosticLock)
+            {
+                return _diagnosticEntries.Count == 0 ? Array.Empty<DiagnosticEntry>() : _diagnosticEntries.ToArray();
+            }
+        }
+    }
+
+    private long _capturedFrames;
+    private long _consecutiveCaptureMisses;
+    private long _consecutiveDecodeFailures;
+    private long _decodedFrames;
+    private long _acceptedPackets;
+    private readonly object _diagnosticLock = new();
+    private readonly Queue<DiagnosticEntry> _diagnosticEntries = new();
+
+    private const int MaxDiagnosticEntries = 200;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -84,12 +105,14 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         {
             await _mediaCapture.InitializeAsync(VideoElementId, CanvasElementId);
             _domInitialized = true;
+            LogDiagnostic("DOM initialized for receiver tab.");
         }
         catch (Exception ex)
         {
             _errorMessage = ex.Message;
             _statusMessage = null;
             await InvokeAsync(StateHasChanged);
+            LogDiagnostic($"DOM initialization failed: {ex.Message}");
         }
     }
 
@@ -132,12 +155,19 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             _statusMessage = "Capture started.";
             _lastFrameTimestamp = 0;
             _observedIntervalMs = null;
+            _capturedFrames = 0;
+            _decodedFrames = 0;
+            _acceptedPackets = 0;
+            _consecutiveCaptureMisses = 0;
+            _consecutiveDecodeFailures = 0;
             _captureTask = RunCaptureLoopAsync(_captureCts.Token);
+            LogDiagnostic($"Capture started using {_captureSource} source.");
         }
         catch (OperationCanceledException)
         {
             _statusMessage = "Capture cancelled.";
             _isCapturing = false;
+            LogDiagnostic("Capture start cancelled by user.");
         }
         catch (Exception ex)
         {
@@ -147,6 +177,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             _captureCts?.Cancel();
             _captureCts?.Dispose();
             _captureCts = null;
+            LogDiagnostic($"Capture start failed: {ex.Message}");
         }
         finally
         {
@@ -190,6 +221,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         {
             _errorMessage = ex.Message;
             _statusMessage = null;
+            LogDiagnostic($"Error while stopping capture: {ex.Message}");
         }
 
         _isCapturing = false;
@@ -198,6 +230,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         _observedIntervalMs = null;
         _lastFrameTimestamp = 0;
         await InvokeAsync(StateHasChanged);
+        LogDiagnostic("Capture loop stopped.");
     }
 
     private Task PauseCaptureAsync()
@@ -246,7 +279,19 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
             if (!_mediaCapture.TryCaptureFrame(out var pixels, out var width, out var height) || pixels is null)
             {
+                _consecutiveCaptureMisses++;
+                if (_consecutiveCaptureMisses == 1 || _consecutiveCaptureMisses % 30 == 0)
+                {
+                    LogDiagnostic($"No frame available (misses: {_consecutiveCaptureMisses}).");
+                }
                 continue;
+            }
+
+            _consecutiveCaptureMisses = 0;
+            var frameNumber = Interlocked.Increment(ref _capturedFrames);
+            if (frameNumber <= 5 || frameNumber % 30 == 0)
+            {
+                LogDiagnostic($"Captured frame #{frameNumber} at {width}x{height}.");
             }
 
             UpdateObservedInterval();
@@ -309,13 +354,23 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
                 _errorMessage = decodeError.Message;
                 _statusMessage = null;
                 StateHasChanged();
+                LogDiagnostic($"Frame decode threw an exception: {decodeError.Message}");
             });
         }
 
         if (decoded is null || decoded.Length == 0)
         {
+            var failureCount = Interlocked.Increment(ref _consecutiveDecodeFailures);
+            if (failureCount == 1 || failureCount % 25 == 0)
+            {
+                LogDiagnostic($"Frame decode returned no payload (failures: {failureCount}).");
+            }
             return Task.CompletedTask;
         }
+
+        Interlocked.Exchange(ref _consecutiveDecodeFailures, 0);
+        var decodedCount = Interlocked.Increment(ref _decodedFrames);
+        LogDiagnostic($"Decoded frame #{decodedCount} with payload length {decoded.Length} bytes.");
 
         return HandleDecodedPayloadAsync(decoded);
     }
@@ -329,10 +384,14 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
                 _errorMessage = parseError ?? "Unable to parse frame.";
                 _statusMessage = null;
                 StateHasChanged();
+                LogDiagnostic($"Failed to parse packet: {parseError ?? "Unknown error"}.");
             });
         }
 
         var result = _chunkAssembler.ProcessChunk(packet);
+        var packetNumber = Interlocked.Increment(ref _acceptedPackets);
+        LogDiagnostic(
+            $"Processed packet #{packetNumber}: file={result.Snapshot.FileId}, offset={packet.Offset}, length={packet.Payload.Length}, metadata={packet.IsMetadata}, status={result.Status}.");
         return InvokeAsync(() =>
         {
             var snapshot = result.Snapshot;
@@ -407,6 +466,16 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         _fileIndex.Clear();
         _statusMessage = "Cleared all files.";
         _errorMessage = null;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private Task ClearDiagnosticsAsync()
+    {
+        lock (_diagnosticLock)
+        {
+            _diagnosticEntries.Clear();
+        }
+
         return InvokeAsync(StateHasChanged);
     }
 
@@ -497,6 +566,33 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             _captureCts = null;
         }
     }
+
+    private void LogDiagnostic(string message)
+    {
+        var timestamp = DateTimeOffset.UtcNow;
+
+        try
+        {
+            Console.WriteLine($"[Receiver] {timestamp:O} {message}");
+        }
+        catch
+        {
+        }
+
+        lock (_diagnosticLock)
+        {
+            if (_diagnosticEntries.Count == MaxDiagnosticEntries)
+            {
+                _diagnosticEntries.Dequeue();
+            }
+
+            _diagnosticEntries.Enqueue(new DiagnosticEntry(timestamp, message));
+        }
+
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private readonly record struct DiagnosticEntry(DateTimeOffset Timestamp, string Message);
 
     private sealed class ReceivedFileViewModel
     {
