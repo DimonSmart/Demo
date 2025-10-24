@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Net.Codecrete.QrCodeGenerator;
 using QrTransferDemo.Models;
 using QrTransferDemo.Services;
@@ -44,12 +45,17 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     private int _currentFileIndex;
     private QrChunkBuilder? _chunkBuilder;
     private QrCapacityCatalog? _capacityCatalog;
+    private bool _isFullscreen;
+    private string? _transmissionError;
 
     private QueuedFile? CurrentFile => _queue.Count > 0 && _currentFileIndex < _queue.Count ? _queue[_currentFileIndex] : null;
     private QueuedFile? NextFile => ResolveNextFile();
 
     [Inject]
     public required IServiceProvider Services { get; set; }
+
+    [Inject]
+    public required ILogger<QrTransferSenderTab> Logger { get; set; }
 
     private QrChunkBuilder ChunkBuilder => _chunkBuilder ??= Services.GetService<QrChunkBuilder>() ?? new QrChunkBuilder();
     private QrCapacityCatalog CapacityCatalog => _capacityCatalog ??= Services.GetService<QrCapacityCatalog>() ?? new QrCapacityCatalog();
@@ -165,13 +171,62 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
 
         _validationMessage = null;
 
-        var chunkChanged = _chunkSize != capacity;
-        _chunkSize = capacity;
+        var recommendedChunkSize = CalculateEffectiveChunkSize(capacity);
+        if (recommendedChunkSize <= 0)
+        {
+            _validationMessage = "Selected QR configuration cannot fit frame metadata.";
+            Logger.LogError("Unable to calculate chunk size for capacity {Capacity}.", capacity);
+            return;
+        }
+
+        var chunkChanged = _chunkSize != recommendedChunkSize;
+        _chunkSize = recommendedChunkSize;
+
+        if (chunkChanged)
+        {
+            Logger.LogInformation("Chunk size adjusted to {ChunkSize} for capacity {Capacity}.", _chunkSize, capacity);
+        }
 
         if (_queue.Count > 0 && (chunkChanged || forceRebuild))
         {
             RebuildPackets();
         }
+    }
+
+    private static int CalculateEffectiveChunkSize(int qrCapacity)
+    {
+        if (qrCapacity <= 0)
+        {
+            return 0;
+        }
+
+        var low = 1;
+        var high = qrCapacity;
+        var best = 0;
+
+        while (low <= high)
+        {
+            var middle = (low + high) / 2;
+            if (CanEncodePacket(middle, qrCapacity))
+            {
+                best = middle;
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle - 1;
+            }
+        }
+
+        return best;
+    }
+
+    private static bool CanEncodePacket(int chunkSize, int qrCapacity)
+    {
+        var packet = new QrChunkPacket(Guid.Empty, new string('A', 64), long.MaxValue, int.MaxValue, int.MaxValue, new byte[chunkSize], uint.MaxValue);
+        var serialized = SerializePacket(packet);
+        var length = Encoding.UTF8.GetByteCount(serialized);
+        return length <= qrCapacity;
     }
 
     private void RebuildPackets()
@@ -190,11 +245,20 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     {
         if (StartDisabled)
         {
+            Logger.LogWarning("Start requested while disabled. Queue count: {QueueCount}. Validation: {ValidationMessage}", _queue.Count, _validationMessage);
             return Task.CompletedTask;
         }
 
+        _transmissionError = null;
         _isRunning = true;
         _canRestart = true;
+
+        if (_queue.Count > 0)
+        {
+            EnterFullscreen();
+        }
+
+        Logger.LogInformation("Transmission started. Files: {FileCount}, Chunk size: {ChunkSize}, Frame rate: {FrameRate}.", _queue.Count, _chunkSize, _frameRate);
 
         if (!_loopStarted)
         {
@@ -202,12 +266,21 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             _ = RunTransmissionLoopAsync(_lifetimeCts.Token);
         }
 
+        StateHasChanged();
         return Task.CompletedTask;
     }
 
     private void Pause()
     {
+        if (!_isRunning)
+        {
+            return;
+        }
+
         _isRunning = false;
+        ExitFullscreen();
+        Logger.LogInformation("Transmission paused at file index {Index}.", _currentFileIndex);
+        StateHasChanged();
     }
 
     private async Task RestartAsync()
@@ -224,6 +297,8 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         }
         _currentFileIndex = 0;
         await RenderEmptyAsync();
+        _transmissionError = null;
+        Logger.LogInformation("Transmission restarted.");
         StateHasChanged();
     }
 
@@ -241,16 +316,14 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
 
                 if (_queue.Count == 0)
                 {
-                    _isRunning = false;
-                    await InvokeAsync(StateHasChanged);
+                    await StopTransmissionAsync("Queue is empty.");
                     continue;
                 }
 
                 var file = CurrentFile;
                 if (file is null)
                 {
-                    _isRunning = false;
-                    await InvokeAsync(StateHasChanged);
+                    await StopTransmissionAsync("Current file is unavailable.");
                     continue;
                 }
 
@@ -264,8 +337,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
                 {
                     if (!MoveToNextFile())
                     {
-                        _isRunning = false;
-                        await InvokeAsync(StateHasChanged);
+                        await StopTransmissionAsync("Transmission completed.");
                         continue;
                     }
 
@@ -279,8 +351,17 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
                     file.MarkCompleted();
                 }
 
-                await RenderPacketAsync(packet);
-                await InvokeAsync(StateHasChanged);
+                try
+                {
+                    await RenderPacketAsync(packet);
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch (Exception ex)
+                {
+                    var message = $"Failed to render frame: {ex.Message}";
+                    await StopTransmissionWithErrorAsync(message, ex);
+                    continue;
+                }
 
                 var delay = TimeSpan.FromMilliseconds(Math.Max(1, 1000 / _frameRate));
                 await Task.Delay(delay, token);
@@ -288,6 +369,11 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
+        }
+        catch (Exception ex)
+        {
+            var message = $"Transmission loop failed: {ex.Message}";
+            await StopTransmissionWithErrorAsync(message, ex);
         }
     }
 
@@ -390,7 +476,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             svg = svgTag + "width=\"100%\" height=\"100%\" " + svg.Substring(svgTag.Length);
         }
 
-        return $"<div style=\"width:{_qrPixelSize}px;height:{_qrPixelSize}px\">{svg}</div>";
+        return $"<div class=\"qr-frame\" style=\"--qr-size:{_qrPixelSize}px\">{svg}</div>";
     }
 
     private static string SerializePacket(QrChunkPacket packet)
@@ -418,6 +504,42 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         }
         _canRestart = _queue.Count > 0;
         _currentQrMarkup = null;
+        _isRunning = false;
+        _transmissionError = null;
+        ExitFullscreen();
+    }
+
+    private void EnterFullscreen()
+    {
+        _isFullscreen = true;
+    }
+
+    private void ExitFullscreen()
+    {
+        _isFullscreen = false;
+    }
+
+    private Task StopTransmissionAsync(string reason)
+    {
+        Logger.LogInformation("Transmission stopped: {Reason}", reason);
+        return InvokeAsync(() =>
+        {
+            _isRunning = false;
+            ExitFullscreen();
+            StateHasChanged();
+        });
+    }
+
+    private Task StopTransmissionWithErrorAsync(string message, Exception exception)
+    {
+        Logger.LogError(exception, "Transmission failed: {Message}", message);
+        return InvokeAsync(() =>
+        {
+            _isRunning = false;
+            _transmissionError = message;
+            ExitFullscreen();
+            StateHasChanged();
+        });
     }
 
     private void OnDragEnter(DragEventArgs _)

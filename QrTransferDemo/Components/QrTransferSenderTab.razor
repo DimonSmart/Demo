@@ -35,6 +35,54 @@
         justify-content: center;
         padding: 1rem;
     }
+
+    .qr-frame {
+        width: var(--qr-size);
+        height: var(--qr-size);
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    .transmission-card.fullscreen {
+        position: fixed;
+        inset: 0;
+        z-index: 1050;
+        border-radius: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .transmission-card.fullscreen .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 2rem;
+    }
+
+    .transmission-card.fullscreen .transmission-layout {
+        flex: 1;
+    }
+
+    .transmission-card.fullscreen .transmission-layout .col-lg-6 {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .transmission-card.fullscreen .qr-preview {
+        flex: 1;
+        padding: 2rem;
+    }
+
+    .transmission-card.fullscreen .qr-preview > * {
+        width: min(90vmin, 100%);
+        height: min(90vmin, 100%);
+    }
+
+    .transmission-card.fullscreen .transmission-details {
+        max-height: 100%;
+        overflow-y: auto;
+    }
 </style>
 
 <div class="card mb-4">
@@ -149,10 +197,24 @@
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">Transmission</div>
+<div class="card transmission-card @(_isFullscreen ? "fullscreen" : string.Empty)">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <span>Transmission</span>
+        @if (_isRunning)
+        {
+            <span class="badge text-bg-success">Running</span>
+        }
+        else if (!string.IsNullOrEmpty(_transmissionError))
+        {
+            <span class="badge text-bg-danger">Error</span>
+        }
+        else
+        {
+            <span class="badge text-bg-secondary">Stopped</span>
+        }
+    </div>
     <div class="card-body">
-        <div class="row g-3">
+        <div class="row g-3 transmission-layout">
             <div class="col-lg-6">
                 <div class="qr-preview">
                     @if (!string.IsNullOrEmpty(_currentQrMarkup))
@@ -165,7 +227,7 @@
                     }
                 </div>
             </div>
-            <div class="col-lg-6">
+            <div class="col-lg-6 transmission-details">
                 <dl class="row mb-3">
                     <dt class="col-sm-4">Current</dt>
                     <dd class="col-sm-8">@(CurrentFile?.Name ?? "—")</dd>
@@ -183,6 +245,10 @@
                     <dt class="col-sm-4">Next</dt>
                     <dd class="col-sm-8">@(NextFile?.Name ?? "—")</dd>
                 </dl>
+                @if (!string.IsNullOrEmpty(_transmissionError))
+                {
+                    <div class="alert alert-danger" role="alert">@_transmissionError</div>
+                }
                 <div class="btn-toolbar gap-2" role="toolbar">
                     <div class="btn-group">
                         <button class="btn btn-primary" @onclick="StartAsync" disabled="@StartDisabled">Start</button>
