@@ -1,6 +1,6 @@
-using System.Collections.Concurrent;
+using System;
 using System.Collections.Generic;
-using System.Security.Cryptography;
+using System.IO;
 using System.Text;
 using QrTransferDemo.Models;
 
@@ -8,81 +8,93 @@ namespace QrTransferDemo.Services;
 
 public sealed class QrChunkBuilder
 {
-    private readonly ConcurrentDictionary<string, Guid> _fileIds = new(StringComparer.Ordinal);
-    private static readonly uint[] CrcTable = CreateTable();
+    private const int MetadataBlockSize = 256;
+    private const byte MetadataVersion = 1;
 
-    public IReadOnlyList<QrChunkPacket> BuildPackets(string fileName, ReadOnlySpan<byte> fileContent, int chunkSize)
+    public IReadOnlyList<QrChunkPacket> BuildPackets(byte fileIndex, string fileName, byte[] fileContent, int chunkSize)
     {
-        if (chunkSize <= 0)
+        if (fileIndex >= 16)
+        {
+            throw new ArgumentOutOfRangeException(nameof(fileIndex));
+        }
+
+        if (fileContent.Length > ushort.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(fileContent));
+        }
+
+        if (chunkSize <= 0 || chunkSize > byte.MaxValue)
         {
             throw new ArgumentOutOfRangeException(nameof(chunkSize));
         }
 
-        var fileId = _fileIds.GetOrAdd(CreateKey(fileName, fileContent.Length), _ => Guid.NewGuid());
-        var hash = ComputeFileNameHash(fileName);
-        var fileSize = (long)fileContent.Length;
+        var frames = new List<QrChunkPacket>();
+        var metadata = BuildMetadata(fileName, fileContent);
+        frames.AddRange(SplitIntoPackets(fileIndex, true, metadata, chunkSize));
+        frames.AddRange(SplitIntoPackets(fileIndex, false, fileContent, chunkSize));
+        return frames;
+    }
 
-        if (fileContent.Length == 0)
+    private static IEnumerable<QrChunkPacket> SplitIntoPackets(byte fileIndex, bool isMetadata, byte[] source, int chunkSize)
+    {
+        var totalLength = (ushort)source.Length;
+
+        if (totalLength == 0)
         {
-            var crc = ComputeCrc(ReadOnlySpan<byte>.Empty);
-            return new[]
+            yield return new QrChunkPacket(fileIndex, isMetadata, 0, 0, Array.Empty<byte>());
+            yield break;
+        }
+
+        for (var offset = 0; offset < source.Length; offset += chunkSize)
+        {
+            var remaining = source.Length - offset;
+            var currentLength = (byte)Math.Min(chunkSize, remaining);
+            var payload = source.AsSpan(offset, currentLength).ToArray();
+            yield return new QrChunkPacket(fileIndex, isMetadata, (ushort)offset, totalLength, payload);
+        }
+    }
+
+    private static byte[] BuildMetadata(string fileName, ReadOnlySpan<byte> fileContent)
+    {
+        var nameBytes = Encoding.UTF8.GetBytes(fileName);
+        if (nameBytes.Length > byte.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(fileName));
+        }
+
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
+        {
+            writer.Write(MetadataVersion);
+            writer.Write((byte)nameBytes.Length);
+            writer.Write(nameBytes);
+            writer.Write((ushort)fileContent.Length);
+            writer.Write((ushort)MetadataBlockSize);
+
+            var blockCount = (ushort)((fileContent.Length + MetadataBlockSize - 1) / MetadataBlockSize);
+            writer.Write(blockCount);
+
+            for (var blockIndex = 0; blockIndex < blockCount; blockIndex++)
             {
-                new QrChunkPacket(fileId, hash, fileSize, 0, 1, Array.Empty<byte>(), crc)
-            };
-        }
-
-        var totalChunks = (int)Math.Ceiling(fileContent.Length / (double)chunkSize);
-        var packets = new List<QrChunkPacket>(totalChunks);
-
-        for (var chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++)
-        {
-            var start = chunkIndex * chunkSize;
-            var length = Math.Min(chunkSize, fileContent.Length - start);
-            var payload = fileContent.Slice(start, length).ToArray();
-            var crc = ComputeCrc(payload);
-            packets.Add(new QrChunkPacket(fileId, hash, fileSize, chunkIndex, totalChunks, payload, crc));
-        }
-
-        return packets;
-    }
-
-    private static string CreateKey(string fileName, int length) => $"{fileName}:{length}";
-
-    private static string ComputeFileNameHash(string fileName)
-    {
-        using var sha = SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(fileName));
-        return Convert.ToHexString(bytes);
-    }
-
-    private static uint ComputeCrc(ReadOnlySpan<byte> data)
-    {
-        var crc = 0xFFFFFFFFu;
-        foreach (var b in data)
-        {
-            var index = (crc ^ b) & 0xFF;
-            crc = (crc >> 8) ^ CrcTable[index];
-        }
-
-        return ~crc;
-    }
-
-    private static uint[] CreateTable()
-    {
-        var table = new uint[256];
-        const uint polynomial = 0xEDB88320u;
-
-        for (var i = 0; i < table.Length; i++)
-        {
-            var value = (uint)i;
-            for (var j = 0; j < 8; j++)
-            {
-                value = (value & 1) != 0 ? polynomial ^ (value >> 1) : value >> 1;
+                var start = blockIndex * MetadataBlockSize;
+                var remaining = fileContent.Length - start;
+                var length = Math.Min(MetadataBlockSize, remaining);
+                var checksum = ComputeChecksum(fileContent.Slice(start, length));
+                writer.Write(checksum);
             }
-
-            table[i] = value;
         }
 
-        return table;
+        return stream.ToArray();
+    }
+
+    private static ushort ComputeChecksum(ReadOnlySpan<byte> data)
+    {
+        uint sum = 0;
+        foreach (var value in data)
+        {
+            sum += value;
+        }
+
+        return (ushort)(sum & 0xFFFF);
     }
 }
