@@ -35,6 +35,59 @@
         justify-content: center;
         padding: 1rem;
     }
+
+    .qr-frame {
+        width: min(90vmin, 100%);
+        aspect-ratio: 1;
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    .qr-frame svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    .transmission-card.fullscreen {
+        position: fixed;
+        inset: 0;
+        z-index: 1050;
+        border-radius: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .transmission-card.fullscreen .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 2rem;
+    }
+
+    .transmission-card.fullscreen .transmission-layout {
+        flex: 1;
+    }
+
+    .transmission-card.fullscreen .transmission-layout .col-lg-6 {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .transmission-card.fullscreen .qr-preview {
+        flex: 1;
+        padding: 2rem;
+    }
+
+    .transmission-card.fullscreen .qr-preview > * {
+        width: min(90vmin, 100%);
+        height: min(90vmin, 100%);
+    }
+
+    .transmission-card.fullscreen .transmission-details {
+        max-height: 100%;
+        overflow-y: auto;
+    }
 </style>
 
 <div class="card mb-4">
@@ -74,30 +127,21 @@
                 </InputSelect>
             </div>
             <div class="col-sm-6 col-lg-3">
-                <label class="form-label">Pixel size</label>
-                <InputSelect @bind-Value="QrPixelSize" class="form-select">
-                    @foreach (var size in AvailablePixelSizes)
-                    {
-                        <option value="@size">@size px</option>
-                    }
-                </InputSelect>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <label class="form-label">Frame rate</label>
-                <InputNumber @bind-Value="FrameRate" class="form-control" min="1" max="30" />
+                <label class="form-label">Frame duration (ms)</label>
+                <InputNumber @bind-Value="FrameDuration" class="form-control" min="50" max="5000" step="10" />
             </div>
             <div class="col-sm-6 col-lg-3">
                 <label class="form-label">Error correction</label>
                 <InputSelect @bind-Value="CorrectionLevel" class="form-select">
-                    @foreach (var level in AvailableCorrectionLevels)
+                    @foreach (var option in AvailableCorrectionLevels)
                     {
-                        <option value="@level">@level</option>
+                        <option value="@option.Code" title="@option.Hint">@option.Label</option>
                     }
                 </InputSelect>
             </div>
             <div class="col-sm-6 col-lg-3">
-                <label class="form-label">Chunk size (bytes)</label>
-                <InputNumber @bind-Value="ChunkSize" class="form-control" min="16" max="2048" />
+                <label class="form-label">Payload size (bytes)</label>
+                <input type="number" class="form-control" value="@ChunkSize" readonly />
             </div>
         </div>
     </div>
@@ -149,10 +193,24 @@
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">Transmission</div>
+<div class="card transmission-card @(_isFullscreen ? "fullscreen" : string.Empty)">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <span>Transmission</span>
+        @if (_isRunning)
+        {
+            <span class="badge text-bg-success">Running</span>
+        }
+        else if (!string.IsNullOrEmpty(_transmissionError))
+        {
+            <span class="badge text-bg-danger">Error</span>
+        }
+        else
+        {
+            <span class="badge text-bg-secondary">Stopped</span>
+        }
+    </div>
     <div class="card-body">
-        <div class="row g-3">
+        <div class="row g-3 transmission-layout">
             <div class="col-lg-6">
                 <div class="qr-preview">
                     @if (!string.IsNullOrEmpty(_currentQrMarkup))
@@ -165,7 +223,7 @@
                     }
                 </div>
             </div>
-            <div class="col-lg-6">
+            <div class="col-lg-6 transmission-details">
                 <dl class="row mb-3">
                     <dt class="col-sm-4">Current</dt>
                     <dd class="col-sm-8">@(CurrentFile?.Name ?? "—")</dd>
@@ -183,6 +241,10 @@
                     <dt class="col-sm-4">Next</dt>
                     <dd class="col-sm-8">@(NextFile?.Name ?? "—")</dd>
                 </dl>
+                @if (!string.IsNullOrEmpty(_transmissionError))
+                {
+                    <div class="alert alert-danger" role="alert">@_transmissionError</div>
+                }
                 <div class="btn-toolbar gap-2" role="toolbar">
                     <div class="btn-group">
                         <button class="btn btn-primary" @onclick="StartAsync" disabled="@StartDisabled">Start</button>
@@ -190,10 +252,6 @@
                     </div>
                     <div class="btn-group">
                         <button class="btn btn-outline-secondary" @onclick="RestartAsync" disabled="@(!_canRestart)">Restart</button>
-                        <div class="form-check form-switch align-self-center ms-2">
-                            <input class="form-check-input" type="checkbox" role="switch" id="repeatSwitch" @bind="_repeat" />
-                            <label class="form-check-label" for="repeatSwitch">Repeat</label>
-                        </div>
                     </div>
                 </div>
             </div>

@@ -24,9 +24,9 @@ public sealed class QrFrameDecoder
         };
     }
 
-    public bool TryDecode(byte[] rgbaPixels, int width, int height, out string? value)
+    public bool TryDecode(byte[] rgbaPixels, int width, int height, out byte[]? payload)
     {
-        value = null;
+        payload = null;
         if (rgbaPixels is null || width <= 0 || height <= 0)
         {
             return false;
@@ -53,9 +53,9 @@ public sealed class QrFrameDecoder
         {
             var luminance = new RGBLuminanceSource(buffer, width, height, RGBLuminanceSource.BitmapFormat.RGBA32);
             var result = _reader.Decode(luminance);
-            if (result is { Text.Length: > 0 })
+            if (result is { RawBytes.Length: > 0 })
             {
-                value = result.Text;
+                payload = result.RawBytes;
                 return true;
             }
         }

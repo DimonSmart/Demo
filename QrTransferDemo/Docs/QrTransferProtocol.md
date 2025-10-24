@@ -1,36 +1,55 @@
 # QR Transfer Protocol
 
-## QR payload format
-Each QR frame embeds a compact JSON envelope serialized by `QrTransferSenderTab`. The envelope uses the following fields:
+## Frame layout
+Each QR frame encodes a compact binary packet. The sender reserves the first six bytes for transport metadata and uses the remaining bytes for the payload.
 
-| Field | Type | Description |
+| Offset | Size | Description |
 | --- | --- | --- |
-| `t` | `string` | Frame type. The only supported value today is `"chunk"`. |
-| `fid` | `Guid` | Stable identifier assigned to the source file. It persists across retransmissions so receivers can resume. |
-| `name` | `string` | Original file name. Receivers reuse it when offering the reconstructed download. |
-| `fs` | `long` | Original file length in bytes. |
-| `cs` | `int` | Declared chunk size in bytes. All chunks except the last should match this size. |
-| `ecc` | `string` | QR error-correction level used by the sender (`L`, `M`, `Q`, or `H`). |
-| `ci` | `int` | Zero-based index of the current chunk in the file stream. |
-| `tc` | `int` | Total number of chunks for the file with the current chunk size. |
-| `p` | `string` | Base64-encoded data slice constrained by the QR version and error-correction level. |
-| `crc` | `uint` | CRC32 checksum of the decoded payload to validate chunk integrity. |
-| `fcrc` | `uint` | CRC32 checksum of the entire file calculated before splitting it into chunks. |
+| 0 | 1 | Flags: bit 7 = 1 for metadata frames, 0 for file data. Bits 0–3 store the file slot (0–15). Bits 4–6 are reserved and must be zero. |
+| 1 | 2 | Little-endian offset of the payload within the logical stream (metadata or data) for the selected file. |
+| 3 | 1 | Payload length in bytes (0–255). |
+| 4 | 2 | Total length of the logical stream in bytes (0–65535). |
+| 6 | _N_ | Raw payload bytes. |
 
-The JSON string is UTF-8 encoded and then wrapped into a single QR segment using `Net.Codecrete.QrCodeGenerator`. Receivers decode the Base64 payload, verify the chunk CRC, and copy the bytes into a fixed 64 KB in-memory buffer. Once every chunk arrives, the receiver recomputes the file-level CRC (`fcrc`) to confirm integrity before exposing a download link.
+The sender always broadcasts metadata packets for a file before any data packets. Receivers should reconstruct the metadata and use it to prepare for the upcoming data stream.
+
+## Metadata payload
+Metadata frames describe the file so receivers can display names and verify integrity. The metadata stream is structured as follows (little-endian unless noted otherwise):
+
+| Offset | Size | Description |
+| --- | --- | --- |
+| 0 | 1 | Metadata format version (currently `2`). |
+| 1 | 1 | UTF-8 file name length in bytes. |
+| 2 | _N_ | UTF-8 encoded file name (`N` bytes). |
+| 2 + _N_ | 2 | File size in bytes (0–65,535). |
+| 4 + _N_ | 1 | Data chunk size in bytes used for transmission. |
+| 5 + _N_ | 1 | Error-correction level as an uppercase ASCII code (`L`, `M`, `Q`, `H`) or `0` when unknown. |
+| 6 + _N_ | 2 | Block size for per-block checksums (the sender writes `256`). |
+| 8 + _N_ | 2 | Number of checksum entries. |
+| 10 + _N_ | 4 | CRC32 checksum of the entire file. |
+| 14 + _N_ | `4 × count` | CRC32 checksums for each block of the declared size. |
+
+An empty file still yields a metadata stream (with zero checksum entries) and a data frame whose payload length is zero. Per-block checksums let the receiver detect corrupt retransmissions without waiting for the full file, while the file-level CRC32 verifies the final reconstructed blob before exposing a download link.
+
+## Size limits
+* Up to 16 files can be queued simultaneously. Each file is assigned a slot index that is reused across retransmissions.
+* File size is limited to 65,535 bytes so that offsets fit into two bytes.
+* Payload length per frame is capped at 255 bytes to fit the one-byte length field.
 
 ## Chunk sizing rules
-`QrCapacityCatalog` exposes the maximum payload capacity (in bytes) for each QR version and error-correction level. The sender validates the user-selected chunk size against the catalog before the transmission starts or when settings change. If the chunk size exceeds the capacity, the sender blocks transmission until the value falls below the allowed limit.
+`QrCapacityCatalog` exposes the maximum number of bytes that can be encoded for every combination of QR version and error-correction level. The effective payload size for a frame is:
+
+```
+min(capacity - 6, 255)
+```
+
+The subtraction accounts for the 6-byte transport header. If the selected QR configuration cannot fit the header, the sender disables transmission.
 
 ## Transmission loop
-1. The operator enqueues files via drag-and-drop or the file picker. `QrChunkBuilder` splits every file into byte chunks with the configured size and tracks metadata in `QrChunkPacket` instances.
-2. When the Start button is pressed, the sender iterates over the queue in order. For each file it emits QR frames sequentially, increasing `ChunkIndex` after every frame. The UI highlights the current file and shows progress in chunks.
-3. Once a file reaches `TotalChunks`, it is marked as completed and the sender advances to the next pending file. If repeat mode is enabled, finished files are reset and the loop restarts from the beginning.
-4. Frame timing is controlled by the configured frame rate. The sender waits `1000 / FrameRate` milliseconds between frames while it remains in the running state. Pausing the transmission stops frame generation without clearing progress.
+1. The operator enqueues files via drag-and-drop or the file picker. `QrChunkBuilder` splits every file into fixed-size slices (or a smaller tail chunk) and creates both metadata and data packets.
+2. When the Start button is pressed, the sender iterates over the queue. For each file it emits the metadata frames once, followed by the data frames in offset order. The UI highlights the current file and shows progress in chunks.
+3. Once the data stream reaches the declared total length, the file is marked as completed and the sender advances to the next pending file. If repeat mode is enabled, finished files reset and the loop starts over.
+4. Frame timing is controlled by the configured frame duration. The sender waits for the specified number of milliseconds between frames while it remains running. Pausing the transmission stops frame generation without clearing progress.
 5. Restart clears chunk indices for every queued file, resets the current pointer, and removes the QR preview so the operator can start a fresh cycle.
 
-Receivers should watch the QR stream, parse frames, and assemble files in order of their `fid`. Missing or corrupt chunks can be detected through gaps in `ci` or CRC mismatches and requested again during repeated broadcasts. Failed file-level checksum validations trigger another pass while keeping metadata and partially received bytes in memory.
-
-## Receiver implementation notes
-
-The WebAssembly receiver performs QR decoding in .NET via [`ZXing.Net`](https://github.com/micjahn/ZXing.Net). `BrowserMediaCapture` configures screen or camera capture, blits frames into an off-screen canvas, and exposes RGBA buffers directly to managed code without additional JavaScript helpers. The managed decoder extracts QR content even when the tab is backgrounded, then forwards decoded payloads to `QrChunkAssembler` for CRC validation and file reconstruction.
+Receivers assemble frames per file slot, merging metadata and data streams separately. Missing or corrupt data blocks can be detected by comparing the reconstructed file against the advertised block checksums. The metadata flag allows receivers to handle descriptive information and payload bytes independently.

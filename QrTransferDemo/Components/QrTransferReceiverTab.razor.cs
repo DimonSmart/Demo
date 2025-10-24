@@ -1,7 +1,7 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
@@ -284,14 +284,14 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             return Task.CompletedTask;
         }
 
-        string? decoded = null;
+        byte[]? decoded = null;
         Exception? decodeError = null;
 
         try
         {
-            if (FrameDecoder.TryDecode(pixels, width, height, out var text) && !string.IsNullOrWhiteSpace(text))
+            if (FrameDecoder.TryDecode(pixels, width, height, out var data) && data is { Length: > 0 })
             {
-                decoded = text;
+                decoded = data;
             }
         }
         catch (Exception ex)
@@ -313,7 +313,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             });
         }
 
-        if (string.IsNullOrWhiteSpace(decoded))
+        if (decoded is null || decoded.Length == 0)
         {
             return Task.CompletedTask;
         }
@@ -321,7 +321,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         return HandleDecodedPayloadAsync(decoded);
     }
 
-    private Task HandleDecodedPayloadAsync(string payload)
+    private Task HandleDecodedPayloadAsync(byte[] payload)
     {
         if (!TryParsePacket(payload, out var packet, out var parseError))
         {
@@ -336,13 +336,16 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         var result = ChunkAssembler.ProcessChunk(packet);
         return InvokeAsync(() =>
         {
-            var chunkSizeMismatch = _expectedChunkSize > 0 && packet.ChunkSize > 0 && packet.ChunkSize != _expectedChunkSize;
-            var payloadOverflow = packet.ChunkSize > 0 && packet.Payload.Length > packet.ChunkSize;
+            var snapshot = result.Snapshot;
+            var chunkSizeMismatch = _expectedChunkSize > 0 && snapshot.ChunkSize > 0 && snapshot.ChunkSize != _expectedChunkSize;
+            var payloadOverflow = !packet.IsMetadata && snapshot.ChunkSize > 0 && packet.Payload.Length > snapshot.ChunkSize;
             var file = UpdateFileState(result);
             var message = result.Status switch
             {
                 ChunkAcceptanceStatus.Accepted when result.File is not null => $"Completed {file.DisplayName}.",
-                ChunkAcceptanceStatus.Accepted => $"Received chunk {packet.ChunkIndex + 1}/{packet.TotalChunks}.",
+                ChunkAcceptanceStatus.Accepted when !packet.IsMetadata && snapshot.ChunkSize > 0 && snapshot.TotalChunks > 0 =>
+                    $"Received data chunk {packet.Offset / snapshot.ChunkSize + 1}/{snapshot.TotalChunks}.",
+                ChunkAcceptanceStatus.Accepted when packet.IsMetadata => "Metadata chunk accepted.",
                 ChunkAcceptanceStatus.Duplicate => "Duplicate chunk ignored.",
                 ChunkAcceptanceStatus.InvalidCrc => "Chunk rejected due to invalid CRC.",
                 ChunkAcceptanceStatus.InvalidMetadata => "Chunk ignored due to invalid metadata.",
@@ -352,12 +355,12 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
             if (payloadOverflow)
             {
-                _errorMessage = $"Chunk {packet.ChunkIndex} exceeds advertised size ({packet.Payload.Length} > {packet.ChunkSize}).";
+                _errorMessage = $"Chunk at offset {packet.Offset} exceeds advertised size ({packet.Payload.Length} > {snapshot.ChunkSize}).";
                 _statusMessage = null;
             }
             else if (chunkSizeMismatch)
             {
-                _statusMessage = $"Chunk size mismatch: expected {_expectedChunkSize} bytes, received {packet.ChunkSize}.";
+                _statusMessage = $"Chunk size mismatch: expected {_expectedChunkSize} bytes, received {snapshot.ChunkSize}.";
                 _errorMessage = null;
             }
             else if (message is not null)
@@ -427,46 +430,40 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         return viewModel;
     }
 
-    private static bool TryParsePacket(string payload, out QrChunkPacket packet, out string? error)
+    private static bool TryParsePacket(ReadOnlySpan<byte> payload, out QrChunkPacket packet, out string? error)
     {
         try
         {
-            using var document = JsonDocument.Parse(payload);
-            var root = document.RootElement;
-            if (!root.TryGetProperty("fid", out var fileIdProperty))
+            if (payload.Length < 6)
             {
-                throw new InvalidOperationException("Missing file identifier.");
+                throw new InvalidOperationException("Frame is too short.");
             }
 
-            var type = root.TryGetProperty("t", out var typeProperty) ? typeProperty.GetString() ?? string.Empty : string.Empty;
-            if (!string.IsNullOrEmpty(type) && !string.Equals(type, "chunk", StringComparison.OrdinalIgnoreCase))
+            var flags = payload[0];
+            var reserved = (flags >> 4) & 0x07;
+            if (reserved != 0)
             {
-                throw new InvalidOperationException($"Unsupported frame type '{type}'.");
+                throw new InvalidOperationException("Reserved flag bits must be zero.");
             }
 
-            var fileId = fileIdProperty.GetGuid();
-            var fileName = root.TryGetProperty("name", out var nameProperty) ? nameProperty.GetString() ?? string.Empty : string.Empty;
-            var fileSize = root.TryGetProperty("fs", out var sizeProperty) ? sizeProperty.GetInt64() : 0L;
-            var chunkSize = root.TryGetProperty("cs", out var chunkSizeProperty) ? chunkSizeProperty.GetInt32() : 0;
-            var correctionLevel = root.TryGetProperty("ecc", out var eccProperty) ? eccProperty.GetString() ?? string.Empty : string.Empty;
-            var chunkIndex = root.TryGetProperty("ci", out var chunkIndexProperty) ? chunkIndexProperty.GetInt32() : 0;
-            var totalChunks = root.TryGetProperty("tc", out var totalChunksProperty) ? totalChunksProperty.GetInt32() : 0;
-            var base64 = root.TryGetProperty("p", out var payloadProperty) ? payloadProperty.GetString() ?? string.Empty : string.Empty;
-            var payloadCrc = root.TryGetProperty("crc", out var crcProperty) ? crcProperty.GetUInt32() : 0u;
-            var fileCrc = root.TryGetProperty("fcrc", out var fileCrcProperty) ? fileCrcProperty.GetUInt32() : 0u;
+            var fileIndex = (byte)(flags & 0x0F);
+            var isMetadata = (flags & 0x80) != 0;
+            var offset = BinaryPrimitives.ReadUInt16LittleEndian(payload[1..3]);
+            var payloadLength = payload[3];
+            var totalLength = BinaryPrimitives.ReadUInt16LittleEndian(payload[4..6]);
 
-            if (fileSize > 0 && !root.TryGetProperty("fcrc", out _))
+            if (payloadLength != payload.Length - 6)
             {
-                throw new InvalidOperationException("Missing file checksum.");
+                throw new InvalidOperationException("Payload length mismatch.");
             }
 
-            if (string.IsNullOrWhiteSpace(fileName))
+            if (totalLength > 0 && offset + payloadLength > totalLength)
             {
-                throw new InvalidOperationException("Missing file name.");
+                throw new InvalidOperationException("Chunk exceeds declared length.");
             }
 
-            var payloadBytes = string.IsNullOrEmpty(base64) ? Array.Empty<byte>() : Convert.FromBase64String(base64);
-            packet = new QrChunkPacket(fileId, fileName, fileSize, chunkSize, correctionLevel, chunkIndex, totalChunks, payloadBytes, payloadCrc, fileCrc);
+            var data = payloadLength == 0 ? Array.Empty<byte>() : payload.Slice(6, payloadLength).ToArray();
+            packet = new QrChunkPacket(fileIndex, isMetadata, offset, totalLength, data);
             error = null;
             return true;
         }

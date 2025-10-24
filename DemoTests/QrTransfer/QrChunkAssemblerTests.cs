@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text;
+using QrTransferDemo.Models;
 using QrTransferDemo.Services;
 
 namespace DemoTests.QrTransfer;
@@ -13,7 +14,7 @@ public class QrChunkAssemblerTests
     {
         var assembler = new QrChunkAssembler();
         var content = Encoding.UTF8.GetBytes("Assembler end-to-end test payload.");
-        var packets = _builder.BuildPackets("sample.bin", content, 8, "M");
+        var packets = _builder.BuildPackets(1, "sample.bin", content, 8, "M");
 
         AssembledFile? completed = null;
         foreach (var packet in packets)
@@ -26,13 +27,14 @@ public class QrChunkAssemblerTests
         }
 
         Assert.NotNull(completed);
-        Assert.Equal(packets[0].FileId, completed!.FileId);
-        Assert.Equal("sample.bin", completed.FileName);
-        Assert.Equal(packets[0].FileCrc32, completed.FileChecksum);
+        Assert.Equal("sample.bin", completed!.FileName);
+        Assert.Equal(content.Length, completed.FileSize);
+        Assert.Equal(8, completed.ChunkSize);
+        Assert.Equal("M", completed.CorrectionLevel);
         Assert.Equal(content, completed.Data);
+        Assert.Equal(ComputeCrc32(content), completed.FileChecksum);
         Assert.True(assembler.TryGetFile(completed.FileId, out var stored));
         Assert.Equal(content, stored.Data);
-        Assert.Equal(completed.FileChecksum, stored.FileChecksum);
     }
 
     [Fact]
@@ -40,9 +42,16 @@ public class QrChunkAssemblerTests
     {
         var assembler = new QrChunkAssembler();
         var data = Encoding.UTF8.GetBytes("Duplicate guard");
-        var packets = _builder.BuildPackets("dup.bin", data, 4, "M");
-        var first = packets.First();
+        var packets = _builder.BuildPackets(2, "dup.bin", data, 4, "M");
+        var metadata = packets.Where(p => p.IsMetadata);
+        var payloads = packets.Where(p => !p.IsMetadata).ToArray();
 
+        foreach (var packet in metadata)
+        {
+            assembler.ProcessChunk(packet);
+        }
+
+        var first = payloads.First();
         var firstResult = assembler.ProcessChunk(first);
         var duplicateResult = assembler.ProcessChunk(first);
 
@@ -55,85 +64,111 @@ public class QrChunkAssemblerTests
     }
 
     [Fact]
-    public void InvalidCrcKeepsChunkPending()
-    {
-        var assembler = new QrChunkAssembler();
-        var data = Encoding.UTF8.GetBytes("CRC check");
-        var packet = _builder.BuildPackets("crc.bin", data, 4, "M").First();
-        var corrupted = packet with { PayloadCrc32 = packet.PayloadCrc32 + 1 };
-
-        var rejection = assembler.ProcessChunk(corrupted);
-
-        Assert.Equal(ChunkAcceptanceStatus.InvalidCrc, rejection.Status);
-        Assert.Equal(0, rejection.Snapshot.ReceivedChunks);
-        Assert.Equal(1, rejection.Snapshot.InvalidChunks);
-        Assert.Equal(0, rejection.Snapshot.ReceivedBytes);
-
-        var accepted = assembler.ProcessChunk(packet);
-        Assert.Equal(ChunkAcceptanceStatus.Accepted, accepted.Status);
-        Assert.Equal(1, accepted.Snapshot.ReceivedChunks);
-        Assert.Equal(packet.Payload.Length, accepted.Snapshot.ReceivedBytes);
-    }
-
-    [Fact]
-    public void MetadataChangeResetsBuffer()
-    {
-        var assembler = new QrChunkAssembler();
-        var data = Encoding.UTF8.GetBytes("Metadata toggle");
-        var packets = _builder.BuildPackets("meta.bin", data, 4, "M");
-        var first = packets.First();
-
-        var initial = assembler.ProcessChunk(first);
-        Assert.Equal(ChunkAcceptanceStatus.Accepted, initial.Status);
-        Assert.Equal(1, initial.Snapshot.ReceivedChunks);
-        Assert.Equal(4, initial.Snapshot.ChunkSize);
-        Assert.Equal("M", initial.Snapshot.CorrectionLevel);
-        Assert.Equal(first.Payload.Length, initial.Snapshot.ReceivedBytes);
-
-        var altered = first with { CorrectionLevel = "H" };
-        var updated = assembler.ProcessChunk(altered);
-
-        Assert.Equal(ChunkAcceptanceStatus.Accepted, updated.Status);
-        Assert.Equal("H", updated.Snapshot.CorrectionLevel);
-        Assert.Equal(1, updated.Snapshot.ReceivedChunks);
-        Assert.Equal(altered.Payload.Length, updated.Snapshot.ReceivedBytes);
-    }
-
-    [Fact]
-    public void InvalidFileChecksumTriggersRetry()
+    public void CorruptedDataTriggersRetry()
     {
         var assembler = new QrChunkAssembler();
         var data = Encoding.UTF8.GetBytes("Checksum retry required");
-        var packets = _builder.BuildPackets("checksum.bin", data, 5, "L");
-        var corruptedMetadata = packets.Select(packet => packet with { FileCrc32 = packet.FileCrc32 + 1 }).ToList();
+        var packets = _builder.BuildPackets(3, "checksum.bin", data, 5, "L").ToArray();
+
+        // Send metadata as-is
+        foreach (var packet in packets.Where(p => p.IsMetadata))
+        {
+            assembler.ProcessChunk(packet);
+        }
+
+        // Corrupt the first data chunk
+        var corrupted = packets.First(p => !p.IsMetadata);
+        var corruptPayload = corrupted.Payload.ToArray();
+        corruptPayload[0] ^= 0xFF;
+        var corruptedPacket = new QrChunkPacket(corrupted.FileIndex, corrupted.IsMetadata, corrupted.Offset, corrupted.TotalLength, corruptPayload);
 
         ChunkProcessingResult? failure = null;
-        foreach (var packet in corruptedMetadata)
+        foreach (var packet in packets.Where(p => !p.IsMetadata))
         {
-            failure = assembler.ProcessChunk(packet);
+            failure = assembler.ProcessChunk(packet == corrupted ? corruptedPacket : packet);
         }
 
         Assert.NotNull(failure);
         Assert.Equal(ChunkAcceptanceStatus.InvalidFileChecksum, failure!.Status);
         Assert.Equal(1, failure.Snapshot.ChecksumFailures);
-        Assert.Equal(0, failure.Snapshot.ReceivedChunks);
-        Assert.Equal(0, failure.Snapshot.ReceivedBytes);
+        Assert.Null(failure.File);
 
         AssembledFile? completed = null;
-        ChunkProcessingResult? finalResult = null;
-        foreach (var packet in packets)
+        foreach (var packet in packets.Where(p => !p.IsMetadata))
         {
-            finalResult = assembler.ProcessChunk(packet);
-            if (finalResult.File is not null)
+            var result = assembler.ProcessChunk(packet);
+            if (result.File is not null)
             {
-                completed = finalResult.File;
+                completed = result.File;
             }
         }
 
-        Assert.NotNull(finalResult);
-        Assert.Equal(ChunkAcceptanceStatus.Accepted, finalResult!.Status);
         Assert.NotNull(completed);
-        Assert.Equal("checksum.bin", completed!.FileName);
-        Assert.Equal(packets[0].FileCrc32, completed.FileChecksum);
+        Assert.Equal(ComputeCrc32(data), completed!.FileChecksum);
+    }
+
+    [Fact]
+    public void NewMetadataResetsState()
+    {
+        var assembler = new QrChunkAssembler();
+        var firstData = Encoding.UTF8.GetBytes("Metadata toggle");
+        var firstPackets = _builder.BuildPackets(4, "meta.bin", firstData, 4, "M");
+
+        ChunkProcessingResult? last = null;
+        foreach (var packet in firstPackets)
+        {
+            last = assembler.ProcessChunk(packet);
+        }
+
+        Assert.NotNull(last);
+        Assert.Equal("meta.bin", last!.Snapshot.FileName);
+        Assert.Equal("M", last.Snapshot.CorrectionLevel);
+
+        var secondData = Encoding.UTF8.GetBytes("Another payload");
+        var secondPackets = _builder.BuildPackets(4, "another.bin", secondData, 6, "H");
+
+        ChunkProcessingResult? updated = null;
+        foreach (var packet in secondPackets)
+        {
+            updated = assembler.ProcessChunk(packet);
+        }
+
+        Assert.NotNull(updated);
+        Assert.Equal("another.bin", updated!.Snapshot.FileName);
+        Assert.Equal("H", updated.Snapshot.CorrectionLevel);
+        Assert.Equal(6, updated.Snapshot.ChunkSize);
+    }
+
+    private static uint ComputeCrc32(ReadOnlySpan<byte> data)
+    {
+        uint crc = 0xFFFFFFFFu;
+        foreach (var value in data)
+        {
+            var index = (crc ^ value) & 0xFF;
+            crc = (crc >> 8) ^ Table[index];
+        }
+
+        return ~crc;
+    }
+
+    private static readonly uint[] Table = CreateTable();
+
+    private static uint[] CreateTable()
+    {
+        var table = new uint[256];
+        const uint polynomial = 0xEDB88320u;
+
+        for (var i = 0; i < table.Length; i++)
+        {
+            var value = (uint)i;
+            for (var j = 0; j < 8; j++)
+            {
+                value = (value & 1) != 0 ? polynomial ^ (value >> 1) : value >> 1;
+            }
+
+            table[i] = value;
+        }
+
+        return table;
     }
 }
