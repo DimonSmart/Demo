@@ -10,75 +10,38 @@ function ensureContext(handle) {
     return context;
 }
 
-function stopFramePump(context) {
-    if (context.pumpHandle === null) {
+function stopStream(stream) {
+    if (!stream) {
         return;
     }
 
-    if (context.useVideoFrameCallback && typeof context.video.cancelVideoFrameCallback === "function") {
-        context.video.cancelVideoFrameCallback(context.pumpHandle);
-    } else {
-        cancelAnimationFrame(context.pumpHandle);
-    }
-
-    context.pumpHandle = null;
+    stream.getTracks().forEach(track => {
+        try {
+            track.stop();
+        } catch (error) {
+            console.warn("Failed to stop media track", error);
+        }
+    });
 }
 
-function scheduleFramePump(context) {
-    if (!context.stream) {
-        return;
-    }
-
-    if (context.useVideoFrameCallback && typeof context.video.requestVideoFrameCallback === "function") {
-        context.pumpHandle = context.video.requestVideoFrameCallback((now, metadata) => {
-            renderFrame(context, metadata && typeof metadata.width === "number" ? metadata.width : 0, metadata && typeof metadata.height === "number" ? metadata.height : 0);
-        });
-    } else {
-        context.pumpHandle = requestAnimationFrame(() => {
-            renderFrame(context, 0, 0);
-        });
-    }
-}
-
-function renderFrame(context, metadataWidth, metadataHeight) {
-    if (!context.stream) {
-        return;
-    }
-
-    const video = context.video;
-    const width = video.videoWidth || metadataWidth;
-    const height = video.videoHeight || metadataHeight;
-
-    if (!width || !height) {
-        scheduleFramePump(context);
-        return;
-    }
-
-    if (context.canvas.width !== width) {
-        context.canvas.width = width;
-    }
-
-    if (context.canvas.height !== height) {
-        context.canvas.height = height;
-    }
-
-    context.ctx.drawImage(video, 0, 0, width, height);
-    const imageData = context.ctx.getImageData(0, 0, width, height);
-    context.latestFrame = {
-        width,
-        height,
-        version: context.frameVersion + 1,
-        pixels: new Uint8Array(imageData.data)
-    };
-    context.frameVersion = context.latestFrame.version;
-    scheduleFramePump(context);
-}
-
-function startFramePump(context) {
-    stopFramePump(context);
-    context.latestFrame = null;
+function resetContextState(context) {
+    context.stream = null;
     context.frameVersion = 0;
-    scheduleFramePump(context);
+}
+
+async function waitForVideoReady(video) {
+    if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        return;
+    }
+
+    await new Promise(resolve => {
+        const handler = () => {
+            video.removeEventListener("loadedmetadata", handler);
+            resolve();
+        };
+
+        video.addEventListener("loadedmetadata", handler, { once: true });
+    });
 }
 
 export function createContext(videoElementId, canvasElementId) {
@@ -89,7 +52,7 @@ export function createContext(videoElementId, canvasElementId) {
         throw new Error("Capture preview elements are not available.");
     }
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) {
         throw new Error("Unable to acquire canvas context.");
     }
@@ -104,10 +67,7 @@ export function createContext(videoElementId, canvasElementId) {
         canvas,
         ctx,
         stream: null,
-        latestFrame: null,
-        frameVersion: 0,
-        pumpHandle: null,
-        useVideoFrameCallback: typeof video.requestVideoFrameCallback === "function"
+        frameVersion: 0
     });
 
     return handle;
@@ -117,29 +77,22 @@ export async function startCapture(handle, source, frameRateHint, width, height,
     const context = ensureContext(handle);
     const previousStream = context.stream;
 
-    context.stream = null;
-    stopFramePump(context);
-
-    if (previousStream) {
-        previousStream.getTracks().forEach(track => {
-            try {
-                track.stop();
-            } catch (error) {
-                console.warn("Failed to stop media track", error);
-            }
-        });
-    }
+    resetContextState(context);
+    stopStream(previousStream);
 
     const videoConstraints = {};
     if (typeof frameRateHint === "number" && !Number.isNaN(frameRateHint)) {
         videoConstraints.frameRate = frameRateHint;
     }
+
     if (typeof width === "number" && width > 0) {
         videoConstraints.width = width;
     }
+
     if (typeof height === "number" && height > 0) {
         videoConstraints.height = height;
     }
+
     if (typeof facingMode === "string" && facingMode) {
         videoConstraints.facingMode = facingMode;
     }
@@ -147,33 +100,28 @@ export async function startCapture(handle, source, frameRateHint, width, height,
     const isScreen = source === 0;
     let stream;
 
-    try {
-        if (isScreen) {
-            const screenConstraints = { video: {}, audio: false };
-            if (videoConstraints.frameRate) {
-                screenConstraints.video.frameRate = videoConstraints.frameRate;
-            }
-            stream = await navigator.mediaDevices.getDisplayMedia(screenConstraints);
-        } else {
-            const cameraConstraints = { video: videoConstraints, audio: false };
-            stream = await navigator.mediaDevices.getUserMedia(cameraConstraints);
+    if (isScreen) {
+        const screenConstraints = { video: {}, audio: false };
+        if (videoConstraints.frameRate) {
+            screenConstraints.video.frameRate = videoConstraints.frameRate;
         }
-    } catch (error) {
-        throw error;
+
+        stream = await navigator.mediaDevices.getDisplayMedia(screenConstraints);
+    } else {
+        const cameraConstraints = { video: videoConstraints, audio: false };
+        stream = await navigator.mediaDevices.getUserMedia(cameraConstraints);
     }
 
     context.stream = stream;
-    context.latestFrame = null;
-    context.frameVersion = 0;
-
     context.video.srcObject = stream;
+
     try {
         await context.video.play();
     } catch (error) {
         console.warn("Unable to start media playback", error);
     }
 
-    startFramePump(context);
+    await waitForVideoReady(context.video);
 }
 
 export function stopCapture(handle) {
@@ -182,24 +130,10 @@ export function stopCapture(handle) {
         return;
     }
 
-    const stream = context.stream;
-    context.stream = null;
-    stopFramePump(context);
-
-    if (stream) {
-        stream.getTracks().forEach(track => {
-            try {
-                track.stop();
-            } catch (error) {
-                console.warn("Failed to stop media track", error);
-            }
-        });
-    }
-
+    stopStream(context.stream);
     context.video.pause?.();
     context.video.srcObject = null;
-    context.latestFrame = null;
-    context.frameVersion = 0;
+    resetContextState(context);
 }
 
 export function disposeContext(handle) {
@@ -212,18 +146,47 @@ export function disposeContext(handle) {
     contexts.delete(handle);
 }
 
-export function tryReadLatestFrame(handle, knownVersion) {
+export function tryCaptureFrame(handle, knownVersion) {
     const context = ensureContext(handle);
-    const frame = context.latestFrame;
 
-    if (!frame || frame.version === knownVersion) {
+    if (!context.stream) {
+        return null;
+    }
+
+    const video = context.video;
+    if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        return null;
+    }
+
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+
+    if (!width || !height) {
+        return null;
+    }
+
+    if (context.canvas.width !== width) {
+        context.canvas.width = width;
+    }
+
+    if (context.canvas.height !== height) {
+        context.canvas.height = height;
+    }
+
+    context.ctx.drawImage(video, 0, 0, width, height);
+    const imageData = context.ctx.getImageData(0, 0, width, height);
+
+    const version = context.frameVersion + 1;
+    context.frameVersion = version;
+
+    if (version === knownVersion) {
         return null;
     }
 
     return {
-        width: frame.width,
-        height: frame.height,
-        version: frame.version,
-        pixels: frame.pixels
+        width,
+        height,
+        version,
+        pixels: new Uint8Array(imageData.data)
     };
 }
