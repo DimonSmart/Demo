@@ -69,7 +69,7 @@ public sealed partial class BrowserMediaCapture : IAsyncDisposable
             return false;
         }
 
-        var frame = TryReadLatestFrame(_contextId.Value, _lastFrameVersion);
+        var frame = TryCaptureFrameInternal(_contextId.Value, _lastFrameVersion);
         if (frame is null)
         {
             return false;
@@ -149,8 +149,8 @@ public sealed partial class BrowserMediaCapture : IAsyncDisposable
     [JSImport("disposeContext", ModuleName)]
     private static partial void DisposeContext(int contextId);
 
-    [JSImport("tryReadLatestFrame", ModuleName)]
-    private static partial JSObject? TryReadLatestFrame(int contextId, int knownVersion);
+    [JSImport("tryCaptureFrame", ModuleName)]
+    private static partial JSObject? TryCaptureFrameInternal(int contextId, int knownVersion);
 
     private void StopCaptureInternal()
     {
