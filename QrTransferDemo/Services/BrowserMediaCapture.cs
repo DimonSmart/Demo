@@ -10,6 +10,9 @@ namespace QrTransferDemo.Services;
 public sealed partial class BrowserMediaCapture : IAsyncDisposable
 {
     private const string ModuleName = "_content/QrTransferDemo/browserMediaCapture.js";
+    private const string ModuleIdentifier = "QrTransferDemo.BrowserMediaCapture";
+
+    private static Task<JSObject>? _importTask;
 
     private int? _contextId;
     private int _lastFrameVersion;
@@ -22,6 +25,8 @@ public sealed partial class BrowserMediaCapture : IAsyncDisposable
         {
             return;
         }
+
+        await EnsureModuleImportedAsync().ConfigureAwait(false);
 
         await Task.Yield();
 
@@ -135,6 +140,18 @@ public sealed partial class BrowserMediaCapture : IAsyncDisposable
     {
         Screen = 0,
         Camera = 1
+    }
+
+    private static async Task EnsureModuleImportedAsync()
+    {
+        var importTask = Volatile.Read(ref _importTask);
+        if (importTask is null)
+        {
+            var newTask = JSHost.ImportAsync(ModuleIdentifier, ModuleName);
+            importTask = Interlocked.CompareExchange(ref _importTask, newTask, null) ?? newTask;
+        }
+
+        await importTask.ConfigureAwait(false);
     }
 
     [JSImport("createContext", ModuleName)]
