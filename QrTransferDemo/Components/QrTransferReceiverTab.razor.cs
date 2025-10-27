@@ -542,9 +542,9 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
             var fileIndex = (byte)(flags & 0x0F);
             var isMetadata = (flags & 0x80) != 0;
-            var offset = BinaryPrimitives.ReadUInt16LittleEndian(payload[1..3]);
-            var payloadLength = payload[3];
-            var totalLength = BinaryPrimitives.ReadUInt16LittleEndian(payload[4..6]);
+            var payloadLength = payload[1];
+            var totalLength = BinaryPrimitives.ReadUInt16LittleEndian(payload[2..4]);
+            var offset = BinaryPrimitives.ReadUInt16LittleEndian(payload[4..6]);
 
             if (payloadLength != payload.Length - 6)
             {

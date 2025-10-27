@@ -489,9 +489,9 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         }
 
         buffer[0] = flags;
-        BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(1, 2), packet.Offset);
-        buffer[3] = (byte)packet.Payload.Length;
-        BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(4, 2), packet.TotalLength);
+        buffer[1] = (byte)packet.Payload.Length;
+        BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(2, 2), packet.TotalLength);
+        BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(4, 2), packet.Offset);
         packet.Payload.CopyTo(buffer.AsSpan(FrameHeaderLength));
         return buffer;
     }

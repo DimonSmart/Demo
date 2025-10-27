@@ -129,6 +129,7 @@ export function tryCaptureFrame(handle, knownVersion) {
 
     const video = context.video;
     if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        console.log('[tryCaptureFrame] Video not ready, readyState:', video.readyState);
         return null;
     }
 
@@ -136,6 +137,7 @@ export function tryCaptureFrame(handle, knownVersion) {
     const height = video.videoHeight;
 
     if (!width || !height) {
+        console.log('[tryCaptureFrame] Invalid video dimensions:', width, 'x', height);
         return null;
     }
 
@@ -147,20 +149,33 @@ export function tryCaptureFrame(handle, knownVersion) {
         context.canvas.height = height;
     }
 
-    context.ctx.drawImage(video, 0, 0, width, height);
-    const imageData = context.ctx.getImageData(0, 0, width, height);
+    try {
+        context.ctx.drawImage(video, 0, 0, width, height);
+        const imageData = context.ctx.getImageData(0, 0, width, height);
 
-    const version = context.frameVersion + 1;
-    context.frameVersion = version;
+        if (!imageData || !imageData.data || imageData.data.length === 0) {
+            console.error('[tryCaptureFrame] ImageData is empty or invalid');
+            return null;
+        }
 
-    if (version === knownVersion) {
+        const version = context.frameVersion + 1;
+        context.frameVersion = version;
+
+        if (version === knownVersion) {
+            return null;
+        }
+
+        const pixels = new Uint8Array(imageData.data);
+        console.log(`[tryCaptureFrame] Captured frame: ${width}x${height}, pixels.length=${pixels.length}, version=${version}`);
+
+        return {
+            width,
+            height,
+            version,
+            pixels: pixels
+        };
+    } catch (error) {
+        console.error('[tryCaptureFrame] Error capturing frame:', error);
         return null;
     }
-
-    return {
-        width,
-        height,
-        version,
-        pixels: new Uint8Array(imageData.data)
-    };
 }

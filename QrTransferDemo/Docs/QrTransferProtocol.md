@@ -9,9 +9,9 @@ ng bytes for the payload.
 | --- | --- | --- |
 | 0 | 1 | Flags: bit 7 = 1 for metadata frames, 0 for file data. Bits 0–3 store the file slot (0–15). Bits 4–6 are reserved and
  must be zero. |
-| 1 | 2 | Little-endian offset of the payload within the logical stream (data or metadata) for the selected file. |
-| 3 | 1 | Payload length in bytes (0–255). |
-| 4 | 2 | Total length of the logical stream in bytes (0–65535). |
+| 1 | 1 | Payload length in bytes (0–255). |
+| 2 | 2 | Total length of the logical stream in bytes (0–65535). |
+| 4 | 2 | Little-endian offset of the payload within the logical stream (data or metadata) for the selected file. |
 | 6 | _N_ | Raw payload bytes. |
 
 The sender always broadcasts metadata packets for a file before any data packets. Receivers should reconstruct the metadata and u

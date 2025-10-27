@@ -51,12 +51,26 @@ public sealed class QrFrameDecoder
 
         lock (_sync)
         {
-            var luminance = new RGBLuminanceSource(buffer, width, height, RGBLuminanceSource.BitmapFormat.RGBA32);
-            var result = _reader.Decode(luminance);
-            if (result is { RawBytes.Length: > 0 })
+            try
             {
-                payload = result.RawBytes;
-                return true;
+                var luminance = new RGBLuminanceSource(buffer, width, height, RGBLuminanceSource.BitmapFormat.RGBA32);
+                if (luminance == null)
+                {
+                    Console.WriteLine($"[QrFrameDecoder] luminance is null! buffer.Length={buffer.Length}, width={width}, height={height}");
+                    return false;
+                }
+
+                var result = _reader.Decode(luminance);
+                if (result is { RawBytes.Length: > 0 })
+                {
+                    payload = result.RawBytes;
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[QrFrameDecoder] Error during decode: {ex.Message}");
+                return false;
             }
         }
 
