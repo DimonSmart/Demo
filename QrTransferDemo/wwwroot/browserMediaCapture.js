@@ -73,43 +73,17 @@ export function createContext(videoElementId, canvasElementId) {
     return handle;
 }
 
-export async function startCapture(handle, source, frameRateHint, width, height, facingMode) {
+export async function attachStream(handle, stream) {
     const context = ensureContext(handle);
     const previousStream = context.stream;
 
     resetContextState(context);
     stopStream(previousStream);
 
-    const videoConstraints = {};
-    if (typeof frameRateHint === "number" && !Number.isNaN(frameRateHint)) {
-        videoConstraints.frameRate = frameRateHint;
-    }
-
-    if (typeof width === "number" && width > 0) {
-        videoConstraints.width = width;
-    }
-
-    if (typeof height === "number" && height > 0) {
-        videoConstraints.height = height;
-    }
-
-    if (typeof facingMode === "string" && facingMode) {
-        videoConstraints.facingMode = facingMode;
-    }
-
-    const isScreen = source === 0;
-    let stream;
-
-    if (isScreen) {
-        const screenConstraints = { video: {}, audio: false };
-        if (videoConstraints.frameRate) {
-            screenConstraints.video.frameRate = videoConstraints.frameRate;
-        }
-
-        stream = await navigator.mediaDevices.getDisplayMedia(screenConstraints);
-    } else {
-        const cameraConstraints = { video: videoConstraints, audio: false };
-        stream = await navigator.mediaDevices.getUserMedia(cameraConstraints);
+    if (!stream) {
+        context.video.pause?.();
+        context.video.srcObject = null;
+        return;
     }
 
     context.stream = stream;
