@@ -5,7 +5,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using KristofferStrube.Blazor.MediaCaptureStreams;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using QrTransferDemo.Models;
 using QrTransferDemo.Services;
 using System.Runtime.Versioning;
@@ -89,7 +91,13 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
     private readonly QrChunkAssembler _chunkAssembler = new();
     private readonly QrFrameDecoder _frameDecoder = new();
-    private readonly BrowserMediaCapture _mediaCapture = new();
+    private BrowserMediaCapture? _mediaCapture;
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = default!;
+
+    [Inject]
+    private IMediaDevicesService MediaDevicesService { get; set; } = default!;
 
     private long _capturedFrames;
     private long _consecutiveCaptureMisses;
@@ -114,6 +122,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
         try
         {
+            _mediaCapture ??= new BrowserMediaCapture(JSRuntime, MediaDevicesService);
             await _mediaCapture.InitializeAsync(VideoElementId, CanvasElementId);
             _domInitialized = true;
             LogDiagnostic("DOM initialized for receiver tab.");
@@ -145,6 +154,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
         try
         {
+            var mediaCapture = _mediaCapture ?? throw new InvalidOperationException("Capture is not initialized.");
             _captureCts?.Cancel();
             _captureCts?.Dispose();
             _captureCts = new CancellationTokenSource();
@@ -159,7 +169,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
                 ? BrowserMediaCapture.CaptureSource.Camera
                 : BrowserMediaCapture.CaptureSource.Screen;
 
-            await _mediaCapture.StartCaptureAsync(source, options, _captureCts.Token);
+            await mediaCapture.StartCaptureAsync(source, options, _captureCts.Token);
 
             _isCapturing = true;
             _isPaused = false;
@@ -224,15 +234,18 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         _captureCts?.Dispose();
         _captureCts = null;
 
-        try
+        if (_mediaCapture is not null)
         {
-            await _mediaCapture.StopCaptureAsync();
-        }
-        catch (Exception ex)
-        {
-            _errorMessage = ex.Message;
-            _statusMessage = null;
-            LogDiagnostic($"Error while stopping capture: {ex.Message}");
+            try
+            {
+                await _mediaCapture.StopCaptureAsync();
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = ex.Message;
+                _statusMessage = null;
+                LogDiagnostic($"Error while stopping capture: {ex.Message}");
+            }
         }
 
         _isCapturing = false;
@@ -288,7 +301,14 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
                 continue;
             }
 
-            if (!_mediaCapture.TryCaptureFrame(out var pixels, out var width, out var height) || pixels is null)
+            var mediaCapture = _mediaCapture;
+            if (mediaCapture is null)
+            {
+                continue;
+            }
+
+            var frame = await mediaCapture.TryCaptureFrameAsync(cancellationToken);
+            if (frame is null)
             {
                 _consecutiveCaptureMisses++;
                 if (_consecutiveCaptureMisses == 1 || _consecutiveCaptureMisses % 30 == 0)
@@ -298,16 +318,27 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
                 continue;
             }
 
+            var pixels = frame.Pixels;
+            if (pixels is null)
+            {
+                _consecutiveCaptureMisses++;
+                if (_consecutiveCaptureMisses == 1 || _consecutiveCaptureMisses % 30 == 0)
+                {
+                    LogDiagnostic($"Frame without pixel data (misses: {_consecutiveCaptureMisses}).");
+                }
+                continue;
+            }
+
             _consecutiveCaptureMisses = 0;
             var frameNumber = Interlocked.Increment(ref _capturedFrames);
             if (frameNumber <= 5 || frameNumber % 30 == 0)
             {
-                LogDiagnostic($"Captured frame #{frameNumber} at {width}x{height}.");
+                LogDiagnostic($"Captured frame #{frameNumber} at {frame.Width}x{frame.Height}.");
             }
 
             UpdateObservedInterval();
 
-            await ProcessFrameAsync(width, height, pixels);
+            await ProcessFrameAsync(frame.Width, frame.Height, pixels);
         }
     }
 
@@ -554,8 +585,12 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
                 }
             }
 
-            await _mediaCapture.StopCaptureAsync();
-            await _mediaCapture.DisposeAsync();
+            if (_mediaCapture is not null)
+            {
+                await _mediaCapture.StopCaptureAsync();
+                await _mediaCapture.DisposeAsync();
+                _mediaCapture = null;
+            }
         }
         catch
         {
