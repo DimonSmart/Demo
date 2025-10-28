@@ -10,7 +10,6 @@ namespace QrTransferDemo.Services;
 public sealed class QrChunkBuilder
 {
     private const int MetadataBlockSize = 256;
-    private const byte MetadataVersion = 2;
 
     public IReadOnlyList<QrChunkPacket> BuildPackets(
         byte fileIndex,
@@ -104,7 +103,6 @@ public sealed class QrChunkBuilder
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
         {
-            writer.Write(MetadataVersion);
             writer.Write((byte)nameBytes.Length);
             writer.Write(nameBytes);
             writer.Write((ushort)fileContent.Length);
