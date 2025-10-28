@@ -9,7 +9,6 @@ namespace QrTransferDemo.Services;
 
 public sealed class QrChunkBuilder
 {
-    private const int MetadataBlockSize = 256;
 
     public IReadOnlyList<QrChunkPacket> BuildPackets(
         byte fileIndex,
@@ -89,17 +88,6 @@ public sealed class QrChunkBuilder
             throw new ArgumentOutOfRangeException(nameof(fileName));
         }
 
-        var fileChecksum = fileContent.Length == 0 ? 0u : Crc32.Compute(fileContent);
-        var blockCount = (ushort)((fileContent.Length + MetadataBlockSize - 1) / MetadataBlockSize);
-        var blockChecksums = new uint[blockCount];
-        for (var blockIndex = 0; blockIndex < blockCount; blockIndex++)
-        {
-            var start = blockIndex * MetadataBlockSize;
-            var remaining = fileContent.Length - start;
-            var length = Math.Min(MetadataBlockSize, remaining);
-            blockChecksums[blockIndex] = Crc32.Compute(fileContent.Slice(start, length));
-        }
-
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
         {
@@ -108,14 +96,7 @@ public sealed class QrChunkBuilder
             writer.Write((ushort)fileContent.Length);
             writer.Write(chunkSize);
             writer.Write(correction);
-            writer.Write((ushort)MetadataBlockSize);
-            writer.Write(blockCount);
-            writer.Write(fileChecksum);
-
-            for (var blockIndex = 0; blockIndex < blockChecksums.Length; blockIndex++)
-            {
-                writer.Write(blockChecksums[blockIndex]);
-            }
+            writer.Write(Crc32.Compute(fileContent));
         }
 
         return stream.ToArray();

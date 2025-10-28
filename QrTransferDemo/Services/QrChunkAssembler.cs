@@ -24,12 +24,7 @@ public sealed class QrChunkAssembler
             return ChunkProcessingResult.InvalidMetadata(Guid.Empty);
         }
 
-        if (packet.Payload.Length > byte.MaxValue)
-        {
-            return ChunkProcessingResult.InvalidMetadata(Guid.Empty);
-        }
-
-        var buffer = _files.GetOrAdd(packet.FileIndex, index => new FileBuffer(index));
+        var buffer = _files.GetOrAdd(packet.FileIndex, _ => new FileBuffer());
         return buffer.AddPacket(packet);
     }
 
@@ -87,38 +82,21 @@ public sealed class QrChunkAssembler
 
     private sealed class FileBuffer
     {
-        private readonly byte _fileIndex;
         private readonly object _sync = new();
+        private readonly ByteStream _metadataStream = new(MaxMetadataSize, trackPrefix: true);
+        private readonly ByteStream _dataStream = new(MaxFileSize, trackPrefix: false);
 
         private Guid _fileId = Guid.NewGuid();
-        private byte[]? _metadataBuffer;
-        private bool[]? _metadataReceived;
-        private int _metadataBytesReceived;
         private bool _metadataParsed;
-
         private string _fileName = string.Empty;
         private int _fileSize;
         private int _chunkSize;
         private string _correctionLevel = string.Empty;
-        private ushort _blockSize;
-        private uint[] _blockChecksums = Array.Empty<uint>();
         private uint _fileChecksum;
-
-        private byte[]? _dataBuffer;
-        private BitArray? _dataChunks;
-        private HashSet<int> _missingChunks = new();
-        private int _totalChunks;
-        private int _receivedChunks;
-        private long _receivedBytes;
+        private byte[]? _assembled;
         private int _invalidChunks;
         private int _checksumFailures;
-        private byte[]? _assembled;
-        private DateTimeOffset _lastUpdated;
-
-        public FileBuffer(byte fileIndex)
-        {
-            _fileIndex = fileIndex;
-        }
+        private DateTimeOffset _lastUpdated = DateTimeOffset.UtcNow;
 
         public Guid FileId => _fileId;
 
@@ -126,17 +104,53 @@ public sealed class QrChunkAssembler
         {
             lock (_sync)
             {
+                var stream = packet.IsMetadata ? _metadataStream : _dataStream;
+                var status = stream.Apply(packet.TotalLength, packet.Offset, packet.Payload);
+
+                if (status == StreamApplyStatus.InvalidTotalLength || status == StreamApplyStatus.OutOfRangeOffset)
+                {
+                    _invalidChunks++;
+                    _lastUpdated = DateTimeOffset.UtcNow;
+                    return CreateResult(ChunkAcceptanceStatus.InvalidMetadata, null);
+                }
+
+                if (status != StreamApplyStatus.DuplicateOrOverlap)
+                {
+                    _lastUpdated = DateTimeOffset.UtcNow;
+                }
+
                 if (packet.IsMetadata)
                 {
-                    return ProcessMetadata(packet);
+                    if (!_metadataParsed && _metadataStream.IsComplete)
+                    {
+                        if (!TryParseMetadata())
+                        {
+                            _invalidChunks++;
+                            return CreateResult(ChunkAcceptanceStatus.InvalidMetadata, null);
+                        }
+
+                        if (_metadataParsed && (_fileSize == 0 || _dataStream.IsComplete))
+                        {
+                            return FinalizeFile();
+                        }
+                    }
+
+                    return CreateResult(MapStatus(status), null);
                 }
 
-                if (!_metadataParsed)
+                if (_metadataParsed && _dataStream.TotalLength.HasValue && _dataStream.TotalLength.Value != _fileSize)
                 {
-                    return ChunkProcessingResult.InvalidMetadata(_fileId);
+                    _invalidChunks++;
+                    _lastUpdated = DateTimeOffset.UtcNow;
+                    return CreateResult(ChunkAcceptanceStatus.InvalidMetadata, null);
                 }
 
-                return ProcessData(packet);
+                if (_metadataParsed && _dataStream.IsComplete)
+                {
+                    return FinalizeFile();
+                }
+
+                return CreateResult(MapStatus(status), null);
             }
         }
 
@@ -144,21 +158,7 @@ public sealed class QrChunkAssembler
         {
             lock (_sync)
             {
-                return new FileAssemblySnapshot(
-                    _fileId,
-                    _fileName,
-                    _fileSize,
-                    _chunkSize,
-                    _correctionLevel,
-                    _totalChunks,
-                    _receivedChunks,
-                    _receivedBytes,
-                    _missingChunks.OrderBy(i => i).ToArray(),
-                    _invalidChunks,
-                    _checksumFailures,
-                    _lastUpdated,
-                    _assembled is not null,
-                    _fileChecksum);
+                return BuildSnapshot();
             }
         }
 
@@ -188,15 +188,15 @@ public sealed class QrChunkAssembler
         {
             lock (_sync)
             {
-                if (_dataChunks is null)
-                {
-                    return;
-                }
-
-                _dataChunks.SetAll(false);
-                _missingChunks = new HashSet<int>(Enumerable.Range(0, _totalChunks));
-                _receivedChunks = 0;
-                _receivedBytes = 0;
+                _fileId = Guid.NewGuid();
+                _metadataStream.ResetReceptionState();
+                _dataStream.ResetReceptionState();
+                _metadataParsed = false;
+                _fileName = string.Empty;
+                _fileSize = 0;
+                _chunkSize = 0;
+                _correctionLevel = string.Empty;
+                _fileChecksum = 0;
                 _assembled = null;
                 _checksumFailures = 0;
                 _invalidChunks = 0;
@@ -204,125 +204,44 @@ public sealed class QrChunkAssembler
             }
         }
 
-        private ChunkProcessingResult ProcessMetadata(QrChunkPacket packet)
-        {
-            if (packet.TotalLength > MaxMetadataSize)
-            {
-                return ChunkProcessingResult.InvalidMetadata(_fileId);
-            }
-
-            if (packet.TotalLength == 0)
-            {
-                return ChunkProcessingResult.InvalidMetadata(_fileId);
-            }
-
-            if (_metadataBuffer is null || _metadataBuffer.Length != packet.TotalLength)
-            {
-                StartNewFile(packet.TotalLength);
-            }
-
-            if (_metadataBuffer is null || _metadataReceived is null)
-            {
-                return ChunkProcessingResult.InvalidMetadata(_fileId);
-            }
-
-            if (packet.Offset + packet.Payload.Length > _metadataBuffer.Length)
-            {
-                _invalidChunks++;
-                _lastUpdated = DateTimeOffset.UtcNow;
-                return ChunkProcessingResult.InvalidMetadata(_fileId);
-            }
-
-            var newlyReceived = 0;
-            for (var i = 0; i < packet.Payload.Length; i++)
-            {
-                var index = packet.Offset + i;
-                if (!_metadataReceived[index])
-                {
-                    _metadataReceived[index] = true;
-                    newlyReceived++;
-                }
-
-                _metadataBuffer[index] = packet.Payload[i];
-            }
-
-            if (newlyReceived > 0)
-            {
-                _metadataBytesReceived += newlyReceived;
-                _lastUpdated = DateTimeOffset.UtcNow;
-            }
-
-            if (_metadataBytesReceived >= _metadataBuffer.Length)
-            {
-                if (!TryParseMetadata())
-                {
-                    _invalidChunks++;
-                    return ChunkProcessingResult.InvalidMetadata(_fileId);
-                }
-            }
-
-            return CreateResult(ChunkAcceptanceStatus.Accepted, null);
-        }
-
-        private void StartNewFile(int metadataLength)
-        {
-            _fileId = Guid.NewGuid();
-            _metadataBuffer = new byte[metadataLength];
-            _metadataReceived = new bool[metadataLength];
-            _metadataBytesReceived = 0;
-            _metadataParsed = false;
-            _fileName = string.Empty;
-            _fileSize = 0;
-            _chunkSize = 0;
-            _correctionLevel = string.Empty;
-            _blockSize = 0;
-            _blockChecksums = Array.Empty<uint>();
-            _fileChecksum = 0;
-            _dataBuffer = null;
-            _dataChunks = null;
-            _missingChunks = new HashSet<int>();
-            _totalChunks = 0;
-            _receivedChunks = 0;
-            _receivedBytes = 0;
-            _invalidChunks = 0;
-            _checksumFailures = 0;
-            _assembled = null;
-            _lastUpdated = DateTimeOffset.UtcNow;
-        }
-
         private bool TryParseMetadata()
         {
-            if (_metadataBuffer is null)
+            var metadataLength = _metadataStream.TotalLength ?? 0;
+            if (metadataLength == 0)
+            {
+                return false;
+            }
+
+            var buffer = _metadataStream.GetBuffer();
+            if (buffer.Length < metadataLength)
             {
                 return false;
             }
 
             try
             {
-                using var stream = new MemoryStream(_metadataBuffer, writable: false);
-                using var reader = new BinaryReader(stream);
+                using var stream = new MemoryStream(buffer.Slice(0, metadataLength).ToArray(), writable: false);
+                using var reader = new BinaryReader(stream, Encoding.UTF8);
 
                 var nameLength = reader.ReadByte();
-                if (nameLength > 0)
+                var expectedLength = 1 + nameLength + 2 + 1 + 1 + 4;
+                if (metadataLength != expectedLength)
                 {
-                    var nameBytes = reader.ReadBytes(nameLength);
-                    if (nameBytes.Length != nameLength)
-                    {
-                        return false;
-                    }
+                    return false;
+                }
 
-                    _fileName = Encoding.UTF8.GetString(nameBytes);
-                }
-                else
+                var nameBytes = nameLength > 0 ? reader.ReadBytes(nameLength) : Array.Empty<byte>();
+                if (nameBytes.Length != nameLength)
                 {
-                    _fileName = string.Empty;
+                    return false;
                 }
+
+                _fileName = nameLength > 0 ? Encoding.UTF8.GetString(nameBytes) : string.Empty;
 
                 _fileSize = reader.ReadUInt16();
-                var chunkSize = reader.ReadByte();
+                _chunkSize = reader.ReadByte();
                 var correction = reader.ReadByte();
-                _blockSize = reader.ReadUInt16();
-                var blockCount = reader.ReadUInt16();
+                _correctionLevel = correction == 0 ? string.Empty : ((char)correction).ToString();
                 _fileChecksum = reader.ReadUInt32();
 
                 if (_fileSize > MaxFileSize)
@@ -330,47 +249,21 @@ public sealed class QrChunkAssembler
                     return false;
                 }
 
-                if (_fileSize > 0 && chunkSize == 0)
+                if (_fileSize > 0 && _chunkSize == 0)
                 {
                     return false;
                 }
 
-                _chunkSize = chunkSize;
-                _correctionLevel = correction == 0 ? string.Empty : ((char)correction).ToString();
-
-                if (_blockSize == 0)
-                {
-                    _blockSize = 256;
-                }
-
-                if (blockCount > 1024)
+                if (reader.BaseStream.Position != reader.BaseStream.Length)
                 {
                     return false;
                 }
 
-                var checksums = new uint[blockCount];
-                for (var i = 0; i < blockCount; i++)
+                if (!_dataStream.EnsureTotalLength((ushort)_fileSize))
                 {
-                    if (reader.BaseStream.Position + sizeof(uint) > reader.BaseStream.Length)
-                    {
-                        return false;
-                    }
-
-                    checksums[i] = reader.ReadUInt32();
+                    return false;
                 }
 
-                _blockChecksums = checksums;
-
-                _totalChunks = _fileSize == 0 || _chunkSize == 0
-                    ? (_fileSize == 0 ? 0 : 1)
-                    : (int)Math.Ceiling(_fileSize / (double)_chunkSize);
-
-                _dataBuffer = _fileSize == 0 ? Array.Empty<byte>() : new byte[_fileSize];
-                _dataChunks = _totalChunks > 0 ? new BitArray(_totalChunks) : null;
-                _missingChunks = _totalChunks > 0 ? new HashSet<int>(Enumerable.Range(0, _totalChunks)) : new HashSet<int>();
-                _receivedChunks = 0;
-                _receivedBytes = 0;
-                _assembled = null;
                 _metadataParsed = true;
                 _lastUpdated = DateTimeOffset.UtcNow;
                 return true;
@@ -381,116 +274,31 @@ public sealed class QrChunkAssembler
             }
         }
 
-        private ChunkProcessingResult ProcessData(QrChunkPacket packet)
-        {
-            if (_dataBuffer is null)
-            {
-                return ChunkProcessingResult.InvalidMetadata(_fileId);
-            }
-
-            if (packet.TotalLength != _fileSize)
-            {
-                _invalidChunks++;
-                _lastUpdated = DateTimeOffset.UtcNow;
-                return ChunkProcessingResult.InvalidMetadata(_fileId);
-            }
-
-            if (packet.Offset + packet.Payload.Length > _fileSize)
-            {
-                _invalidChunks++;
-                _lastUpdated = DateTimeOffset.UtcNow;
-                return ChunkProcessingResult.InvalidMetadata(_fileId);
-            }
-
-            if (_fileSize == 0)
-            {
-                return FinalizeFile();
-            }
-
-            if (_chunkSize == 0)
-            {
-                _invalidChunks++;
-                _lastUpdated = DateTimeOffset.UtcNow;
-                return ChunkProcessingResult.InvalidMetadata(_fileId);
-            }
-
-            var chunkIndex = packet.Offset / _chunkSize;
-            if (_dataChunks is null || chunkIndex >= _totalChunks)
-            {
-                _invalidChunks++;
-                _lastUpdated = DateTimeOffset.UtcNow;
-                return ChunkProcessingResult.InvalidMetadata(_fileId);
-            }
-
-            if (packet.Offset % _chunkSize != 0 && chunkIndex != _totalChunks - 1)
-            {
-                _invalidChunks++;
-                _lastUpdated = DateTimeOffset.UtcNow;
-                return ChunkProcessingResult.InvalidMetadata(_fileId);
-            }
-
-            if (_dataChunks[chunkIndex])
-            {
-                _lastUpdated = DateTimeOffset.UtcNow;
-                return CreateResult(ChunkAcceptanceStatus.Duplicate, null);
-            }
-
-            var expectedLength = chunkIndex == _totalChunks - 1
-                ? _fileSize - packet.Offset
-                : _chunkSize;
-
-            if (packet.Payload.Length != expectedLength)
-            {
-                _invalidChunks++;
-                _lastUpdated = DateTimeOffset.UtcNow;
-                return ChunkProcessingResult.InvalidMetadata(_fileId);
-            }
-
-            packet.Payload.CopyTo(_dataBuffer.AsSpan(packet.Offset, packet.Payload.Length));
-            _dataChunks[chunkIndex] = true;
-            _missingChunks.Remove(chunkIndex);
-            _receivedChunks++;
-            _receivedBytes += packet.Payload.Length;
-            _lastUpdated = DateTimeOffset.UtcNow;
-
-            if (_receivedChunks >= _totalChunks)
-            {
-                return FinalizeFile();
-            }
-
-            return CreateResult(ChunkAcceptanceStatus.Accepted, null);
-        }
-
         private ChunkProcessingResult FinalizeFile()
         {
-            var data = _dataBuffer ?? Array.Empty<byte>();
-            if (_fileSize == 0)
+            if (!_dataStream.TotalLength.HasValue || _dataStream.TotalLength.Value != _fileSize)
             {
-                _assembled = Array.Empty<byte>();
+                _invalidChunks++;
                 _lastUpdated = DateTimeOffset.UtcNow;
-                return CreateResult(
-                    ChunkAcceptanceStatus.Accepted,
-                    new AssembledFile(
-                        _fileId,
-                        _fileName,
-                        _fileSize,
-                        _chunkSize,
-                        _correctionLevel,
-                        _fileChecksum,
-                        Array.Empty<byte>()));
+                return CreateResult(ChunkAcceptanceStatus.InvalidMetadata, null);
             }
 
-            if (!VerifyChecksums(data))
+            var expectedLength = _fileSize;
+            var data = expectedLength == 0
+                ? Array.Empty<byte>()
+                : _dataStream.GetBuffer().Slice(0, expectedLength).ToArray();
+
+            var crc = Crc32.Compute(data);
+            if (crc != _fileChecksum)
             {
                 _checksumFailures++;
-                ResetDataChunks();
+                _dataStream.ResetReceptionState();
+                _assembled = null;
                 _lastUpdated = DateTimeOffset.UtcNow;
                 return CreateResult(ChunkAcceptanceStatus.InvalidFileChecksum, null);
             }
 
-            var assembled = new byte[_fileSize];
-            Array.Copy(data, assembled, _fileSize);
-            _assembled = assembled;
+            _assembled = data;
             _lastUpdated = DateTimeOffset.UtcNow;
             return CreateResult(
                 ChunkAcceptanceStatus.Accepted,
@@ -501,80 +309,235 @@ public sealed class QrChunkAssembler
                     _chunkSize,
                     _correctionLevel,
                     _fileChecksum,
-                    assembled));
-        }
-
-        private void ResetDataChunks()
-        {
-            if (_dataChunks is not null)
-            {
-                _dataChunks.SetAll(false);
-            }
-
-            _missingChunks = _totalChunks > 0 ? new HashSet<int>(Enumerable.Range(0, _totalChunks)) : new HashSet<int>();
-            _receivedChunks = 0;
-            _receivedBytes = 0;
-            _assembled = null;
-        }
-
-        private bool VerifyChecksums(ReadOnlySpan<byte> data)
-        {
-            if (_fileChecksum != 0)
-            {
-                var crc = Crc32.Compute(data);
-                if (crc != _fileChecksum)
-                {
-                    return false;
-                }
-            }
-
-            if (_blockChecksums.Length == 0)
-            {
-                return true;
-            }
-
-            for (var blockIndex = 0; blockIndex < _blockChecksums.Length; blockIndex++)
-            {
-                var start = blockIndex * _blockSize;
-                var length = Math.Min(_blockSize, data.Length - start);
-                if (length <= 0)
-                {
-                    break;
-                }
-
-                var checksum = Crc32.Compute(data.Slice(start, length));
-                if (checksum != _blockChecksums[blockIndex])
-                {
-                    return false;
-                }
-            }
-
-            return true;
+                    data));
         }
 
         private ChunkProcessingResult CreateResult(ChunkAcceptanceStatus status, AssembledFile? file)
         {
-            return new ChunkProcessingResult(
-                status,
-                new FileAssemblySnapshot(
-                    _fileId,
-                    _fileName,
-                    _fileSize,
-                    _chunkSize,
-                    _correctionLevel,
-                    _totalChunks,
-                    _receivedChunks,
-                    _receivedBytes,
-                    _missingChunks.OrderBy(i => i).ToArray(),
-                    _invalidChunks,
-                    _checksumFailures,
-                    _lastUpdated,
-                    _assembled is not null,
-                    _fileChecksum),
-                file);
+            return new ChunkProcessingResult(status, BuildSnapshot(), file);
+        }
+
+        private FileAssemblySnapshot BuildSnapshot()
+        {
+            var metadataLength = _metadataStream.TotalLength ?? 0;
+            var metadataReceived = _metadataStream.ReceivedCount;
+            var metadataPrefix = _metadataStream.ContiguousPrefix;
+
+            var totalChunks = _chunkSize > 0 && _fileSize > 0
+                ? (int)Math.Ceiling(_fileSize / (double)_chunkSize)
+                : 0;
+            var missingChunks = CalculateMissingChunks(totalChunks);
+            var receivedChunks = totalChunks - missingChunks.Count;
+
+            var isCompleted = _assembled is not null && _dataStream.TotalLength.HasValue && _dataStream.ReceivedCount >= _dataStream.TotalLength.Value;
+
+            return new FileAssemblySnapshot(
+                _fileId,
+                _fileName,
+                _fileSize,
+                _chunkSize,
+                _correctionLevel,
+                totalChunks,
+                receivedChunks,
+                _dataStream.ReceivedCount,
+                missingChunks,
+                _invalidChunks,
+                _checksumFailures,
+                _lastUpdated,
+                isCompleted,
+                _fileChecksum,
+                metadataLength,
+                metadataReceived,
+                metadataPrefix);
+        }
+
+        private IReadOnlyCollection<int> CalculateMissingChunks(int totalChunks)
+        {
+            if (totalChunks <= 0 || _chunkSize <= 0 || _fileSize <= 0)
+            {
+                return Array.Empty<int>();
+            }
+
+            var bits = _dataStream.ReceivedBits;
+            if (bits is null)
+            {
+                return Array.Empty<int>();
+            }
+
+            var missing = new List<int>();
+            for (var chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++)
+            {
+                var start = chunkIndex * _chunkSize;
+                var end = Math.Min(start + _chunkSize, _fileSize);
+                var complete = true;
+                for (var i = start; i < end; i++)
+                {
+                    if (!bits[i])
+                    {
+                        complete = false;
+                        break;
+                    }
+                }
+
+                if (!complete)
+                {
+                    missing.Add(chunkIndex);
+                }
+            }
+
+            return missing.Count == 0 ? Array.Empty<int>() : missing.ToArray();
         }
     }
 
+    private static ChunkAcceptanceStatus MapStatus(StreamApplyStatus status)
+    {
+        return status switch
+        {
+            StreamApplyStatus.DuplicateOrOverlap => ChunkAcceptanceStatus.Duplicate,
+            _ => ChunkAcceptanceStatus.Accepted
+        };
+    }
+
+    private enum StreamApplyStatus
+    {
+        AcceptedNewData,
+        DuplicateOrOverlap,
+        InvalidTotalLength,
+        OutOfRangeOffset
+    }
+
+    private sealed class ByteStream
+    {
+        private readonly int _maxLength;
+        private readonly bool _trackPrefix;
+
+        private ushort? _declaredLength;
+        private byte[]? _buffer;
+        private BitArray? _receivedBits;
+        private int _receivedCount;
+        private int _contiguousPrefix;
+
+        public ByteStream(int maxLength, bool trackPrefix)
+        {
+            _maxLength = maxLength;
+            _trackPrefix = trackPrefix;
+        }
+
+        public ushort? TotalLength => _declaredLength;
+
+        public bool IsComplete => _declaredLength.HasValue && _receivedCount >= _declaredLength.Value;
+
+        public int ReceivedCount => _receivedCount;
+
+        public int ContiguousPrefix => !_trackPrefix ? 0 : Math.Min(_contiguousPrefix, _declaredLength ?? 0);
+
+        public BitArray? ReceivedBits => _receivedBits;
+
+        public StreamApplyStatus Apply(ushort totalLength, ushort offset, ReadOnlySpan<byte> payload)
+        {
+            if (!EnsureTotalLength(totalLength))
+            {
+                return StreamApplyStatus.InvalidTotalLength;
+            }
+
+            if (_declaredLength == 0)
+            {
+                return StreamApplyStatus.AcceptedNewData;
+            }
+
+            var declaredLength = _declaredLength!.Value;
+
+            if (offset >= declaredLength)
+            {
+                return StreamApplyStatus.OutOfRangeOffset;
+            }
+
+            var writeLength = Math.Min(payload.Length, declaredLength - offset);
+            if (writeLength <= 0)
+            {
+                return StreamApplyStatus.DuplicateOrOverlap;
+            }
+
+            var newBytes = 0;
+            for (var i = 0; i < writeLength; i++)
+            {
+                var index = offset + i;
+                if (!_receivedBits![index])
+                {
+                    _receivedBits[index] = true;
+                    newBytes++;
+                }
+
+                _buffer![index] = payload[i];
+            }
+
+            if (newBytes > 0)
+            {
+                _receivedCount += newBytes;
+                if (_trackPrefix)
+                {
+                    while (_contiguousPrefix < declaredLength && _receivedBits![_contiguousPrefix])
+                    {
+                        _contiguousPrefix++;
+                    }
+                }
+            }
+
+            return newBytes > 0 ? StreamApplyStatus.AcceptedNewData : StreamApplyStatus.DuplicateOrOverlap;
+        }
+
+        public bool EnsureTotalLength(ushort totalLength)
+        {
+            if (!_declaredLength.HasValue)
+            {
+                if (totalLength > _maxLength)
+                {
+                    return false;
+                }
+
+                _declaredLength = totalLength;
+                if (totalLength == 0)
+                {
+                    _buffer = Array.Empty<byte>();
+                    _receivedBits = new BitArray(0);
+                    _receivedCount = 0;
+                    _contiguousPrefix = 0;
+                    return true;
+                }
+
+                _buffer = new byte[totalLength];
+                _receivedBits = new BitArray(totalLength);
+                _receivedCount = 0;
+                _contiguousPrefix = 0;
+                return true;
+            }
+
+            return _declaredLength.Value == totalLength;
+        }
+
+        public ReadOnlyMemory<byte> GetBuffer()
+        {
+            return _buffer is null
+                ? ReadOnlyMemory<byte>.Empty
+                : _buffer.AsMemory(0, _declaredLength ?? _buffer.Length);
+        }
+
+        public void ResetReceptionState()
+        {
+            if (_receivedBits is null)
+            {
+                return;
+            }
+
+            _receivedBits.SetAll(false);
+            _receivedCount = 0;
+            if (_trackPrefix)
+            {
+                _contiguousPrefix = 0;
+            }
+        }
+
+    }
 }
 
 public sealed record FileAssemblySnapshot(
@@ -591,7 +554,10 @@ public sealed record FileAssemblySnapshot(
     int ChecksumFailures,
     DateTimeOffset LastUpdated,
     bool IsCompleted,
-    uint FileChecksum);
+    uint FileChecksum,
+    int MetadataLength,
+    int MetadataReceivedBytes,
+    int MetadataContiguousPrefix);
 
 public sealed record AssembledFile(
     Guid FileId,
@@ -617,7 +583,24 @@ public sealed record ChunkProcessingResult(ChunkAcceptanceStatus Status, FileAss
     {
         return new ChunkProcessingResult(
             ChunkAcceptanceStatus.InvalidMetadata,
-            new FileAssemblySnapshot(fileId, string.Empty, 0, 0, string.Empty, 0, 0, 0, Array.Empty<int>(), 0, 0, DateTimeOffset.UtcNow, false, 0),
+            new FileAssemblySnapshot(
+                fileId,
+                string.Empty,
+                0,
+                0,
+                string.Empty,
+                0,
+                0,
+                0,
+                Array.Empty<int>(),
+                0,
+                0,
+                DateTimeOffset.UtcNow,
+                false,
+                0,
+                0,
+                0,
+                0),
             null);
     }
 }

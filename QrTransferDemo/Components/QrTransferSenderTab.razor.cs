@@ -20,7 +20,7 @@ namespace QrTransferDemo.Components;
 public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
 {
     private const int MaxQueuedFiles = 16;
-    private const int FrameHeaderLength = 6;
+    private const int FrameHeaderLength = 5;
     private const int MinFrameDuration = 50;
     private const int MaxFrameDuration = 5000;
     private const int DefaultFrameDuration = 250;
@@ -493,9 +493,8 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         }
 
         buffer[0] = flags;
-        buffer[1] = (byte)packet.Payload.Length;
-        BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(2, 2), packet.TotalLength);
-        BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(4, 2), packet.Offset);
+        BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(1, 2), packet.TotalLength);
+        BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(3, 2), packet.Offset);
         packet.Payload.CopyTo(buffer.AsSpan(FrameHeaderLength));
         return buffer;
     }
