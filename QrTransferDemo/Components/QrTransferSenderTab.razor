@@ -216,6 +216,10 @@
                     @if (!string.IsNullOrEmpty(_currentQrMarkup))
                     {
                         @((MarkupString)_currentQrMarkup)
+                        @if (!string.IsNullOrEmpty(_currentPayloadHex))
+                        {
+                            <div class="mt-3 small text-break text-muted font-monospace">@_currentPayloadHex</div>
+                        }
                     }
                     else
                     {

@@ -39,6 +39,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     private string? _statusMessage;
     private string? _errorMessage;
     private string _captureSource = CaptureSourceScreen;
+    private string? _lastPayloadHex;
     private CancellationTokenSource? _captureCts;
     private Task? _captureTask;
     private int _decodeGuard;
@@ -181,6 +182,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             _acceptedPackets = 0;
             _consecutiveCaptureMisses = 0;
             _consecutiveDecodeFailures = 0;
+            _lastPayloadHex = null;
             _captureTask = RunCaptureLoopAsync(_captureCts.Token);
             LogDiagnostic($"Capture started using {_captureSource} source.");
         }
@@ -253,6 +255,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         _statusMessage ??= "Capture stopped.";
         _observedIntervalMs = null;
         _lastFrameTimestamp = 0;
+        _lastPayloadHex = null;
         await InvokeAsync(StateHasChanged);
         LogDiagnostic("Capture loop stopped.");
     }
@@ -358,16 +361,16 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         _lastFrameTimestamp = now;
     }
 
-    private Task ProcessFrameAsync(int width, int height, byte[] pixels)
+    private async Task ProcessFrameAsync(int width, int height, byte[] pixels)
     {
         if (width <= 0 || height <= 0 || pixels.Length == 0)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         if (Interlocked.CompareExchange(ref _decodeGuard, 1, 0) != 0)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         byte[]? decoded = null;
@@ -391,13 +394,14 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
         if (decodeError is not null)
         {
-            return InvokeAsync(() =>
+            await InvokeAsync(() =>
             {
                 _errorMessage = decodeError.Message;
                 _statusMessage = null;
                 StateHasChanged();
                 LogDiagnostic($"Frame decode threw an exception: {decodeError.Message}");
             });
+            return;
         }
 
         if (decoded is null || decoded.Length == 0)
@@ -407,14 +411,21 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             {
                 LogDiagnostic($"Frame decode returned no payload (failures: {failureCount}).");
             }
-            return Task.CompletedTask;
+            return;
         }
 
         Interlocked.Exchange(ref _consecutiveDecodeFailures, 0);
         var decodedCount = Interlocked.Increment(ref _decodedFrames);
         LogDiagnostic($"Decoded frame #{decodedCount} with payload length {decoded.Length} bytes.");
 
-        return HandleDecodedPayloadAsync(decoded);
+        var hexPayload = Convert.ToHexString(decoded);
+        await InvokeAsync(() =>
+        {
+            _lastPayloadHex = hexPayload;
+            StateHasChanged();
+        });
+
+        await HandleDecodedPayloadAsync(decoded);
     }
 
     private Task HandleDecodedPayloadAsync(byte[] payload)

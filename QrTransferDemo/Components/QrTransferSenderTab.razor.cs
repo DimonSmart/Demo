@@ -41,6 +41,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     private bool _isDragging;
     private int _dragCounter;
     private string? _currentQrMarkup;
+    private string? _currentPayloadHex;
 
     private int _selectedQrVersion = 10;
     private int _frameDuration = DefaultFrameDuration;
@@ -445,6 +446,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     private Task RenderPacketAsync(QrChunkPacket packet)
     {
         var payload = SerializePacket(packet);
+        _currentPayloadHex = Convert.ToHexString(payload);
         _currentQrMarkup = CreateQrMarkup(payload);
         return Task.CompletedTask;
     }
@@ -452,6 +454,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     private Task RenderEmptyAsync()
     {
         _currentQrMarkup = null;
+        _currentPayloadHex = null;
         return Task.CompletedTask;
     }
 
@@ -505,6 +508,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         }
         _canRestart = _queue.Count > 0;
         _currentQrMarkup = null;
+        _currentPayloadHex = null;
         _isRunning = false;
         _transmissionError = null;
         ExitFullscreen();
@@ -526,6 +530,8 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         return InvokeAsync(() =>
         {
             _isRunning = false;
+            _currentQrMarkup = null;
+            _currentPayloadHex = null;
             ExitFullscreen();
             StateHasChanged();
         });
@@ -538,6 +544,8 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         {
             _isRunning = false;
             _transmissionError = message;
+            _currentQrMarkup = null;
+            _currentPayloadHex = null;
             ExitFullscreen();
             StateHasChanged();
         });
