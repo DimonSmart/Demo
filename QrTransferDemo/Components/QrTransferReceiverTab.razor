@@ -77,6 +77,13 @@
                 {
                     <div class="alert alert-info" role="status">@_statusMessage</div>
                 }
+                @if (!string.IsNullOrEmpty(_lastPayloadHex))
+                {
+                    <div class="mb-3">
+                        <label class="form-label">Last payload (hex)</label>
+                        <div class="form-control-plaintext small font-monospace text-break">@_lastPayloadHex</div>
+                    </div>
+                }
                 <div class="btn-toolbar gap-2 mb-3" role="toolbar">
                     <div class="btn-group">
                         <button class="btn btn-primary" @onclick="StartCaptureAsync" disabled="@_isStarting">Start</button>
