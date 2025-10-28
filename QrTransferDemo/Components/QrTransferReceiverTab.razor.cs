@@ -539,7 +539,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     {
         try
         {
-            if (payload.Length < 6)
+            if (payload.Length < 5)
             {
                 throw new InvalidOperationException("Frame is too short.");
             }
@@ -552,22 +552,29 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             }
 
             var fileIndex = (byte)(flags & 0x0F);
+            if (fileIndex >= 16)
+            {
+                throw new InvalidOperationException("File index is out of range.");
+            }
+
             var isMetadata = (flags & 0x80) != 0;
-            var payloadLength = payload[1];
-            var totalLength = BinaryPrimitives.ReadUInt16LittleEndian(payload[2..4]);
-            var offset = BinaryPrimitives.ReadUInt16LittleEndian(payload[4..6]);
+            var totalLength = BinaryPrimitives.ReadUInt16LittleEndian(payload[1..3]);
+            var offset = BinaryPrimitives.ReadUInt16LittleEndian(payload[3..5]);
 
-            if (payloadLength != payload.Length - 6)
+            if (totalLength == 0)
             {
-                throw new InvalidOperationException("Payload length mismatch.");
+                if (offset != 0)
+                {
+                    throw new InvalidOperationException("Offset must be zero for empty streams.");
+                }
+            }
+            else if (offset >= totalLength)
+            {
+                throw new InvalidOperationException("Offset exceeds declared length.");
             }
 
-            if (totalLength > 0 && offset + payloadLength > totalLength)
-            {
-                throw new InvalidOperationException("Chunk exceeds declared length.");
-            }
-
-            var data = payloadLength == 0 ? Array.Empty<byte>() : payload.Slice(6, payloadLength).ToArray();
+            var payloadLength = payload.Length - 5;
+            var data = payloadLength == 0 ? Array.Empty<byte>() : payload.Slice(5).ToArray();
             packet = new QrChunkPacket(fileIndex, isMetadata, offset, totalLength, data);
             error = null;
             return true;
@@ -706,6 +713,12 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
         public uint FileChecksum { get; private set; }
 
+        public int MetadataLength { get; private set; }
+
+        public int MetadataReceivedBytes { get; private set; }
+
+        public int MetadataContiguousPrefix { get; private set; }
+
         public byte[]? Data { get; private set; }
 
         public string? DownloadUrl { get; private set; }
@@ -767,6 +780,9 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             ChecksumFailures = snapshot.ChecksumFailures;
             FileChecksum = snapshot.FileChecksum;
             LastUpdated = snapshot.LastUpdated;
+            MetadataLength = snapshot.MetadataLength;
+            MetadataReceivedBytes = snapshot.MetadataReceivedBytes;
+            MetadataContiguousPrefix = snapshot.MetadataContiguousPrefix;
             if (file is not null)
             {
                 Data = file.Data.ToArray();
@@ -791,6 +807,9 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             ChunkSize = 0;
             CorrectionLevel = string.Empty;
             LastUpdated = DateTimeOffset.UtcNow;
+            MetadataLength = 0;
+            MetadataReceivedBytes = 0;
+            MetadataContiguousPrefix = 0;
         }
 
         private static string CreateDownloadUrl(byte[] data)
