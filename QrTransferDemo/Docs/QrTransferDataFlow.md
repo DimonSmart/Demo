@@ -1,70 +1,95 @@
 # QR Transfer Data Flow Analysis
 
-## Обзор
-Вкладка **QR Transfer** генерирует последовательность QR-кадров, каждый из которых кодирует бинарный пакет. Пакеты делятся на два типа:
+## Overview
 
-* **Метаданные** — сообщают сведения о файле и подготовительных параметрах.
-* **Данные** — несут байты самого файла.
+The **QR Transfer** tab generates a sequence of QR frames, each encoding a binary packet of either **metadata** or **data** stream. Reception is resilient to drops, duplicates, and late start: assembling is idempotent and based on offsets and a bitmask of received bytes. Typically, metadata are transmitted first, followed by data; however, the receiver may accept data before metadata and validate them after the metadata are parsed.
 
-Перед началом передачи данных для выбранного файла всегда отправляется полный поток метаданных. После этого передаются пакеты с данными файла. Каждый файл обслуживается в собственной файловой ячейке (индексы 0–15). Ниже описаны формат кадра, алгоритм отправителя и алгоритм приёмника.
+Each file is served by its own file slot (indexes 0–15).
 
-## Формат кадра передачи
-Бинарный кадр формируется в `QrTransferSenderTab.SerializePacket` и включает шестибайтный заголовок, за которым следует полезная нагрузка.【F:QrTransferDemo/Components/QrTransferSenderTab.razor.cs†L486-L500】
+## Transmission Frame Format
 
-| Смещение | Размер | Описание |
-| --- | --- | --- |
-| 0 | 1 | Флаги: бит 7 = 1 для метаданных, 0 = данные; биты 0–3 содержат индекс файла; биты 4–6 зарезервированы и всегда нули. |
-| 1 | 1 | Длина полезной нагрузки в байтах (0–255). |
-| 2 | 2 | Общая длина соответствующего потока (метаданных или данных) в байтах, little-endian. |
-| 4 | 2 | Смещение полезной нагрузки внутри потока в байтах, little-endian. |
-| 6 | *N* | Сырые байты полезной нагрузки. |
+A frame is formed in `QrTransferSenderTab.SerializePacket` and includes a **5-byte** header followed by the payload.
 
-Перед сериализацией файлы разбиваются на пакеты `QrChunkBuilder.SplitIntoPackets`, что гарантирует соблюдение ограничений заголовка (длина ≤ 255, смещения и длины ≤ 65535).【F:QrTransferDemo/Services/QrChunkBuilder.cs†L33-L73】
+| Offset | Size | Description                                                                                                       |
+| ------ | ---- | ----------------------------------------------------------------------------------------------------------------- |
+| 0      | 1    | **Flags**: bit7 = 1 → metadata, 0 → data; bit0–3 — file index `0–15`; bit4–6 — reserved and set to zero.          |
+| 1      | 2    | **Total stream length** (metadata or data) in bytes, `ushort` little-endian (`0–65535`).                          |
+| 3      | 2    | **Offset** of the payload within the stream, `ushort` little-endian.                                              |
+| 5      | *N*  | **Payload** (raw bytes). The length is **not transmitted** and is computed by the receiver as `frame.Length - 5`. |
 
-## Формат метаданных
-Метаданные строятся в `QrChunkBuilder.BuildMetadata` и включают параметры передачи и контрольные суммы CRC-32 для каждого блока размера 256 байт (по умолчанию).【F:QrTransferDemo/Services/QrChunkBuilder.cs†L12-L108】
+Chunking is performed in `QrChunkBuilder.SplitIntoPackets`. Chunks have size `chunkSize` (the last one may be shorter). Constraints: `offset ∈ [0, totalLength]`, `offset + chunkLen ≤ totalLength`. The `chunkSize` parameter is chosen according to the QR capacity for the selected error-correction level.
 
-| Смещение | Размер | Описание |
-| --- | --- | --- |
-| 0 | 1 | Длина имени файла в UTF-8. |
-| 1 | *N* | Имя файла в кодировке UTF-8. |
-| 1 + *N* | 2 | Размер файла в байтах (0–65535). |
-| 3 + *N* | 1 | Размер чанка, используемый при передаче (в байтах). |
-| 4 + *N* | 1 | Уровень коррекции ошибок QR (ASCII-символ или `0`, если не указан). |
-| 5 + *N* | 2 | Размер блока для контрольных сумм (по умолчанию 256). |
-| 7 + *N* | 2 | Количество блоков контрольных сумм. |
-| 9 + *N* | 4 | CRC-32 всего файла (0, если не используется). |
-| 13 + *N* | `4 × count` | CRC-32 для каждого блока по `blockSize` байт. |
+## Metadata Format
 
-Алгоритм CRC-32 использует стандартный многочлен `0xEDB88320` и реализован в `Utilities/Crc32`.【F:QrTransferDemo/Utilities/Crc32.cs†L5-L33】
+Metadata are built in `QrChunkBuilder.BuildMetadata` and contain transfer parameters and **a single** CRC-32 checksum for the entire file.
 
-## Алгоритм отправителя
-1. Пользователь выбирает файлы; каждый файл получает индекс (0–15) и буфер байтов.
-2. `QrChunkBuilder.BuildPackets` создаёт список пакетов: сначала поток метаданных, затем поток данных. Метаданные и данные разбиваются на чанки размера `chunkSize` либо остаток для последнего чанка.【F:QrTransferDemo/Services/QrChunkBuilder.cs†L15-L73】
-3. Цикл передачи в `QrTransferSenderTab` извлекает очередной пакет, сериализует его в шестибайтный заголовок + полезную нагрузку и генерирует QR-код через `QrCode.EncodeSegments`.【F:QrTransferDemo/Components/QrTransferSenderTab.razor.cs†L348-L500】
-4. Таймер кадра (`_frameDuration`) определяет паузу между QR-кадрами; пустые кадры не генерируются, если очередь пуста.
-5. Перед переходом к следующему файлу отправитель убеждается, что все пакеты (метаданные и данные) для текущего файла были показаны.
+| Offset  | Size | Description                                                        |
+| ------- | ---- | ------------------------------------------------------------------ |
+| 0       | 1    | File name length in UTF‑8 = `L`.                                   |
+| 1       | *L*  | File name (UTF‑8).                                                 |
+| 1 + *L* | 2    | File size `fileSize` in bytes (`0–65535`).                         |
+| 3 + *L* | 1    | Chunk size `chunkSize` (bytes).                                    |
+| 4 + *L* | 1    | QR error-correction level (ASCII character or `0` if unspecified). |
+| 5 + *L* | 4    | **CRC‑32 of the entire file** (polynomial `0xEDB88320`).           |
 
-## Формат кадра приёма
-После захвата изображения `QrFrameDecoder.TryDecode` извлекает сырые байты QR-кода. Далее `QrTransferReceiverTab.TryParsePacket` интерпретирует шестибайтный заголовок и полезную нагрузку, проверяя:
+## Sender Algorithm
 
-* корректность зарезервированных битов;
-* совпадение объявленной длины полезной нагрузки с фактической;
-* отсутствие выхода за пределы потока (offset + length ≤ totalLength, если totalLength > 0).【F:QrTransferDemo/Components/QrTransferReceiverTab.razor.cs†L372-L413】【F:QrTransferDemo/Components/QrTransferReceiverTab.razor.cs†L538-L571】
+1. The user selects files; each is assigned an index (0–15) and a byte buffer.
+2. `QrChunkBuilder.BuildPackets` creates queues: a metadata stream, then a data stream. Both streams are split into chunks by `chunkSize`.
+3. The transmission loop in `QrTransferSenderTab` forms a frame for each chunk with a 5‑byte header `(flags, totalLength, offset)` and the payload. The QR code is generated via `QrCode.EncodeSegments`.
+4. The frame timer (`_frameDuration`) sets a pause between QR frames; if the queue is empty, frames are not generated.
+5. For each index, the content (metadata/data) is immutable and the cycle is repeated as needed for robust reception.
 
-Парсер возвращает `QrChunkPacket`, который затем передаётся в сборщик чанков.
+## Reception Frame Format
 
-## Алгоритм приёмника
-1. `QrFrameDecoder.TryDecode` преобразует RGBA-кадр в яркостный буфер ZXing и декодирует QR-код. Если байты получены, они отправляются в `HandleDecodedPayloadAsync`.【F:QrTransferDemo/Services/QrFrameDecoder.cs†L12-L73】【F:QrTransferDemo/Components/QrTransferReceiverTab.razor.cs†L362-L420】
-2. `TryParsePacket` проверяет заголовок, отделяет флаги и формирует `QrChunkPacket` для соответствующего файла. Ошибки парсинга фиксируются и отображаются пользователю.【F:QrTransferDemo/Components/QrTransferReceiverTab.razor.cs†L538-L571】
-3. `QrChunkAssembler.ProcessChunk` помещает пакет в буфер файла по индексу. Метаданные и данные обрабатываются раздельно:
-   * **Метаданные**: байты копируются в буфер. При полном наборе вызывается `TryParseMetadata`, который извлекает все поля, проверяет ограничения (индексы, размер файла, размер чанка) и подготавливает структуры для данных.【F:QrTransferDemo/Services/QrChunkAssembler.cs†L70-L209】
-   * **Данные**: проверяются смещения, длина чанка и соответствие заявленному размеру. Пакет копируется в итоговый буфер; дубликаты игнорируются. После получения всех чанков запускается `FinalizeFile`, где проверяются CRC-32 блока и файла. При успехе формируется `AssembledFile`.【F:QrTransferDemo/Services/QrChunkAssembler.cs†L210-L366】
-4. Снимок состояния (`FileAssemblySnapshot`) обновляет UI: прогресс, список недостающих чанков, ошибки CRC и т. д.【F:QrTransferDemo/Services/QrChunkAssembler.cs†L22-L69】【F:QrTransferDemo/Services/QrChunkAssembler.cs†L367-L420】
+After capturing an image, `QrFrameDecoder.TryDecode` extracts the QR raw bytes. Next, `QrTransferReceiverTab.TryParsePacket` interprets the **5‑byte** header and payload, checking:
 
-## Сравнение форматов передачи и приёма
-* **Заголовок кадра**: отправитель и приёмник используют одинаковый шестибайтный формат (флаги, длина, общая длина, смещение). Отправитель записывает значения в `SerializePacket`, приёмник считывает теми же типами (`byte`, `ushort`) и проверяет длину и границы. Никаких преобразований порядка байт не производится, обе стороны используют little-endian для 16-битных полей.【F:QrTransferDemo/Components/QrTransferSenderTab.razor.cs†L486-L500】【F:QrTransferDemo/Components/QrTransferReceiverTab.razor.cs†L538-L571】
-* **Метаданные**: структура байтов, созданная `BuildMetadata`, полностью совпадает с тем, что ожидает `TryParseMetadata`. Имя файла, размеры, уровень коррекции, размер блока и контрольные суммы CRC-32 читаются в той же последовательности и типах на обеих сторонах.【F:QrTransferDemo/Services/QrChunkBuilder.cs†L84-L108】【F:QrTransferDemo/Services/QrChunkAssembler.cs†L126-L209】
-* **Чанки данных**: отправитель делит потоки с помощью `SplitIntoPackets`, гарантируя, что последний чанк имеет корректную длину. Приёмник пересчитывает ожидаемую длину по смещению и заявленному размеру, выявляя дубликаты и выход за границы. Данные копируются напрямую без дополнительных преобразований. 【F:QrTransferDemo/Services/QrChunkBuilder.cs†L58-L73】【F:QrTransferDemo/Services/QrChunkAssembler.cs†L210-L301】
+* correctness of reserved bits and the file index range;
+* initial fixation of the stream `totalLength` upon the first frame;
+* no out‑of‑bounds writes: `offset < totalLength`; write is limited to `writeLen = min(payloadLength, totalLength - offset)`; any trailing excess is ignored.
 
-Таким образом, форматы передачи и приёма идентичны. Ошибки декодирования, скорее всего, возникают из-за внешних факторов (качество сканирования, повреждённые кадры) либо из-за нарушений ограничений заголовка/метаданных, которые детектирует приёмник и помечает как `InvalidMetadata` или `InvalidFileChecksum`.
+The parser returns a `QrChunkPacket`, which is then passed to the chunk assembler.
+
+## Receiver Algorithm
+
+Assembly is idempotent, tolerates drops, duplicates, and starting not from the first frame.
+
+**Per‑stream structures (metadata/data):**
+
+* `buffer[0..totalLength)`,
+* bitmask `received[0..totalLength)` (1 bit per byte),
+* `receivedCount` — number of uniquely received bytes,
+* for metadata — `contiguousPrefix` — the maximum hole‑free prefix.
+
+**Applying a frame:**
+
+1. If the stream `totalLength` is not yet known — fix it from the frame, allocate `buffer` and `received` of the required length.
+2. If `offset ≥ totalLength` — ignore the frame.
+3. `payloadLength = frame.Length - 5`, `writeLen = min(payloadLength, totalLength - offset)`; copy `writeLen` bytes, set bits in `received`, update `receivedCount`. Duplicates are harmless.
+4. For metadata, update `contiguousPrefix` (while bits are set consecutively starting from zero).
+
+**Metadata readiness:** when `contiguousPrefix == totalLength` — run `TryParseMetadata`. Until then, metadata are not parsed, but data frames may be accepted and laid out according to the bitmask.
+
+**Data readiness and completion:** when `receivedCount == totalLength` — compute CRC‑32 of the entire file and compare with the metadata. If equal — emit `AssembledFile`; otherwise — `InvalidFileChecksum` and wait for correct frames in the next cycle.
+
+**Errors and diagnostics:**
+
+* `InvalidFlags` — reserved bits violated / index out of range;
+* `InvalidTotalLength` — mismatch of `totalLength` within one stream;
+* `OutOfRangeOffset` — `offset ≥ totalLength`;
+* `InvalidMetadata` — failed to parse metadata after full assembly;
+* `InvalidFileChecksum` — file CRC‑32 mismatch.
+
+> Excluded: `InvalidChunkLength` — payload length is not part of the protocol; extra bytes are trimmed, missing bytes are supplied by subsequent frames.
+
+## State Snapshot and UI
+
+`FileAssemblySnapshot` reflects assembly progress and state: overall progress (`receivedCount/totalLength`), metadata `contiguousPrefix`, list of yet‑to‑be‑received ranges, CRC errors, etc.
+
+## Transmission vs. Reception Formats
+
+* **Frame header**: unified **5‑byte** format `(flags, totalLength, offset)`; 16‑bit fields are little‑endian. There is no explicit “payload length” field — the receiver uses the actual frame size.
+* **Metadata**: structure created by `BuildMetadata` matches `TryParseMetadata` expectations; a **single CRC‑32** is applied to the entire file.
+* **Data chunks**: the sender splits streams into chunks of size `chunkSize`; the receiver writes within buffer bounds, duplicates are idempotent, gaps are filled by repeating the cycle.
+
+Thus, the format is resilient to drops, duplicates, and late start. The integrity of the result is checked with a single CRC‑32 after full assembly.
