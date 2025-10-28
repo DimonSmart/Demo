@@ -447,6 +447,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     {
         var payload = SerializePacket(packet);
         _currentPayloadHex = Convert.ToHexString(payload);
+        Logger.LogDebug("Frame payload: {PayloadHex}", _currentPayloadHex);
         _currentQrMarkup = CreateQrMarkup(payload);
         return Task.CompletedTask;
     }
@@ -522,6 +523,36 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     private void ExitFullscreen()
     {
         _isFullscreen = false;
+    }
+
+    private string GetTransmissionStatus()
+    {
+        if (_isRunning)
+        {
+            return "Running";
+        }
+
+        if (!string.IsNullOrEmpty(_transmissionError))
+        {
+            return "Error";
+        }
+
+        return _loopStarted ? "Paused" : "Stopped";
+    }
+
+    private string GetTransmissionBadgeClass()
+    {
+        if (_isRunning)
+        {
+            return "text-bg-success";
+        }
+
+        if (!string.IsNullOrEmpty(_transmissionError))
+        {
+            return "text-bg-danger";
+        }
+
+        return _loopStarted ? "text-bg-warning" : "text-bg-secondary";
     }
 
     private Task StopTransmissionAsync(string reason)
