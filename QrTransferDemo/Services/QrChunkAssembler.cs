@@ -302,12 +302,6 @@ public sealed class QrChunkAssembler
                 using var stream = new MemoryStream(_metadataBuffer, writable: false);
                 using var reader = new BinaryReader(stream);
 
-                var version = reader.ReadByte();
-                if (version < 1 || version > 2)
-                {
-                    return false;
-                }
-
                 var nameLength = reader.ReadByte();
                 if (nameLength > 0)
                 {

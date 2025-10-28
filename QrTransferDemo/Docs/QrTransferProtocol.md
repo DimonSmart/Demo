@@ -23,13 +23,15 @@ ows:
 
 | Offset | Size | Description |
 | --- | --- | --- |
-| 0 | 1 | Metadata format version (currently `1`). |
-| 1 | 1 | UTF-8 file name length in bytes. |
-| 2 | _N_ | UTF-8 encoded file name (N bytes). |
-| 2 + _N_ | 2 | Little-endian file size in bytes (0–65535). |
-| 4 + _N_ | 2 | Chunk size used for checksums. The sender always writes `256`. |
-| 6 + _N_ | 2 | Number of checksum entries. |
-| 8 + _N_ | `2 × count` | Sequence of 16-bit block checksums for every 256-byte slice of the file. Each checksum is the sum of the block’s bytes mod 65536. |
+| 0 | 1 | UTF-8 file name length in bytes. |
+| 1 | _N_ | UTF-8 encoded file name (N bytes). |
+| 1 + _N_ | 2 | Little-endian file size in bytes (0–65535). |
+| 3 + _N_ | 1 | Chunk size used for payload slicing (in bytes). |
+| 4 + _N_ | 1 | QR correction level as an ASCII character (`L`, `M`, `Q`, `H`) or `0` if unspecified. |
+| 5 + _N_ | 2 | Metadata block size (defaults to `256`). |
+| 7 + _N_ | 2 | Number of checksum entries. |
+| 9 + _N_ | 4 | CRC-32 of the entire file (0 if omitted). |
+| 13 + _N_ | `4 × count` | CRC-32 for each consecutive block of `blockSize` bytes. |
 
 An empty file still yields a metadata stream (with zero checksums) and a data frame whose payload length is zero.
 
@@ -50,8 +52,7 @@ The subtraction accounts for the 6-byte transport header. If the selected QR con
 ables transmission.
 
 ## Transmission loop
-1. The operator enqueues files via drag-and-drop or the file picker. `QrChunkBuilder` splits every file into 255-byte slices (or 
-smaller for the last chunk) and creates both metadata and data packets.
+1. The operator enqueues files via drag-and-drop or the file picker. `QrChunkBuilder` splits every file into slices up to the configured chunk size (capped at 255 bytes) and creates both metadata and data packets.
 2. When the Start button is pressed, the sender iterates over the queue. For each file it emits the metadata frames once, followe
 d by the data frames in offset order. The UI highlights the current file and shows progress in chunks.
 3. Once the data stream reaches the declared total length, the file is marked as completed and the sender advances to the next pe
