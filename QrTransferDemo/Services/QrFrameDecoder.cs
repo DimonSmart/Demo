@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ZXing;
 using ZXing.Common;
 
@@ -61,9 +62,46 @@ public sealed class QrFrameDecoder
                 }
 
                 var result = _reader.Decode(luminance);
-                if (result is { RawBytes.Length: > 0 })
+                if (result is null)
                 {
-                    payload = result.RawBytes;
+                    return false;
+                }
+
+                if (TryGetByteSegments(result.ResultMetadata, out var segments))
+                {
+                    var totalLength = 0;
+                    foreach (var segment in segments)
+                    {
+                        if (segment is { Length: > 0 })
+                        {
+                            totalLength += segment.Length;
+                        }
+                    }
+
+                    if (totalLength > 0)
+                    {
+                        var assembled = new byte[totalLength];
+                        var offset = 0;
+                        foreach (var segment in segments)
+                        {
+                            if (segment is { Length: > 0 })
+                            {
+                                Buffer.BlockCopy(segment, 0, assembled, offset, segment.Length);
+                                offset += segment.Length;
+                            }
+                        }
+
+                        payload = assembled;
+                        return true;
+                    }
+                }
+
+                if (result.RawBytes is { Length: > 0 })
+                {
+                    var bytes = result.RawBytes;
+                    var copy = new byte[bytes.Length];
+                    Buffer.BlockCopy(bytes, 0, copy, 0, bytes.Length);
+                    payload = copy;
                     return true;
                 }
             }
@@ -75,5 +113,22 @@ public sealed class QrFrameDecoder
         }
 
         return false;
+    }
+
+    private static bool TryGetByteSegments(IDictionary<ResultMetadataType, object>? metadata, out IList<byte[]> segments)
+    {
+        segments = Array.Empty<byte[]>();
+        if (metadata is null || metadata.Count == 0)
+        {
+            return false;
+        }
+
+        if (!metadata.TryGetValue(ResultMetadataType.BYTE_SEGMENTS, out var raw) || raw is not IList<byte[]> list || list.Count == 0)
+        {
+            return false;
+        }
+
+        segments = list;
+        return true;
     }
 }
