@@ -4,6 +4,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<IsTrimmable>false</IsTrimmable>
   </PropertyGroup>
 
   <ItemGroup>
