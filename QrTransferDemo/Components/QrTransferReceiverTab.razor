@@ -4,15 +4,17 @@
         background-color: var(--bs-gray-100);
         border-radius: 0.5rem;
         overflow: hidden;
-        min-height: 240px;
+        min-height: 160px;
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 0.5rem;
     }
 
     .capture-preview video {
-        width: 100%;
+        max-width: 100%;
         height: auto;
+        max-height: 180px;
         display: block;
     }
 
@@ -53,8 +55,8 @@
     }
 </style>
 
-<div class="row g-4">
-    <div class="col-12 col-xl-5">
+<div class="row g-3">
+    <div class="@CaptureColumnClass">
         <div class="card h-100">
             <div class="card-header d-flex align-items-center justify-content-between">
                 <span>Screen capture</span>
@@ -112,7 +114,7 @@
                 </div>
             </div>
         </div>
-        <div class="card mt-4">
+        <div class="card mt-3">
             <div class="card-header d-flex align-items-center justify-content-between">
                 <span>Diagnostics</span>
                 <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDiagnosticsAsync" disabled="@(!HasDiagnostics)">Clear log</button>
@@ -139,7 +141,7 @@
             </div>
         </div>
     </div>
-    <div class="col-12 col-xl-7">
+    <div class="@ReceivedColumnClass">
         <div class="card h-100">
             <div class="card-header d-flex align-items-center justify-content-between">
                 <span>Received files</span>

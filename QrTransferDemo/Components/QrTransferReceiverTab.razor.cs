@@ -81,6 +81,10 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
     private bool HasFiles => _files.Count > 0;
 
+    private string CaptureColumnClass => HasFiles ? "col-12 col-xl-5 order-2 order-xl-2" : "col-12 col-xl-5 order-1 order-xl-1";
+
+    private string ReceivedColumnClass => HasFiles ? "col-12 order-1 order-xl-1" : "col-12 col-xl-7 order-2 order-xl-2";
+
     private string CaptureSource
     {
         get => _captureSource;
