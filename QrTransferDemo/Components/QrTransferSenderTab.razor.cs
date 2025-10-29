@@ -284,6 +284,21 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         StateHasChanged();
     }
 
+    private void OnQrPreviewClick()
+    {
+        if (_isRunning)
+        {
+            Pause();
+            return;
+        }
+
+        if (_isFullscreen)
+        {
+            ExitFullscreen();
+            StateHasChanged();
+        }
+    }
+
     private async Task RestartAsync()
     {
         if (!_canRestart)

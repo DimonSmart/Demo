@@ -38,6 +38,10 @@
         padding: 0.5rem;
     }
 
+    .qr-preview.clickable {
+        cursor: pointer;
+    }
+
     .qr-frame {
         width: min(90vmin, 100%);
         aspect-ratio: 1;
@@ -211,7 +215,10 @@
     <div class="card-body">
         <div class="row g-3 transmission-layout">
             <div class="col-lg-6">
-                <div class="qr-preview">
+                <div class="qr-preview @(_isFullscreen ? "clickable" : string.Empty)"
+                     @onclick="OnQrPreviewClick"
+                     role="@(_isFullscreen ? "button" : null)"
+                     aria-label="@(_isFullscreen ? "Stop transmission" : null)">
                     @if (!string.IsNullOrEmpty(_currentQrMarkup))
                     {
                         @((MarkupString)_currentQrMarkup)
