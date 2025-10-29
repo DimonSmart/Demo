@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "Demo",
   "resources": {
-    "hash": "sha256-1pCNW3CbfLs2u/eUQv4j6gIHP0ghgg+AepWTVUFnsZc=",
+    "hash": "sha256-h4vCGTTNjfB9QhtfnnKG5jY+CDbxXakQ5G+sR30SP5I=",
     "fingerprinting": {
       "Azure.AI.OpenAI.ecygy6jkg0.wasm": "Azure.AI.OpenAI.wasm",
       "Azure.Core.hkbwo49z6f.wasm": "Azure.Core.wasm",
@@ -144,13 +144,13 @@
       "System.8rv0tdtrxz.wasm": "System.wasm",
       "netstandard.axaccz7kgl.wasm": "netstandard.wasm",
       "System.Private.CoreLib.h8g5xzxpm3.wasm": "System.Private.CoreLib.wasm",
-      "Demo.Abstractions.d0ziybyw4m.wasm": "Demo.Abstractions.wasm",
-      "GeneticAlgorithm.0idvk42vd9.wasm": "GeneticAlgorithm.wasm",
-      "MarkdownToWordDemo.jppxutrhpa.wasm": "MarkdownToWordDemo.wasm",
-      "QrTransferDemo.2ce9as4blp.wasm": "QrTransferDemo.wasm",
-      "Demo.kk12mhsjnx.wasm": "Demo.wasm",
+      "Demo.Abstractions.94760y3v09.wasm": "Demo.Abstractions.wasm",
+      "GeneticAlgorithm.24nwq4279w.wasm": "GeneticAlgorithm.wasm",
+      "MarkdownToWordDemo.np6eqj0d8k.wasm": "MarkdownToWordDemo.wasm",
+      "QrTransferDemo.8f3w6hvv4d.wasm": "QrTransferDemo.wasm",
+      "Demo.fwn9t36mns.wasm": "Demo.wasm",
       "dotnet.native.5qeaqwdssi.js": "dotnet.native.js",
-      "dotnet.native.euods4wp0a.wasm": "dotnet.native.wasm",
+      "dotnet.native.y74ny7qhrm.wasm": "dotnet.native.wasm",
       "dotnet.js": "dotnet.js",
       "dotnet.runtime.drv0pr9n5o.js": "dotnet.runtime.js",
       "icudt_CJK.tjcz0u77k5.dat": "icudt_CJK.dat",
@@ -164,7 +164,7 @@
       "dotnet.runtime.drv0pr9n5o.js": "sha256-yfXUv1l/B489E8p12JxUvxly0JvHL9CCsoZUDlfGH9c="
     },
     "wasmNative": {
-      "dotnet.native.euods4wp0a.wasm": "sha256-BivQOEls5iBuOOZ7KkwhySSa/VL3DS4qiaPpPh2om1M="
+      "dotnet.native.y74ny7qhrm.wasm": "sha256-4syQNDt+FaSBwYYAUXtWHgCPVZ8NdooA+E2kfnnCOr8="
     },
     "icu": {
       "icudt_CJK.tjcz0u77k5.dat": "sha256-SZLtQnRc0JkwqHab0VUVP7T3uBPSeYzxzDnpxPpUnHk=",
@@ -313,14 +313,14 @@
       "System.8rv0tdtrxz.wasm": "sha256-xMF0eauQ5DkSzUozHLFFMQnL6DSJO09nJLtgag+Dzbw=",
       "netstandard.axaccz7kgl.wasm": "sha256-stUE2dBRe3KS8dC3X8Acws3ODEev2c5LsQPS2Aa7PhM=",
       "System.Private.CoreLib.h8g5xzxpm3.wasm": "sha256-j6FCX8CWHHbk0psXWibHOB7Qqy5R2kLRLGs9V4tuJ4Y=",
-      "Demo.Abstractions.d0ziybyw4m.wasm": "sha256-Q/DRekoVt07Xvr6GtsWugoTI5InwVXWQrnACeMua3WA=",
-      "GeneticAlgorithm.0idvk42vd9.wasm": "sha256-GFqq8aPmKaIiY7Mn9tbukf+h5ahUKN+n6U37ePZkfVc=",
-      "Demo.kk12mhsjnx.wasm": "sha256-jFF2OTsAN0354T6ltbh/4XaAbddR5GmZPu7pFA2n4f8="
+      "Demo.Abstractions.94760y3v09.wasm": "sha256-iSHZdyIbXWJwizUpNbpkE3jEIhpgl1dY1+mWwkeF7YE=",
+      "GeneticAlgorithm.24nwq4279w.wasm": "sha256-/vhIbTnigDbhi8cauF16oq295L9YQCQ3BfOAVxFFVaU=",
+      "Demo.fwn9t36mns.wasm": "sha256-P+qoNRuRxAw+3TZQIlmPiB+qAMBclBdxNZrKstjVjas="
     },
     "assembly": {},
     "lazyAssembly": {
-      "MarkdownToWordDemo.jppxutrhpa.wasm": "sha256-mZ3oOKeG6RS3fCndWDCQpwXjcW5m8kcs/3ENvNYndko=",
-      "QrTransferDemo.2ce9as4blp.wasm": "sha256-LhWt1FLDe9j1xpY9QaJ5X/9NFyhjDDAXpoqyl5tjeRI="
+      "MarkdownToWordDemo.np6eqj0d8k.wasm": "sha256-e99/Y9dj2DwB7LeYxtkZh+3diUjnCyqOQ/cY3mj2NnM=",
+      "QrTransferDemo.8f3w6hvv4d.wasm": "sha256-VDPK5Smzxq4CJzLDISLf7t2UQYTczbC1o+ANmo5OI80="
     }
   },
   "cacheBootResources": true,
