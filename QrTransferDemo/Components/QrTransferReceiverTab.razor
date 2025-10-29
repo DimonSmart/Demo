@@ -1,0 +1,243 @@
+<style>
+    .capture-preview {
+        position: relative;
+        background-color: var(--bs-gray-100);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        min-height: 160px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem;
+    }
+
+    .capture-preview video {
+        max-width: 100%;
+        height: auto;
+        max-height: 180px;
+        display: block;
+    }
+
+    .capture-placeholder {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--bs-secondary-color);
+        background: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.02) 10px, transparent 10px, transparent 20px);
+    }
+
+    .file-progress {
+        height: 0.75rem;
+    }
+
+    .diagnostic-log {
+        max-height: 240px;
+        overflow-y: auto;
+        background-color: var(--bs-gray-100);
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+    }
+
+    .diagnostic-log ul {
+        margin: 0;
+    }
+
+    .diagnostic-log li {
+        font-family: var(--bs-font-monospace);
+        line-height: 1.4;
+    }
+
+    .diagnostic-timestamp {
+        color: var(--bs-secondary-color);
+        white-space: nowrap;
+    }
+</style>
+
+<div class="row g-3">
+    <div class="@CaptureColumnClass">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span>Screen capture</span>
+                <span class="badge @(CaptureStatusBadge)">@CaptureStatusLabel</span>
+            </div>
+            <div class="card-body">
+                <div class="capture-preview mb-3">
+                    <video id="qr-transfer-receiver-video" autoplay muted playsinline></video>
+                    <canvas id="qr-transfer-receiver-canvas" class="d-none"></canvas>
+                    @if (!_isCapturing)
+                    {
+                        <div class="capture-placeholder">No active capture</div>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+                }
+                else if (!string.IsNullOrEmpty(_statusMessage))
+                {
+                    <div class="alert alert-info" role="status">@_statusMessage</div>
+                }
+                @if (!string.IsNullOrEmpty(_lastPayloadHex))
+                {
+                    <div class="mb-3">
+                        <label class="form-label">Last payload (hex)</label>
+                        <div class="form-control-plaintext small font-monospace text-break">@_lastPayloadHex</div>
+                    </div>
+                }
+                <div class="btn-toolbar gap-2 mb-3" role="toolbar">
+                    <div class="btn-group">
+                        <button class="btn btn-primary" @onclick="StartCaptureAsync" disabled="@_isStarting">Start</button>
+                        <button class="btn btn-outline-secondary" @onclick="StopCaptureAsync" disabled="@(!_isCapturing)">Stop</button>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" @onclick="ResumeCaptureAsync" disabled="@(!_isCapturing || !_isPaused)">Resume</button>
+                        <button class="btn btn-outline-primary" @onclick="PauseCaptureAsync" disabled="@(!_isCapturing || _isPaused)">Pause</button>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="form-label">Capture source</label>
+                        <InputSelect @bind-Value="CaptureSource" class="form-select">
+                            @foreach (var option in CaptureSourceOptions)
+                            {
+                                <option value="@option.Key">@option.Value</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">Scan interval</label>
+                        <div class="form-control-plaintext">@CurrentScanIntervalDisplay</div>
+                        <div class="form-text">Observed delay between captured frames.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span>Diagnostics</span>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDiagnosticsAsync" disabled="@(!HasDiagnostics)">Clear log</button>
+            </div>
+            <div class="card-body">
+                @if (!HasDiagnostics)
+                {
+                    <div class="text-muted small mb-0">No diagnostic events recorded yet.</div>
+                }
+                else
+                {
+                    <div class="diagnostic-log">
+                        <ul class="list-unstyled">
+                            @foreach (var entry in DiagnosticEntries)
+                            {
+                                <li class="d-flex">
+                                    <span class="diagnostic-timestamp">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>
+                                    <span class="ms-2 flex-grow-1">@entry.Message</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="@ReceivedColumnClass">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span>Received files</span>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="ClearAllAsync" disabled="@(!HasFiles)">Clear all</button>
+            </div>
+            <div class="card-body">
+                @if (_files.Count == 0)
+                {
+                    <div class="alert alert-secondary mb-0">No files received yet.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th scope="col">File</th>
+                                    <th scope="col" class="text-end">Size</th>
+                                    <th scope="col" class="text-center">Config</th>
+                                    <th scope="col" class="text-center">Progress</th>
+                                    <th scope="col" class="text-center">Missing</th>
+                                    <th scope="col" class="text-center">Errors</th>
+                                    <th scope="col" class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var file in OrderedFiles)
+                                {
+                                    <tr class="@(file.IsCompleted ? "table-success" : file.IsWaiting ? "table-warning" : string.Empty)">
+                                        <td>
+                                            <div class="fw-semibold">@file.DisplayName</div>
+                                            <div class="small text-muted">Checksum: @file.ChecksumHex</div>
+                                        </td>
+                                        <td class="text-end">@FileSizeFormatter.Format(file.FileSize)</td>
+                                        <td class="text-center">
+                                            <div>@file.Configuration</div>
+                                        </td>
+                                        <td>
+                                            <div class="progress file-progress">
+                                                <div class="progress-bar @(file.IsCompleted ? "bg-success" : "bg-primary")" role="progressbar" style="width: @file.ProgressPercent%" aria-valuenow="@file.ProgressPercent" aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                            <div class="small text-muted text-center">@file.ReceivedChunks / @file.TotalChunks</div>
+                                            <div class="small text-muted text-center">@FileSizeFormatter.Format(file.ReceivedBytes) / @FileSizeFormatter.Format(file.FileSize)</div>
+                                        </td>
+                                        <td class="text-center">
+                                            @if (file.MissingCount == 0)
+                                            {
+                                                <span class="badge bg-success">0</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark">@file.MissingCount</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center gap-1">
+                                                <span class="badge @(file.InvalidChunks == 0 ? "bg-success" : "bg-danger")">CRC: @file.InvalidChunks</span>
+                                                <span class="badge @(file.ChecksumFailures == 0 ? "bg-success" : "bg-warning text-dark")">File: @file.ChecksumFailures</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                @if (file.DownloadUrl is not null)
+                                                {
+                                                    <a class="btn btn-outline-primary" href="@file.DownloadUrl" download="@file.SuggestedFileName">Save</a>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-outline-primary" disabled>Save</button>
+                                                }
+                                                <button class="btn btn-outline-secondary" @onclick="() => ResetFileAsync(file)">Reset</button>
+                                                <button class="btn btn-outline-danger" @onclick="() => RemoveFileAsync(file)">Clear</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    @if (file.IsWaiting && (file.MissingCount > 0 || file.ChecksumFailures > 0))
+                                    {
+                                        <tr>
+                                            <td colspan="7" class="small text-muted">
+                                                @if (file.MissingCount > 0)
+                                                {
+                                                    <span>Awaiting chunks: @file.MissingPreview.</span>
+                                                }
+                                                @if (file.ChecksumFailures > 0)
+                                                {
+                                                    <span class="ms-2">Checksum retries: @file.ChecksumFailures.</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

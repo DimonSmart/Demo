@@ -1,0 +1,14 @@
+@page "/qr-transfer/send"
+
+<PageTitle>QR transfer - send</PageTitle>
+
+<QrTransferSenderTab />
+
+@inject IPageTitleService PageTitleService
+
+@code {
+    protected override void OnInitialized()
+    {
+        PageTitleService.SetTitle("QR transfer - send");
+    }
+}
