@@ -1,27 +1,22 @@
 using System;
-using System.Collections.Generic;
-using ZXing;
-using ZXing.Common;
+using System.Text;
+using ZXingCpp;
 
 namespace QrTransferDemo.Services;
 
 public sealed class QrFrameDecoder
 {
     private readonly object _sync = new();
-    private readonly IBarcodeReaderGeneric _reader;
+    private readonly BarcodeReader _reader;
 
     public QrFrameDecoder()
     {
-        _reader = new BarcodeReaderGeneric
+        _reader = new BarcodeReader
         {
-            AutoRotate = true,
-            Options = new DecodingOptions
-            {
-                PossibleFormats = new[] { BarcodeFormat.QR_CODE },
-                TryHarder = true,
-                ReturnCodabarStartEnd = false,
-                TryInverted = true
-            }
+            TryHarder = true,
+            TryRotate = true,
+            TryInvert = true,
+            Formats = BarcodeFormats.QRCode
         };
     }
 
@@ -54,55 +49,42 @@ public sealed class QrFrameDecoder
         {
             try
             {
-                var luminance = new RGBLuminanceSource(buffer, width, height, RGBLuminanceSource.BitmapFormat.RGBA32);
-                if (luminance == null)
-                {
-                    Console.WriteLine($"[QrFrameDecoder] luminance is null! buffer.Length={buffer.Length}, width={width}, height={height}");
-                    return false;
-                }
-
-                var result = _reader.Decode(luminance);
-                if (result is null)
+                var imageView = new ImageView(buffer, width, height, ImageFormat.RGBA, width * 4, 4);
+                var results = _reader.From(imageView);
+                if (results is null || results.Length == 0)
                 {
                     return false;
                 }
 
-                if (TryGetByteSegments(result.ResultMetadata, out var segments))
+                foreach (var result in results)
                 {
-                    var totalLength = 0;
-                    foreach (var segment in segments)
+                    if (result is null || !result.IsValid)
                     {
-                        if (segment is { Length: > 0 })
-                        {
-                            totalLength += segment.Length;
-                        }
+                        continue;
                     }
 
-                    if (totalLength > 0)
+                    if ((result.Format & BarcodeFormats.QRCode) == 0)
                     {
-                        var assembled = new byte[totalLength];
-                        var offset = 0;
-                        foreach (var segment in segments)
-                        {
-                            if (segment is { Length: > 0 })
-                            {
-                                Buffer.BlockCopy(segment, 0, assembled, offset, segment.Length);
-                                offset += segment.Length;
-                            }
-                        }
+                        continue;
+                    }
 
-                        payload = assembled;
+                    if (result.Bytes is { Length: > 0 } bytes)
+                    {
+                        payload = CopyBytes(bytes);
                         return true;
                     }
-                }
 
-                if (result.RawBytes is { Length: > 0 })
-                {
-                    var bytes = result.RawBytes;
-                    var copy = new byte[bytes.Length];
-                    Buffer.BlockCopy(bytes, 0, copy, 0, bytes.Length);
-                    payload = copy;
-                    return true;
+                    if (result.BytesECI is { Length: > 0 } bytesEci)
+                    {
+                        payload = CopyBytes(bytesEci);
+                        return true;
+                    }
+
+                    if (!string.IsNullOrEmpty(result.Text))
+                    {
+                        payload = Encoding.UTF8.GetBytes(result.Text);
+                        return true;
+                    }
                 }
             }
             catch (Exception ex)
@@ -115,20 +97,10 @@ public sealed class QrFrameDecoder
         return false;
     }
 
-    private static bool TryGetByteSegments(IDictionary<ResultMetadataType, object>? metadata, out IList<byte[]> segments)
+    private static byte[] CopyBytes(byte[] source)
     {
-        segments = Array.Empty<byte[]>();
-        if (metadata is null || metadata.Count == 0)
-        {
-            return false;
-        }
-
-        if (!metadata.TryGetValue(ResultMetadataType.BYTE_SEGMENTS, out var raw) || raw is not IList<byte[]> list || list.Count == 0)
-        {
-            return false;
-        }
-
-        segments = list;
-        return true;
+        var copy = new byte[source.Length];
+        Buffer.BlockCopy(source, 0, copy, 0, source.Length);
+        return copy;
     }
 }
