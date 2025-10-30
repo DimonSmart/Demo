@@ -16,7 +16,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.3" />
     <PackageReference Include="Net.Codecrete.QrCodeGenerator" Version="2.0.7" />
-    <PackageReference Include="ZXing.Net" Version="0.16.10" />
+    <PackageReference Include="ZXingCpp" Version="0.4.0-alpha" />
   </ItemGroup>
 
   <ItemGroup>
