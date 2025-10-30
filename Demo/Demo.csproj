@@ -4,7 +4,6 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RunAOTCompilation>true</RunAOTCompilation>
     <UserSecretsId>b0fc7535-2618-4e55-8e74-affca9dcafc2</UserSecretsId>
   </PropertyGroup>
 
@@ -28,6 +27,7 @@
     <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.58.0" />
     <PackageReference Include="itext" Version="8.0.1" />
     <PackageReference Include="itext.bouncy-castle-adapter" Version="8.0.1" />
+    <PackageReference Include="itext.bouncy-castle-fips-adapter" Version="8.0.1" />
     <PackageReference Include="PDFtoImage" Version="5.1.1" />
   </ItemGroup>
 
@@ -54,6 +54,10 @@
   <ItemGroup>
     <BlazorWebAssemblyLazyLoad Include="MarkdownToWordDemo.dll" />
     <BlazorWebAssemblyLazyLoad Include="QrTransferDemo.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <TrimmerRootDescriptor Include="linker.xml" />
   </ItemGroup>
 
 </Project>

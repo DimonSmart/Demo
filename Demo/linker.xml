@@ -1,0 +1,6 @@
+<linker>
+  <assembly fullname="PDFtoImage">
+    <type fullname="PDFtoImage.Conversion" preserve="all" />
+  </assembly>
+  <assembly fullname="DimonSmart.PdfCropper" preserve="all" />
+</linker>
