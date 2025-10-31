@@ -1,0 +1,49 @@
+.qr-transfer__grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.qr-transfer__card {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    background: var(--bs-body-bg);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+}
+
+.qr-transfer__codes {
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    padding-top: 1.5rem;
+}
+
+.qr-transfer__code-list {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.qr-transfer__code {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.qr-transfer__image img {
+    width: 100%;
+    height: auto;
+}
+
+.qr-transfer__payload {
+    display: block;
+    margin-top: 0.75rem;
+    word-break: break-all;
+    font-size: 0.85rem;
+}
+
+.qr-transfer__result {
+    white-space: pre-wrap;
+    margin: 0;
+}

@@ -48,6 +48,7 @@
     <ProjectReference Include="..\Demo.Abstractions\Demo.Abstractions.csproj" />
     <ProjectReference Include="..\GeneticAlgorithm\GeneticAlgorithm.csproj" />
     <ProjectReference Include="..\MarkdownToWordDemo\MarkdownToWordDemo.csproj" />
+    <ProjectReference Include="..\QrDataTransfer\QrDataTransfer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" role="img" aria-labelledby="title desc">
+  <title id="title">QR data transfer illustration</title>
+  <desc id="desc">Two stylised QR codes connected by arrows.</desc>
+  <rect width="160" height="120" rx="12" fill="#f5f7fb"/>
+  <rect x="22" y="22" width="48" height="48" rx="4" fill="#1f2937"/>
+  <rect x="30" y="30" width="32" height="32" fill="#f5f7fb"/>
+  <rect x="38" y="38" width="16" height="16" fill="#1f2937"/>
+  <rect x="110" y="22" width="28" height="28" rx="3" fill="#1f2937"/>
+  <rect x="116" y="28" width="16" height="16" fill="#f5f7fb"/>
+  <rect x="110" y="64" width="28" height="28" rx="3" fill="#1f2937"/>
+  <rect x="116" y="70" width="16" height="16" fill="#f5f7fb"/>
+  <path d="M80 46h16" stroke="#0ea5e9" stroke-width="4" stroke-linecap="round"/>
+  <path d="M92 38l8 8-8 8" fill="none" stroke="#0ea5e9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M80 74h16" stroke="#0ea5e9" stroke-width="4" stroke-linecap="round"/>
+  <path d="M92 66l8 8-8 8" fill="none" stroke="#0ea5e9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

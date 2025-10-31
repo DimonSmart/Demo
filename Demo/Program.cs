@@ -8,6 +8,7 @@ using Demo.Demos.MazeRunner;
 using Demo.Demos.Pdd;
 using Demo.Services;
 using DimonSmart.Hash.Interfaces;
+using QrDataTransfer;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Options;
@@ -28,6 +29,8 @@ builder.Services.AddSingleton<LogStore>();
 builder.Services.AddScoped<BrowserService>();
 builder.Services.AddScoped<ImageProcessingService>();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+builder.Services.AddSingleton<QrCodeRenderer>();
+builder.Services.AddScoped<QrDataTransferService>();
 
 // Hash demo
 builder.Services.AddScoped<IHashAlgorithm, JsMd5Algorithm>();

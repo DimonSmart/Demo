@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarkdownToWordDemo", "Markd
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.Abstractions", "Demo.Abstractions\Demo.Abstractions.csproj", "{9EE5C363-B350-4BC0-951D-E4FFEEF8CF2B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QrDataTransfer", "QrDataTransfer\QrDataTransfer.csproj", "{16DFFC3E-61EF-4FEC-8197-D1A7411F730E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -111,6 +113,18 @@ Global
 		{9EE5C363-B350-4BC0-951D-E4FFEEF8CF2B}.Release|x64.Build.0 = Release|Any CPU
 		{9EE5C363-B350-4BC0-951D-E4FFEEF8CF2B}.Release|x86.ActiveCfg = Release|Any CPU
 		{9EE5C363-B350-4BC0-951D-E4FFEEF8CF2B}.Release|x86.Build.0 = Release|Any CPU
+		{16DFFC3E-61EF-4FEC-8197-D1A7411F730E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{16DFFC3E-61EF-4FEC-8197-D1A7411F730E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{16DFFC3E-61EF-4FEC-8197-D1A7411F730E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{16DFFC3E-61EF-4FEC-8197-D1A7411F730E}.Debug|x64.Build.0 = Debug|Any CPU
+		{16DFFC3E-61EF-4FEC-8197-D1A7411F730E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{16DFFC3E-61EF-4FEC-8197-D1A7411F730E}.Debug|x86.Build.0 = Debug|Any CPU
+		{16DFFC3E-61EF-4FEC-8197-D1A7411F730E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{16DFFC3E-61EF-4FEC-8197-D1A7411F730E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{16DFFC3E-61EF-4FEC-8197-D1A7411F730E}.Release|x64.ActiveCfg = Release|Any CPU
+		{16DFFC3E-61EF-4FEC-8197-D1A7411F730E}.Release|x64.Build.0 = Release|Any CPU
+		{16DFFC3E-61EF-4FEC-8197-D1A7411F730E}.Release|x86.ActiveCfg = Release|Any CPU
+		{16DFFC3E-61EF-4FEC-8197-D1A7411F730E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
