@@ -4,7 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RunAOTCompilation>true</RunAOTCompilation>
+    <RunAOTCompilation>false</RunAOTCompilation>
     <UserSecretsId>b0fc7535-2618-4e55-8e74-affca9dcafc2</UserSecretsId>
   </PropertyGroup>
 
@@ -48,10 +48,12 @@
     <ProjectReference Include="..\Demo.Abstractions\Demo.Abstractions.csproj" />
     <ProjectReference Include="..\GeneticAlgorithm\GeneticAlgorithm.csproj" />
     <ProjectReference Include="..\MarkdownToWordDemo\MarkdownToWordDemo.csproj" />
+    <ProjectReference Include="..\QrTransferDemo\QrTransferDemo.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <BlazorWebAssemblyLazyLoad Include="MarkdownToWordDemo.dll" />
+    <BlazorWebAssemblyLazyLoad Include="QrTransferDemo.dll" />
   </ItemGroup>
 
 </Project>

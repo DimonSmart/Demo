@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Demo\Demo.csproj" />
     <ProjectReference Include="..\MarkdownToWordDemo\MarkdownToWordDemo.csproj" />
+    <ProjectReference Include="..\QrTransferDemo\QrTransferDemo.csproj" />
   </ItemGroup>
 
   <ItemGroup>
