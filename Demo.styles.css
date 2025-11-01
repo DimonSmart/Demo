@@ -536,56 +536,6 @@ main[b-j9gssnu9fd] {
     display: flex;
     flex-direction: column;
 }
-/* /Pages/QrDataTransfer.razor.rz.scp.css */
-.qr-transfer__grid[b-ms88veib18] {
-    display: grid;
-    gap: 1.5rem;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-}
-
-.qr-transfer__card[b-ms88veib18] {
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 0.75rem;
-    padding: 1.5rem;
-    background: var(--bs-body-bg);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
-}
-
-.qr-transfer__codes[b-ms88veib18] {
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-    padding-top: 1.5rem;
-}
-
-.qr-transfer__code-list[b-ms88veib18] {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.qr-transfer__code[b-ms88veib18] {
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 0.75rem;
-    padding: 1rem;
-    background: #fff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.qr-transfer__image img[b-ms88veib18] {
-    width: 100%;
-    height: auto;
-}
-
-.qr-transfer__payload[b-ms88veib18] {
-    display: block;
-    margin-top: 0.75rem;
-    word-break: break-all;
-    font-size: 0.85rem;
-}
-
-.qr-transfer__result[b-ms88veib18] {
-    white-space: pre-wrap;
-    margin: 0;
-}
 /* /Pages/Stringdiffdemo.razor.rz.scp.css */
 .stringdiff-container[b-vl03x21x07] {
     display: flex;
