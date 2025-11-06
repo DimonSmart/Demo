@@ -4,7 +4,12 @@ public class BlackjackGameAuto : BlackjackGameBase
 {
     private readonly StrategyTable _strategyTable;
 
-    public BlackjackGameAuto(Shoe shoe, StrategyTable strategyTable, ILogger? logger = null) : base(shoe, logger)
+    public BlackjackGameAuto(
+        Shoe shoe,
+        StrategyTable strategyTable,
+        ILogger? logger = null,
+        BlackjackRulesOptions? rulesOptions = null)
+        : base(shoe, logger, rulesOptions)
     {
         _strategyTable = strategyTable;
     }
