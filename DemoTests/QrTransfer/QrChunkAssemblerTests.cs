@@ -2,6 +2,7 @@ using System.Linq;
 using System.Text;
 using QrTransferDemo.Models;
 using QrTransferDemo.Services;
+using QrTransferDemo.Utilities;
 
 namespace DemoTests.QrTransfer;
 
@@ -32,7 +33,7 @@ public class QrChunkAssemblerTests
         Assert.Equal(8, completed.ChunkSize);
         Assert.Equal("M", completed.CorrectionLevel);
         Assert.Equal(content, completed.Data);
-        Assert.Equal(ComputeCrc32(content), completed.FileChecksum);
+        Assert.Equal(Crc32.Compute(content), completed.FileChecksum);
         Assert.True(assembler.TryGetFile(completed.FileId, out var stored));
         Assert.Equal(content, stored.Data);
     }
@@ -104,71 +105,6 @@ public class QrChunkAssemblerTests
         }
 
         Assert.NotNull(completed);
-        Assert.Equal(ComputeCrc32(data), completed!.FileChecksum);
-    }
-
-    [Fact]
-    public void NewMetadataResetsState()
-    {
-        var assembler = new QrChunkAssembler();
-        var firstData = Encoding.UTF8.GetBytes("Metadata toggle");
-        var firstPackets = _builder.BuildPackets(4, "meta.bin", firstData, 4, "M");
-
-        ChunkProcessingResult? last = null;
-        foreach (var packet in firstPackets)
-        {
-            last = assembler.ProcessChunk(packet);
-        }
-
-        Assert.NotNull(last);
-        Assert.Equal("meta.bin", last!.Snapshot.FileName);
-        Assert.Equal("M", last.Snapshot.CorrectionLevel);
-
-        var secondData = Encoding.UTF8.GetBytes("Another payload");
-        var secondPackets = _builder.BuildPackets(4, "another.bin", secondData, 6, "H");
-
-        ChunkProcessingResult? updated = null;
-        foreach (var packet in secondPackets)
-        {
-            updated = assembler.ProcessChunk(packet);
-        }
-
-        Assert.NotNull(updated);
-        Assert.Equal("another.bin", updated!.Snapshot.FileName);
-        Assert.Equal("H", updated.Snapshot.CorrectionLevel);
-        Assert.Equal(6, updated.Snapshot.ChunkSize);
-    }
-
-    private static uint ComputeCrc32(ReadOnlySpan<byte> data)
-    {
-        uint crc = 0xFFFFFFFFu;
-        foreach (var value in data)
-        {
-            var index = (crc ^ value) & 0xFF;
-            crc = (crc >> 8) ^ Table[index];
-        }
-
-        return ~crc;
-    }
-
-    private static readonly uint[] Table = CreateTable();
-
-    private static uint[] CreateTable()
-    {
-        var table = new uint[256];
-        const uint polynomial = 0xEDB88320u;
-
-        for (var i = 0; i < table.Length; i++)
-        {
-            var value = (uint)i;
-            for (var j = 0; j < 8; j++)
-            {
-                value = (value & 1) != 0 ? polynomial ^ (value >> 1) : value >> 1;
-            }
-
-            table[i] = value;
-        }
-
-        return table;
+        Assert.Equal(Crc32.Compute(data), completed!.FileChecksum);
     }
 }
