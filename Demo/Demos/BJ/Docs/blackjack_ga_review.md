@@ -24,14 +24,24 @@
 
 ## 3. Обнаруженные проблемы и потенциальные ошибки
 1. **Автоматический режим не работает.** В `PlayRoundAsync` условие цикла `while (CanTakeAction() && GameFinished)` содержит проверку `GameFinished`, из-за чего тело цикла никогда не выполнится: как только раунд стартовал, `GameFinished == false`. Предположительно должно быть `!GameFinished`.【F:Demo/Demos/BJ/BlackjackGameAuto.cs†L21-L29】
-2. **Неверная индексация сплитов тузов.** `StrategyTable.GetAction` при паре вычисляет `pairRank` как `hand.HandValue / 2`. Для пары тузов после корректировки значения руки (12) функция возвращает 6, что ведёт к чтению ячейки «пара шестёрок», а не «пара тузов». Нужно использовать исходный ранг карты (`hand.Cards[0].Rank`) или расширить `IHandValues` признаком ранга. Это критично для корректного применения любой сгенерированной таблицы.【F:Demo/Demos/BJ/StrategyTable.cs†L25-L37】【F:Demo/Demos/BJ/Hand.cs†L34-L51】
+2. ~~**Неверная индексация сплитов тузов.**~~ **[ИСПРАВЛЕНО]** Добавлено свойство `PairRank` в интерфейс `IHandValues` и класс `Hand`, которое возвращает ранг первой карты (`(int)_cards[0].Rank`) для пар. `StrategyTable.GetAction` теперь использует `hand.PairRank` вместо `hand.HandValue / 2`, что обеспечивает корректную индексацию для всех пар, включая тузов (ранг 14).【F:Demo/Demos/BJ/StrategyTable.cs†L25-L37】【F:Demo/Demos/BJ/Hand.cs†L58】【F:Demo/Demos/BJ/IHandValues.cs†L9】
 3. **Сплит не добирает стартовые карты.** После вызова `SplitAsync` обе руки содержат по одной карте; по правилам Blackjack каждая новая рука должна автоматически получить вторую карту из колоды (кроме исключений с тузами, где разрешается только одна карта). Это влияет на базовую стратегию и вычисление фитнес-функции: текущая реализация моделирует нетипичный вариант игры.【F:Demo/Demos/BJ/BlackjackGameBase.cs†L198-L218】【F:Demo/Demos/BJ/PlayerHand.cs†L9-L19】
 4. **Статистика и управление шузом не завершены.** Переменная `GamesPlayedInShoe` нигде не увеличивается, `ResetGameVariables` (используемый для авто-режима) создаёт новые руки, но не списывает ставки и не переводит состояние в `GameStarted`. Это потенциально приведёт к несогласованным данным при внедрении автоматического расчёта стратегии.【F:Demo/Demos/BJ/BlackjackGameBase.cs†L22-L64】【F:Demo/Demos/BJ/BlackjackGameAuto.cs†L12-L20】
 5. **Недостающие правила:** нет поддержки страховки, сдачи после удвоения, ограничений «Double after Split», «Resplit Aces», «Dealer hits soft 17» и пр. Эти ограничения планируется задавать при генерации стратегии, поэтому стоит выделить структуру конфигурации правил, а не хранить их жёстко в коде.
 
+## Implementation Notes
+
+### Pair Indexing in Strategy Tables
+When implementing strategy tables for Blackjack, special attention must be paid to how pairs are indexed. The hand value alone cannot be used to determine the pair rank because of ace adjustments:
+- A pair of aces initially has a hand value of 22 (11+11)
+- After ace adjustment, the hand value becomes 12
+- Dividing by 2 would give rank 6, incorrectly mapping to a pair of sixes
+
+**Solution:** Always use the actual card rank (`Card.Rank`) when indexing pair splitting decisions in strategy tables. The implementation should expose this through the hand interface (e.g., `IHandValues.PairRank`) rather than relying on derived hand values. This ensures correct strategy lookup for all pairs, especially aces (rank 14) and face cards (ranks 11-13).
+
 ## 4. Рекомендации по исправлению текущего кода
 - Исправить условие в `BlackjackGameAuto.PlayRoundAsync` и привести `ResetGameVariables` к корректному состоянию (сбрасывать индекс руки, очищать список без сдачи карт, запускать новый раунд через существующий метод `StartNewRoundAsync`).
-- Расширить `IHandValues`, чтобы стратегия могла определить ранги карт пары, или предоставить вспомогательный метод в `StrategyTable`, использующий непосредственно `PlayerHand`. Без этого расчёт сплитов тузов будет некорректным.
+- ~~Расширить `IHandValues`, чтобы стратегия могла определить ранги карт пары, или предоставить вспомогательный метод в `StrategyTable`, использующий непосредственно `PlayerHand`. Без этого расчёт сплитов тузов будет некорректным.~~ **[ВЫПОЛНЕНО]**
 - После сплита автоматически выдавать дополнительную карту каждой руке. Для тузов можно предусмотреть отдельную опцию в будущем объекте правил.
 - Инкрементировать `GamesPlayedInShoe` после завершения партии, а также фиксировать поднятие «red card» (момент замены шуза) в статистике.
 - Добавить объект-конфигурацию `BlackjackRules` с флагами (разрешён ли сплит по конкретным парам, разрешено ли удвоение после сплита, сдача, лимит колод и т. п.) и использовать его в методах `Can*` и обработчиках действий вместо жёстких констант.

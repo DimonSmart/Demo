@@ -7,6 +7,7 @@ public interface IHandValues
     bool IsBusted { get; }
     bool IsSoft { get; }
     bool IsPair { get; }
+    int PairRank { get; }
 }
 
 

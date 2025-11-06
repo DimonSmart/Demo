@@ -26,7 +26,7 @@
         public BlackjackAction GetAction(IHandValues hand, int dealerCardValue)
         {
             return hand.IsPair
-                ? GetPairSplittingAction(hand.HandValue / 2, dealerCardValue)
+                ? GetPairSplittingAction(hand.PairRank, dealerCardValue)
                 : GetTotalAction(hand.HandValue, dealerCardValue, hand.IsSoft);
         }
 

@@ -61,5 +61,7 @@
         public bool IsSoft => _acesCount > 0 && HandValue <= 21;
 
         public bool IsPair => _cards.Count == 2 && _cards[0].Rank == _cards[1].Rank;
+
+        public int PairRank => IsPair ? (int)_cards[0].Rank : 0;
     }
 }
