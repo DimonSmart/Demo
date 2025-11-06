@@ -2,9 +2,12 @@
 {
     public class BlackjackGameWithPlayer : BlackjackGameBase
     {
-        public BlackjackGameWithPlayer(Shoe shoe, ILogger? logger = null) : base(shoe, logger)
+        public BlackjackGameWithPlayer(
+            Shoe shoe,
+            ILogger? logger = null,
+            BlackjackRulesOptions? rulesOptions = null)
+            : base(shoe, logger, rulesOptions)
         {
         }
-
     }
 }

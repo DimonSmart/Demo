@@ -1,4 +1,8 @@
-﻿namespace Demo.Demos.BJ;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace Demo.Demos.BJ;
 
 public class BlackjackGameBase
 {
@@ -22,10 +26,13 @@ public class BlackjackGameBase
     // TODO Will be defined later
     public int GamesPlayedInShoe;
 
-    protected BlackjackGameBase(Shoe shoe, ILogger? logger)
+    protected BlackjackRulesOptions RulesOptions { get; }
+
+    protected BlackjackGameBase(Shoe shoe, ILogger? logger = null, BlackjackRulesOptions? rulesOptions = null)
     {
         _logger = logger;
         Shoe = shoe;
+        RulesOptions = rulesOptions ?? BlackjackRulesOptions.Default;
 
         _currentPlayerHandIndex = 0;
         CurrentGameState = GameState.GameNotStarted;
@@ -35,7 +42,7 @@ public class BlackjackGameBase
     }
 
     public List<PlayerHand> PlayerHands { get; private set; }
-    public PlayerHand? CurrentPlayerHand => PlayerHands[_currentPlayerHandIndex];
+    public PlayerHand? CurrentPlayerHand => PlayerHands.Count > 0 ? PlayerHands[_currentPlayerHandIndex] : null;
     public DealerHand DealerHand { get; private set; }
     public decimal PlayerBalance { get; private set; } = 1000;
     public GameState CurrentGameState { get; private set; }
@@ -60,6 +67,18 @@ public class BlackjackGameBase
         var initialPlayerCards = new List<Card> { firstCard, secondCard };
         _logger?.Info($"Initial player cards dealt: {firstCard}, {secondCard}");
         return initialPlayerCards;
+    }
+
+    private Card DealCardToHand(PlayerHand hand)
+    {
+        var card = Shoe.TakeNextCard();
+        hand.AddCard(card);
+
+        var handIndex = PlayerHands.IndexOf(hand);
+        _logger?.Info(
+            $"Card {card} dealt to player hand {handIndex}. Hand value: {hand.HandValue}");
+
+        return card;
     }
 
     protected void ResetGameVariables()
@@ -99,19 +118,56 @@ public class BlackjackGameBase
     // Can methods
     public bool CanStartNewRound() => CurrentGameState != GameState.GameStarted;
 
-    public bool CanHit() => CurrentGameState == GameState.GameStarted && CurrentPlayerHand?.HandValue < 21;
+    public bool CanHit()
+    {
+        if (CurrentGameState != GameState.GameStarted)
+        {
+            return false;
+        }
 
-    public bool CanStand() => CurrentGameState == GameState.GameStarted;
+        if (CurrentPlayerHand is not { IsCompleted: false } hand)
+        {
+            return false;
+        }
 
-    public bool CanDoubleDown() => CurrentGameState == GameState.GameStarted && CurrentPlayerHand?.Cards.Count == 2;
+        return hand.HandValue < 21;
+    }
 
-    public bool CanSplit() =>
-        CurrentGameState == GameState.GameStarted &&
-        CurrentPlayerHand?.Cards.Count == 2 &&
-        CurrentPlayerHand.Cards[0].Rank == CurrentPlayerHand.Cards[1].Rank &&
-        PlayerHands.Count <= MaxSplits;
+    public bool CanStand()
+    {
+        return CurrentGameState == GameState.GameStarted && CurrentPlayerHand is { IsCompleted: false };
+    }
 
-    public bool CanSurrender() => CurrentGameState == GameState.GameStarted && CurrentPlayerHand?.Cards.Count == 2;
+    public bool CanDoubleDown()
+    {
+        return CurrentGameState == GameState.GameStarted &&
+               CurrentPlayerHand is { IsCompleted: false } hand &&
+               hand.Cards.Count == 2;
+    }
+
+    public bool CanSplit()
+    {
+        if (CurrentGameState != GameState.GameStarted)
+        {
+            return false;
+        }
+
+        if (CurrentPlayerHand is not { IsCompleted: false } hand)
+        {
+            return false;
+        }
+
+        return hand.Cards.Count == 2 &&
+               hand.Cards[0].Rank == hand.Cards[1].Rank &&
+               PlayerHands.Count <= MaxSplits;
+    }
+
+    public bool CanSurrender()
+    {
+        return CurrentGameState == GameState.GameStarted &&
+               CurrentPlayerHand is { IsCompleted: false } hand &&
+               hand.Cards.Count == 2;
+    }
 
     // Action methods
     public async Task StartNewRoundAsync()
@@ -120,7 +176,8 @@ public class BlackjackGameBase
             throw new InvalidOperationException("Cannot start a new round at this time.");
 
         PlayerBalance -= InitialBet;
-        PlayerHands = [new PlayerHand(DealPlayerInitialCards(), InitialBet)];
+        PlayerHands = new List<PlayerHand> { new PlayerHand(DealPlayerInitialCards(), InitialBet) };
+        _currentPlayerHandIndex = 0;
         DealerHand = new DealerHand(DealDealerInitialCards());
         CurrentGameState = GameState.GameStarted;
 
@@ -140,11 +197,11 @@ public class BlackjackGameBase
 
         if (!CanHit()) throw new InvalidOperationException("Cannot hit at this time.");
 
-        var card = Shoe.TakeNextCard();
-        CurrentPlayerHand!.AddCard(card);
-        _logger?.Info($"Player hits and receives card: {card}. Hand value: {CurrentPlayerHand.HandValue}");
+        var hand = CurrentPlayerHand!;
+        var card = DealCardToHand(hand);
+        _logger?.Info($"Player hits and receives card: {card}. Hand value: {hand.HandValue}");
 
-        if (CurrentPlayerHand.HandValue == 21 || CurrentPlayerHand.IsBusted)
+        if (hand.HandValue == 21 || hand.IsBusted)
         {
             _logger?.Info($"Player hand {_currentPlayerHandIndex} is either 21 or busted.");
             await EndHandAsync();
@@ -155,8 +212,10 @@ public class BlackjackGameBase
 
     public async Task StandAsync()
     {
-        LogGameState($"Action selected: Stand with hand value: {CurrentPlayerHand!.HandValue}");
-        if (!CanStand()) throw new InvalidOperationException("Cannot stand at this time.");
+        if (!CanStand() || CurrentPlayerHand == null)
+            throw new InvalidOperationException("Cannot stand at this time.");
+
+        LogGameState($"Action selected: Stand with hand value: {CurrentPlayerHand.HandValue}");
 
         await EndHandAsync();
         await OnGameStateChangedAsync(false);
@@ -171,9 +230,9 @@ public class BlackjackGameBase
         CurrentPlayerHand!.DoubleBet();
         _logger?.Info("Player doubles down. Bet is doubled.");
 
-        var card = Shoe.TakeNextCard();
-        CurrentPlayerHand.AddCard(card);
-        _logger?.Info($"Player receives one card: {card}. Hand value: {CurrentPlayerHand.HandValue}");
+        var hand = CurrentPlayerHand!;
+        var card = DealCardToHand(hand);
+        _logger?.Info($"Player receives one card: {card}. Hand value: {hand.HandValue}");
 
         // Ends the turn automatically after Double Down
         await StandAsync();
@@ -183,12 +242,35 @@ public class BlackjackGameBase
     public async Task SplitAsync()
     {
         LogGameState("Action selected: Split");
-        if (!CanSplit() || CurrentPlayerHand == null) throw new InvalidOperationException("Cannot split at this time.");
+        if (!CanSplit() || CurrentPlayerHand == null)
+            throw new InvalidOperationException("Cannot split at this time.");
 
-        var newHand = CurrentPlayerHand.Split();
+        var currentHand = CurrentPlayerHand;
+        var currentIndex = _currentPlayerHandIndex;
+        var newHand = currentHand.Split();
         PlayerBalance -= InitialBet;
-        PlayerHands.Add(newHand);
-        _logger?.Info("Player splits the hand. Two new hands created.");
+        PlayerHands.Insert(currentIndex + 1, newHand);
+        _logger?.Info("Player splits the hand. Two hands will now play sequentially.");
+
+        var firstSplitCard = DealCardToHand(currentHand);
+        _logger?.Info(
+            $"Player hand {currentIndex} receives split card: {firstSplitCard}. Hand value: {currentHand.HandValue}");
+
+        var secondSplitCard = DealCardToHand(newHand);
+        var newHandIndex = currentIndex + 1;
+        _logger?.Info(
+            $"Player hand {newHandIndex} receives split card: {secondSplitCard}. Hand value: {newHand.HandValue}");
+
+        var isSplitAces = currentHand.WasSplitAce && newHand.WasSplitAce;
+
+        if (isSplitAces && !RulesOptions.CanHitAfterSplitAces)
+        {
+            currentHand.MarkCompleted();
+            newHand.MarkCompleted();
+            _logger?.Info("Split aces are completed immediately per table rules.");
+            await EndHandAsync();
+        }
+
         await OnGameStateChangedAsync(false);
     }
 
@@ -206,21 +288,48 @@ public class BlackjackGameBase
 
     protected async Task EndHandAsync()
     {
+        var hand = CurrentPlayerHand;
+        if (hand == null)
+        {
+            return;
+        }
+
         _logger?.Info("Player's turn ends for hand index: " + _currentPlayerHandIndex);
 
-        if (CurrentPlayerHand!.IsBusted) _logger?.Info("Hand is busted.");
-
-        if (_currentPlayerHandIndex < PlayerHands.Count - 1)
+        if (hand.IsBusted)
         {
-            _currentPlayerHandIndex++;
-            _logger?.Info($"Moving to next hand. Current hand index: {_currentPlayerHandIndex}");
+            _logger?.Info("Hand is busted.");
         }
-        else
+
+        hand.MarkCompleted();
+
+        var nextHandIndex = GetNextActiveHandIndex(_currentPlayerHandIndex + 1);
+        if (nextHandIndex.HasValue)
+        {
+            _currentPlayerHandIndex = nextHandIndex.Value;
+            _logger?.Info($"Moving to next hand. Current hand index: {_currentPlayerHandIndex}");
+            return;
+        }
+
+        if (PlayerHands.All(playerHand => playerHand.IsCompleted))
         {
             _logger?.Info("All hands have been played. Dealer starts playing.");
             await DealerPlayAsync();
             CurrentGameState = GameState.GameFinished;
         }
+    }
+
+    private int? GetNextActiveHandIndex(int startIndex)
+    {
+        for (var i = startIndex; i < PlayerHands.Count; i++)
+        {
+            if (!PlayerHands[i].IsCompleted)
+            {
+                return i;
+            }
+        }
+
+        return null;
     }
 
     private async Task DealerPlayAsync()
