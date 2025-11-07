@@ -16,18 +16,16 @@ public class BlackjackGameAuto : BlackjackGameBase
 
     public async Task PlayGameAsync()
     {
-        await StartNewRoundAsync();
-
         while (!Shoe.IsRedCardRaised && !Shoe.IsShoeEmpty)
         {
+            await StartNewRoundAsync();
             await PlayRoundAsync();
-            ResetGameVariables();
         }
     }
 
     private async Task PlayRoundAsync()
     {
-        while (CanTakeAction() && GameFinished)
+        while (CanTakeAction() && !GameFinished)
         {
             var dealerCardValue = DealerHand.Cards.First(card => card.IsFaceUp).Value;
             var action = _strategyTable.GetAction(CurrentPlayerHand!, dealerCardValue);
