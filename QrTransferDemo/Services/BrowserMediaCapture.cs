@@ -46,6 +46,12 @@ public sealed class BrowserMediaCapture : IAsyncDisposable
         _lastFrameVersion = 0;
     }
 
+    public async Task<bool> IsScreenCaptureSupportedAsync(CancellationToken cancellationToken = default)
+    {
+        var module = await _moduleTask.Value.ConfigureAwait(false);
+        return await module.InvokeAsync<bool>("isScreenCaptureSupported", cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task StartCaptureAsync(CaptureSource source, CaptureOptions options, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -188,6 +194,14 @@ public sealed class BrowserMediaCapture : IAsyncDisposable
         if (_mediaDevices is null)
         {
             throw new InvalidOperationException("Media devices are not available.");
+        }
+
+        var module = await _moduleTask.Value.ConfigureAwait(false);
+        var isScreenCaptureSupported = await module.InvokeAsync<bool>("isScreenCaptureSupported", cancellationToken).ConfigureAwait(false);
+
+        if (!isScreenCaptureSupported)
+        {
+            throw new NotSupportedException("Screen capture is not supported on this device.");
         }
 
         var displayOptions = new DisplayMediaStreamOptions

@@ -105,6 +105,10 @@
                                 <option value="@option.Key">@option.Value</option>
                             }
                         </InputSelect>
+                        @if (!_isScreenCaptureSupported)
+                        {
+                            <div class="form-text text-warning">Screen capture is not supported on this device.</div>
+                        }
                     </div>
                     <div class="col-sm-6">
                         <label class="form-label">Scan interval</label>

@@ -1,6 +1,11 @@
 const contexts = new Map();
 let nextContextId = 1;
 
+export function isScreenCaptureSupported() {
+    const mediaDevices = navigator?.mediaDevices;
+    return !!(mediaDevices && typeof mediaDevices.getDisplayMedia === "function");
+}
+
 function ensureContext(handle) {
     const context = contexts.get(handle);
     if (!context) {
