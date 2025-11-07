@@ -15,7 +15,7 @@ public class BlackjackGameBase
 
     private const decimal InitialBet = 10m;
     private const decimal SurrenderPenalty = InitialBet / 2;
-    private const int MaxSplits = 3;
+    private const int MaxHandsAfterSplit = 4;
 
     private readonly ILogger? _logger;
     public readonly Shoe Shoe;
@@ -159,7 +159,7 @@ public class BlackjackGameBase
 
         return hand.Cards.Count == 2 &&
                hand.Cards[0].Rank == hand.Cards[1].Rank &&
-               PlayerHands.Count < MaxSplits;
+               PlayerHands.Count < MaxHandsAfterSplit;
     }
 
     public bool CanSurrender()

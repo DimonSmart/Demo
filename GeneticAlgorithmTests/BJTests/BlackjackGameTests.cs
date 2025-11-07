@@ -14,7 +14,7 @@ namespace GeneticAlgorithmTests.BJTests
         }
 
         private static StrategyTable GetStrategyTable() =>
-            new(Enumerable.Range(0, 22 * 11 + 22 * 11 + 14 * 11)
+            new(Enumerable.Range(0, StrategyTable.StrategySize)
                 .Select(_ => (BlackjackAction)RandomProvider.Shared.Next(5))
                 .ToArray());
     }

@@ -61,7 +61,6 @@ public class BlackjackGameAuto : BlackjackGameBase
                 }
                 else
                 {
-                    // If we can not "double" we just hit
                     await HitAsync();
                 }
 
@@ -73,19 +72,17 @@ public class BlackjackGameAuto : BlackjackGameBase
                 }
                 else
                 {
-                    // Если сплит недоступен (например, достигнут лимит),
-                    // играем руку как обычную пару - получаем рекомендацию для несплитованной руки
                     var dealerCardValue = DealerHand.Cards.First(card => card.IsFaceUp).Value;
                     var fallbackAction = _strategyTable.GetAction(
-                        new HandValuesAdapter(CurrentPlayerHand!.HandValue, CurrentPlayerHand.IsSoft, isPair: false, pairRank: 0),
+                        new HandValuesAdapter(CurrentPlayerHand!.HandValue, CurrentPlayerHand.IsSoft, isPair: false,
+                            pairRank: HandValuesAdapter.NoPairRankIndex),
                         dealerCardValue);
-                    
-                    // Выполняем альтернативное действие, но избегаем бесконечной рекурсии
+
                     if (fallbackAction == BlackjackAction.Split)
                     {
                         fallbackAction = BlackjackAction.Hit;
                     }
-                    
+
                     await ExecuteActionAsync(fallbackAction);
                 }
 
@@ -97,7 +94,6 @@ public class BlackjackGameAuto : BlackjackGameBase
                 }
                 else
                 {
-                    // Если сдача недоступна, берём карту
                     await HitAsync();
                 }
 
@@ -106,18 +102,20 @@ public class BlackjackGameAuto : BlackjackGameBase
     }
 
     /// <summary>
-    /// Адаптер для передачи значений руки в таблицу стратегии
+    /// Adapter that exposes the current hand values to the strategy table.
     /// </summary>
     private class HandValuesAdapter : IHandValues
     {
+        public const int NoPairRankIndex = -1;
+
         public HandValuesAdapter(int handValue, bool isSoft, bool isPair, int pairRank)
         {
             HandValue = handValue;
             IsSoft = isSoft;
             IsPair = isPair;
-            PairRank = pairRank;
+            PairRank = isPair ? pairRank : NoPairRankIndex;
             IsBusted = handValue > 21;
-            AllCardFacedUp = true; // Для игрока все карты всегда открыты
+            AllCardFacedUp = true; // All player cards are visible in the simulation
         }
 
         public bool AllCardFacedUp { get; }
