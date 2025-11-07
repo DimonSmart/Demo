@@ -103,7 +103,7 @@ namespace GeneticAlgorithmTests.BJTests
         }
 
         /// <summary>
-        /// Test verifies that CanSplit returns false when the hand limit is reached (MaxSplits = 3)
+        /// Test verifies that CanSplit enforces the four-hand limit after successive splits.
         /// </summary>
         [Fact]
         public async Task CanSplit_EnforcesMaxSplitsLimit()
@@ -128,26 +128,26 @@ namespace GeneticAlgorithmTests.BJTests
             Assert.True(game.CanSplit());
             
             // Manually add hands to simulate state after multiple splits
-            // Add second hand (as if we made 1 split) 
+            // Add second hand (as if one split has already happened)
             var hand2 = new PlayerHand(new[] { new Card(Suit.Clubs, Rank.Seven) }, 10m);
             game.PlayerHands.Add(hand2);
             Assert.Equal(2, game.PlayerHands.Count);
-            // With 2 hands, split is still available (if current hand has a pair)
-            
-            // Add third hand (as if we made 2 splits)
+            Assert.True(game.CanSplit());
+
+            // Add third hand (as if two splits have already happened)
             var hand3 = new PlayerHand(new[] { new Card(Suit.Spades, Rank.Nine) }, 10m);
             game.PlayerHands.Add(hand3);
             Assert.Equal(3, game.PlayerHands.Count);
-            // With 3 hands, split is still available (if current hand has a pair) - last possible
-            
-            // Add fourth hand (maximum reached: MaxSplits = 3)
+            Assert.True(game.CanSplit());
+
+            // Add fourth hand (maximum allowed: four concurrent hands)
             var hand4 = new PlayerHand(new[] { new Card(Suit.Hearts, Rank.Ten) }, 10m);
             game.PlayerHands.Add(hand4);
             Assert.Equal(4, game.PlayerHands.Count);
-            
+
             // Now even with a pair in current hand, split should be unavailable
             Assert.True(game.CurrentPlayerHand!.IsPair); // We still have a pair of eights
-            Assert.False(game.CanSplit()); // But split is unavailable - limit reached (PlayerHands.Count = 4 >= MaxSplits = 3)
+            Assert.False(game.CanSplit()); // Limit reached: cannot create a fifth hand
         }
 
         /// <summary>
