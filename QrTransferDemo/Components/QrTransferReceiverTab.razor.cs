@@ -29,10 +29,16 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         new KeyValuePair<string, string>(CaptureSourceCamera, "Camera")
     };
 
+    private static readonly IReadOnlyList<KeyValuePair<string, string>> CameraOnlyCaptureSourceOptionList = new[]
+    {
+        new KeyValuePair<string, string>(CaptureSourceCamera, "Camera")
+    };
+
     private readonly List<ReceivedFileViewModel> _files = new();
     private readonly Dictionary<Guid, ReceivedFileViewModel> _fileIndex = new();
 
     private bool _domInitialized;
+    private bool _isScreenCaptureSupported = true;
     private bool _isStarting;
     private bool _isCapturing;
     private bool _isPaused;
@@ -73,7 +79,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         }
     }
 
-    private IEnumerable<KeyValuePair<string, string>> CaptureSourceOptions => CaptureSourceOptionList;
+    private IEnumerable<KeyValuePair<string, string>> CaptureSourceOptions => _isScreenCaptureSupported ? CaptureSourceOptionList : CameraOnlyCaptureSourceOptionList;
 
     private string CaptureStatusLabel => _isCapturing ? (_isPaused ? "Paused" : "Active") : "Idle";
 
@@ -88,7 +94,19 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     private string CaptureSource
     {
         get => _captureSource;
-        set => _captureSource = string.Equals(value, CaptureSourceCamera, StringComparison.OrdinalIgnoreCase) ? CaptureSourceCamera : CaptureSourceScreen;
+        set
+        {
+            var normalized = string.Equals(value, CaptureSourceCamera, StringComparison.OrdinalIgnoreCase)
+                ? CaptureSourceCamera
+                : CaptureSourceScreen;
+
+            if (normalized == CaptureSourceScreen && !_isScreenCaptureSupported)
+            {
+                normalized = CaptureSourceCamera;
+            }
+
+            _captureSource = normalized;
+        }
     }
 
     private string CurrentScanIntervalDisplay
@@ -129,8 +147,16 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         {
             _mediaCapture ??= new BrowserMediaCapture(JSRuntime, MediaDevicesService);
             await _mediaCapture.InitializeAsync(VideoElementId, CanvasElementId);
+            _isScreenCaptureSupported = await _mediaCapture.IsScreenCaptureSupportedAsync();
+
+            if (!_isScreenCaptureSupported && string.Equals(_captureSource, CaptureSourceScreen, StringComparison.OrdinalIgnoreCase))
+            {
+                _captureSource = CaptureSourceCamera;
+                _statusMessage = "Screen capture is not supported on this device. Camera capture is available.";
+            }
+
             _domInitialized = true;
-            LogDiagnostic("DOM initialized for receiver tab.");
+            LogDiagnostic($"DOM initialized for receiver tab. Screen capture supported: {_isScreenCaptureSupported}.");
         }
         catch (Exception ex)
         {
@@ -138,6 +164,10 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             _statusMessage = null;
             await InvokeAsync(StateHasChanged);
             LogDiagnostic($"DOM initialization failed: {ex.Message}");
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
         }
     }
 
