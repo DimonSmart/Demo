@@ -340,6 +340,13 @@ public class BlackjackGameBase
             return;
         }
 
+        if (PlayerHands.All(hand => hand.IsBusted))
+        {
+            _logger?.Info("All player hands are busted. Dealer does not play.");
+            CheckWinConditions();
+            return;
+        }
+
         DealerHand.FlipSecondCard();
         await OnGameStateChangedAsync(true);
 
