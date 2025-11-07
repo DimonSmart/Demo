@@ -63,6 +63,7 @@ public class BlackjackGameAuto : BlackjackGameBase
                 }
                 else
                 {
+                    // If we can not "double" we just hit
                     await HitAsync();
                 }
 
@@ -74,7 +75,20 @@ public class BlackjackGameAuto : BlackjackGameBase
                 }
                 else
                 {
-                    await HitAsync();
+                    // Если сплит недоступен (например, достигнут лимит),
+                    // играем руку как обычную пару - получаем рекомендацию для несплитованной руки
+                    var dealerCardValue = DealerHand.Cards.First(card => card.IsFaceUp).Value;
+                    var fallbackAction = _strategyTable.GetAction(
+                        new HandValuesAdapter(CurrentPlayerHand!.HandValue, CurrentPlayerHand.IsSoft, isPair: false, pairRank: 0),
+                        dealerCardValue);
+                    
+                    // Выполняем альтернативное действие, но избегаем бесконечной рекурсии
+                    if (fallbackAction == BlackjackAction.Split)
+                    {
+                        fallbackAction = BlackjackAction.Hit;
+                    }
+                    
+                    await ExecuteActionAsync(fallbackAction);
                 }
 
                 break;
@@ -85,10 +99,34 @@ public class BlackjackGameAuto : BlackjackGameBase
                 }
                 else
                 {
+                    // Если сдача недоступна, берём карту
                     await HitAsync();
                 }
 
                 break;
         }
+    }
+
+    /// <summary>
+    /// Адаптер для передачи значений руки в таблицу стратегии
+    /// </summary>
+    private class HandValuesAdapter : IHandValues
+    {
+        public HandValuesAdapter(int handValue, bool isSoft, bool isPair, int pairRank)
+        {
+            HandValue = handValue;
+            IsSoft = isSoft;
+            IsPair = isPair;
+            PairRank = pairRank;
+            IsBusted = handValue > 21;
+            AllCardFacedUp = true; // Для игрока все карты всегда открыты
+        }
+
+        public bool AllCardFacedUp { get; }
+        public int HandValue { get; }
+        public bool IsBusted { get; }
+        public bool IsSoft { get; }
+        public bool IsPair { get; }
+        public int PairRank { get; }
     }
 }

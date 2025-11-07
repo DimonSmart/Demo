@@ -159,7 +159,7 @@ public class BlackjackGameBase
 
         return hand.Cards.Count == 2 &&
                hand.Cards[0].Rank == hand.Cards[1].Rank &&
-               PlayerHands.Count <= MaxSplits;
+               PlayerHands.Count < MaxSplits;
     }
 
     public bool CanSurrender()
