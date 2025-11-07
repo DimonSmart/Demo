@@ -41,7 +41,6 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     private bool _isScreenCaptureSupported = true;
     private bool _isStarting;
     private bool _isCapturing;
-    private bool _isPaused;
     private string? _statusMessage;
     private string? _errorMessage;
     private string _captureSource = CaptureSourceScreen;
@@ -81,9 +80,15 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
     private IEnumerable<KeyValuePair<string, string>> CaptureSourceOptions => _isScreenCaptureSupported ? CaptureSourceOptionList : CameraOnlyCaptureSourceOptionList;
 
-    private string CaptureStatusLabel => _isCapturing ? (_isPaused ? "Paused" : "Active") : "Idle";
+    private string CaptureStatusLabel => _isCapturing ? "Active" : "Idle";
 
-    private string CaptureStatusBadge => _isCapturing ? (_isPaused ? "bg-warning text-dark" : "bg-success") : "bg-secondary";
+    private string CaptureStatusBadge => _isCapturing ? "bg-success" : "bg-secondary";
+
+    private string CaptureToggleLabel => _isCapturing ? "Stop" : "Start";
+
+    private string CaptureToggleButtonClass => _isCapturing ? "btn btn-danger" : "btn btn-primary";
+
+    private bool CaptureToggleDisabled => !_isCapturing && _isStarting;
 
     private bool HasFiles => _files.Count > 0;
 
@@ -207,7 +212,6 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             await mediaCapture.StartCaptureAsync(source, options, _captureCts.Token);
 
             _isCapturing = true;
-            _isPaused = false;
             _statusMessage = "Capture started.";
             _lastFrameTimestamp = 0;
             _observedIntervalMs = null;
@@ -285,7 +289,6 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         }
 
         _isCapturing = false;
-        _isPaused = false;
         _statusMessage ??= "Capture stopped.";
         _observedIntervalMs = null;
         _lastFrameTimestamp = 0;
@@ -294,30 +297,15 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         LogDiagnostic("Capture loop stopped.");
     }
 
-    private Task PauseCaptureAsync()
+    private async Task ToggleCaptureAsync()
     {
-        if (!_isCapturing || _isPaused)
+        if (_isCapturing)
         {
-            return Task.CompletedTask;
+            await StopCaptureAsync();
+            return;
         }
 
-        _isPaused = true;
-        _statusMessage = "Recognition paused.";
-        _errorMessage = null;
-        return InvokeAsync(StateHasChanged);
-    }
-
-    private Task ResumeCaptureAsync()
-    {
-        if (!_isCapturing || !_isPaused)
-        {
-            return Task.CompletedTask;
-        }
-
-        _isPaused = false;
-        _statusMessage = "Recognition resumed.";
-        _errorMessage = null;
-        return InvokeAsync(StateHasChanged);
+        await StartCaptureAsync();
     }
 
     private async Task RunCaptureLoopAsync(CancellationToken cancellationToken)
@@ -333,7 +321,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
                 break;
             }
 
-            if (!_isCapturing || _isPaused)
+            if (!_isCapturing)
             {
                 continue;
             }
