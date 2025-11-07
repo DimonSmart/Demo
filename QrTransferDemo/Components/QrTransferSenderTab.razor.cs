@@ -51,7 +51,6 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
 
     private bool _isRunning;
     private bool _loopStarted;
-    private bool _canRestart;
     private int _currentFileIndex;
     private QrChunkBuilder? _chunkBuilder;
     private QrCapacityCatalog? _capacityCatalog;
@@ -242,6 +241,12 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
 
     private bool StartDisabled => _queue.Count == 0 || _validationMessage is not null;
 
+    private string TransmissionToggleLabel => _isRunning ? "Stop" : "Start";
+
+    private string TransmissionToggleButtonClass => _isRunning ? "btn btn-danger" : "btn btn-primary";
+
+    private bool TransmissionToggleDisabled => _isRunning ? false : StartDisabled;
+
     private Task StartAsync()
     {
         if (StartDisabled)
@@ -252,7 +257,6 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
 
         _transmissionError = null;
         _isRunning = true;
-        _canRestart = true;
 
         if (_queue.Count > 0)
         {
@@ -271,51 +275,30 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         return Task.CompletedTask;
     }
 
-    private void Pause()
-    {
-        if (!_isRunning)
-        {
-            return;
-        }
-
-        _isRunning = false;
-        ExitFullscreen();
-        Logger.LogInformation("Transmission paused at file index {Index}.", _currentFileIndex);
-        StateHasChanged();
-    }
-
-    private void OnQrPreviewClick()
+    private async Task ToggleTransmissionAsync()
     {
         if (_isRunning)
         {
-            Pause();
+            await StopTransmissionAsync("Stopped by user.");
+            return;
+        }
+
+        await StartAsync();
+    }
+
+    private async Task OnQrPreviewClick()
+    {
+        if (_isRunning)
+        {
+            await StopTransmissionAsync("Stopped from preview.");
             return;
         }
 
         if (_isFullscreen)
         {
             ExitFullscreen();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
-    }
-
-    private async Task RestartAsync()
-    {
-        if (!_canRestart)
-        {
-            return;
-        }
-
-        Pause();
-        foreach (var file in _queue)
-        {
-            file.Reset();
-        }
-        _currentFileIndex = 0;
-        await RenderEmptyAsync();
-        _transmissionError = null;
-        Logger.LogInformation("Transmission restarted.");
-        StateHasChanged();
     }
 
     private async Task RunTransmissionLoopAsync(CancellationToken token)
@@ -521,7 +504,6 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
         {
             file.Reset();
         }
-        _canRestart = _queue.Count > 0;
         _currentQrMarkup = null;
         _currentPayloadHex = null;
         _isRunning = false;
@@ -551,7 +533,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             return "Error";
         }
 
-        return _loopStarted ? "Paused" : "Stopped";
+        return "Idle";
     }
 
     private string GetTransmissionBadgeClass()
@@ -566,7 +548,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             return "text-bg-danger";
         }
 
-        return _loopStarted ? "text-bg-warning" : "text-bg-secondary";
+        return "text-bg-secondary";
     }
 
     private Task StopTransmissionAsync(string reason)
