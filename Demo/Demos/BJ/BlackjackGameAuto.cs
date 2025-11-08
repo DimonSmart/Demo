@@ -49,7 +49,15 @@ public class BlackjackGameAuto : BlackjackGameBase
         switch (action)
         {
             case BlackjackAction.Hit:
-                await HitAsync();
+                if (CanHit())
+                {
+                    await HitAsync();
+                }
+                else if (CanStand())
+                {
+                    await StandAsync();
+                }
+
                 break;
             case BlackjackAction.Stand:
                 await StandAsync();
