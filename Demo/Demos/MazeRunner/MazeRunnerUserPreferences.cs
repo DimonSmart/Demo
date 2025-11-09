@@ -9,4 +9,5 @@ public class MazeRunnerUserPreferences
     public string? OllamaServerUrl { get; set; } = "http://localhost:11434";
     public string? OllamaPassword { get; set; } = string.Empty;
     public bool IgnoreSslErrors { get; set; } = false;
+    public int MazeSeed { get; set; } = 1;
 }
