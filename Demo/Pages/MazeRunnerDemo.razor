@@ -5,6 +5,8 @@
 @using Demo.Demos.MazeRunner
 @using Demo.Services
 @using DimonSmart.MazeGenerator
+@using System.Linq
+@using System.Text
 @using Microsoft.SemanticKernel
 @using Microsoft.SemanticKernel.Services
 @using Microsoft.SemanticKernel.ChatCompletion
@@ -178,6 +180,8 @@
 </div>
 
 @code {
+    private const int MaxRobotStepsPerSession = 1000;
+
     protected int XSize = 9;
     protected int YSize = 9;
     protected MazeRunnerMaze? _maze;
@@ -236,12 +240,6 @@
         var options = new DimonSmart.MazeGenerator.MazeBuildOptions(0, 0); // Default values
         var mazeBuilder = new MazeBuilder<MazeRunnerCellModel>(_maze, options);
         mazeBuilder.Build(this, CancellationToken.None);
-    }
-
-    private string GetMazeStateString()
-    {
-        if (_maze == null) return "No maze found.";
-        return $"Maze size: {XSize}x{YSize}. Robot at: {_maze.Robot.X}, {_maze.Robot.Y}";
     }
 
     async Task IMazePlotter.PlotWallAsync(int x, int y)
@@ -316,6 +314,14 @@
 
     private async Task<string> ExecuteChatCompletion(Kernel kernel)
     {
+        if (_maze == null)
+        {
+            return "Maze is not initialized.";
+        }
+
+        _maze.CommandHistory.Clear();
+        _maze.GoalAchieved = false;
+
         var systemPrompt = BuildSystemPrompt();
 
         var executionSettings = new PromptExecutionSettings
@@ -323,54 +329,119 @@
             FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
         };
 
-        var agent = new ChatCompletionAgent
-        {
-            Kernel = kernel,
-            Name = "MazeRunnerAgent",
-            Instructions = systemPrompt,
-            Description = "AI Assistant that controls a robot in a maze",
-            Arguments = new KernelArguments(executionSettings)
-        };
+        var recordedSteps = new List<string>();
+        var processedCount = 0;
+        var movesIssued = 0;
+        string? lastAssistantMessage = null;
 
-        var messages = new List<ChatMessageContent>
+        while (movesIssued < MaxRobotStepsPerSession)
         {
-            new(AuthorRole.User, UserCommand)
-        };
-
-        var responses = agent.InvokeAsync(messages);
-        await foreach (var responseItem in responses)
-        {
-            if (responseItem.Message != null && !string.IsNullOrEmpty(responseItem.Message.Content))
+            var agent = new ChatCompletionAgent
             {
-                return responseItem.Message.Content;
+                Kernel = kernel,
+                Name = "MazeRunnerAgent",
+                Instructions = systemPrompt,
+                Description = "AI Assistant that controls a robot in a maze",
+                Arguments = new KernelArguments(executionSettings)
+            };
+
+            var userPrompt = BuildIterationPrompt(recordedSteps, MaxRobotStepsPerSession - movesIssued);
+            var messages = new List<ChatMessageContent>
+            {
+                new(AuthorRole.User, userPrompt)
+            };
+
+            var responses = agent.InvokeAsync(messages);
+            await foreach (var responseItem in responses)
+            {
+                if (responseItem.Message != null && !string.IsNullOrWhiteSpace(responseItem.Message.Content))
+                {
+                    lastAssistantMessage = responseItem.Message.Content;
+                }
+            }
+
+            if (_maze.CommandHistory.Count <= processedCount)
+            {
+                return lastAssistantMessage ?? "The assistant did not issue a command.";
+            }
+
+            var newSteps = _maze.CommandHistory.Skip(processedCount).ToList();
+            processedCount = _maze.CommandHistory.Count;
+            recordedSteps.AddRange(newSteps);
+            movesIssued += newSteps.Count;
+
+            if (_maze.GoalAchieved)
+            {
+                return lastAssistantMessage ?? $"Goal reported after {movesIssued} move(s).";
             }
         }
 
-        return "No response from agent";
+        if (_maze.GoalAchieved)
+        {
+            return lastAssistantMessage ?? "The robot reported completion.";
+        }
+
+        if (lastAssistantMessage != null)
+        {
+            return $"{lastAssistantMessage} (controller stopped after {movesIssued} move(s) without completion).";
+        }
+
+        return $"Step limit reached ({MaxRobotStepsPerSession}) without completing the goal.";
     }
 
     private string BuildSystemPrompt()
     {
-        var initialPrompt = @"You are a Robot in a maze.
+        var initialPrompt = @"You control a single robot inside a rectangular maze.
 
-You have access to the following functions to control the robot:
+You can issue exactly one action per turn by calling one of the available functions:
 - MoveUp: Move the robot up one cell
 - MoveDown: Move the robot down one cell
 - MoveLeft: Move the robot left one cell
 - MoveRight: Move the robot right one cell
-- LookAround: Get a visual representation of the complete maze state (call it befor moving))
-    The maze uses the following symbols:
-    - R = Robot position
-    - # = Wall (impassable)
-    - A = Apple
-    - P = Pear
-    - _ = Empty space
+- ReportGoalReached: Call this once the user's goal has been achieved
 
-When the user asks you to control the robot, use the available functions to move the robot and LookAround the maze as needed.
+Rules:
+1. Call exactly one function per response.
+2. Use the maze state provided in the user message; do not request additional observations.
+3. If a move fails (Err), rethink before moving again.
+4. Stop immediately and call ReportGoalReached as soon as the goal is satisfied.
+5. You have at most 1000 moves before control is revoked.
 
-Coordinates are zero-based with (0,0) at the top-left corner. X increases going right, Y increases going down.";
+Coordinates are zero-based with (0,0) at the top-left corner, X increases to the right, and Y increases downward.";
 
         return initialPrompt;
+    }
+
+    private string BuildIterationPrompt(IReadOnlyList<string> commandHistory, int remainingSteps)
+    {
+        if (_maze == null)
+        {
+            return "Maze is not initialized.";
+        }
+
+        var builder = new StringBuilder();
+        builder.AppendLine($"Goal: {UserCommand}");
+        builder.AppendLine($"Remaining allowed moves: {remainingSteps}");
+        builder.AppendLine("Previous steps:");
+
+        if (commandHistory.Count == 0)
+        {
+            builder.AppendLine("None so far.");
+        }
+        else
+        {
+            for (var i = 0; i < commandHistory.Count; i++)
+            {
+                builder.AppendLine($"{i + 1}. {commandHistory[i]}");
+            }
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("Current maze state:");
+        builder.AppendLine(_maze.MakeMazeAsTextRepresentation());
+        builder.AppendLine("Plan and call exactly one function: MoveUp, MoveDown, MoveLeft, MoveRight, or ReportGoalReached. Provide a short justification in natural language after issuing the function call.");
+
+        return builder.ToString();
     }
 
     private void HandleError(string userMessage, Exception ex)

@@ -22,6 +22,7 @@ namespace Demo.Demos.MazeRunner
             var result = _maze.Robot.MoveUp();
             var message = $"MoveUp => {result}. Robot position: ({_maze.Robot.X}, {_maze.Robot.Y})";
             _kernelBuildParameters.LogStore.Messages.Add(new LogStore.LogMessage(message, LogStore.LogType.RobotMovements));
+            _maze.RecordCommand(message);
             if (_kernelBuildParameters.OnStateChangedAsync != null)
             {
                 await _kernelBuildParameters.OnStateChangedAsync();
@@ -36,6 +37,7 @@ namespace Demo.Demos.MazeRunner
             var result = _maze.Robot.MoveDown();
             var message = $"MoveDown => {result}. Robot position: ({_maze.Robot.X}, {_maze.Robot.Y})";
             _kernelBuildParameters.LogStore.Messages.Add(new LogStore.LogMessage(message, LogStore.LogType.RobotMovements));
+            _maze.RecordCommand(message);
             if (_kernelBuildParameters.OnStateChangedAsync != null)
             {
                 await _kernelBuildParameters.OnStateChangedAsync();
@@ -50,6 +52,7 @@ namespace Demo.Demos.MazeRunner
             var result = _maze.Robot.MoveLeft();
             var message = $"MoveLeft => {result}. Robot position: ({_maze.Robot.X}, {_maze.Robot.Y})";
             _kernelBuildParameters.LogStore.Messages.Add(new LogStore.LogMessage(message, LogStore.LogType.RobotMovements));
+            _maze.RecordCommand(message);
             if (_kernelBuildParameters.OnStateChangedAsync != null)
             {
                 await _kernelBuildParameters.OnStateChangedAsync();
@@ -64,6 +67,7 @@ namespace Demo.Demos.MazeRunner
             var result = _maze.Robot.MoveRight();
             var message = $"MoveRight => {result}. Robot position: ({_maze.Robot.X}, {_maze.Robot.Y})";
             _kernelBuildParameters.LogStore.Messages.Add(new LogStore.LogMessage(message, LogStore.LogType.RobotMovements));
+            _maze.RecordCommand(message);
             if (_kernelBuildParameters.OnStateChangedAsync != null)
             {
                 await _kernelBuildParameters.OnStateChangedAsync();
@@ -71,14 +75,15 @@ namespace Demo.Demos.MazeRunner
             return $"{result}. Robot position: ({_maze.Robot.X}, {_maze.Robot.Y})";
         }
 
-        [KernelFunction("LookAround")]
-        [Description("Get a textual representation of the complete maze state showing robot position, walls, empty spaces, apples and pears. The entire maze is visible.")]
-        public string LookAround()
+        [KernelFunction("ReportGoalReached")]
+        [Description("Call this when the robot has accomplished the goal. Signals that no further movement is required.")]
+        public string ReportGoalReached()
         {
-            var mazeRepresentation = _maze.MakeMazeAsTextRepresentation();
-            var message = "Robot looked around and sees the complete maze";
+            _maze.GoalAchieved = true;
+            const string message = "ReportGoalReached => Goal reported as complete";
             _kernelBuildParameters.LogStore.Messages.Add(new LogStore.LogMessage(message, LogStore.LogType.RobotMovements));
-            return mazeRepresentation;
+            _maze.RecordCommand(message);
+            return "Goal reported as complete.";
         }
     }
 }
