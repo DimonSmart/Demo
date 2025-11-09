@@ -16,7 +16,7 @@ namespace Demo.Demos.MazeRunner
         }
 
         [KernelFunction("MoveUp")]
-        [Description("Move the robot up one cell. Returns 'Ok' if successful, 'Err' if blocked by wall or boundary.")]
+        [Description("Move the robot up one cell. Returns 'Ok' when successful, 'Err' when blocked, and appends the current robot coordinates.")]
         public async Task<string> MoveUp()
         {
             var result = _maze.Robot.MoveUp();
@@ -30,7 +30,7 @@ namespace Demo.Demos.MazeRunner
         }
 
         [KernelFunction("MoveDown")]
-        [Description("Move the robot down one cell. Returns 'Ok' if successful, 'Err' if blocked by wall or boundary.")]
+        [Description("Move the robot down one cell. Returns 'Ok' when successful, 'Err' when blocked, and appends the current robot coordinates.")]
         public async Task<string> MoveDown()
         {
             var result = _maze.Robot.MoveDown();
@@ -44,7 +44,7 @@ namespace Demo.Demos.MazeRunner
         }
 
         [KernelFunction("MoveLeft")]
-        [Description("Move the robot left one cell. Returns 'Ok' if successful, 'Err' if blocked by wall or boundary.")]
+        [Description("Move the robot left one cell. Returns 'Ok' when successful, 'Err' when blocked, and appends the current robot coordinates.")]
         public async Task<string> MoveLeft()
         {
             var result = _maze.Robot.MoveLeft();
@@ -58,7 +58,7 @@ namespace Demo.Demos.MazeRunner
         }
 
         [KernelFunction("MoveRight")]
-        [Description("Move the robot right one cell. Returns 'Ok' if successful, 'Err' if blocked by wall or boundary.")]
+        [Description("Move the robot right one cell. Returns 'Ok' when successful, 'Err' when blocked, and appends the current robot coordinates.")]
         public async Task<string> MoveRight()
         {
             var result = _maze.Robot.MoveRight();
