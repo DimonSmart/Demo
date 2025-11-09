@@ -13,7 +13,7 @@
     <PackageReference Include="DimonSmart.PdfCropper" Version="1.6.0" />
     <PackageReference Include="DimonSmart.AiUtils" Version="1.25624.1027" />
     <PackageReference Include="DimonSmart.HashX" Version="1.24813.951" />
-    <PackageReference Include="DimonSmart.MazeGenerator" Version="1.25609.1440" />
+    <PackageReference Include="DimonSmart.MazeGenerator" Version="1.25627.1545" />
     <PackageReference Include="DimonSmart.StringDiff" Version="1.25319.2041" />
     <PackageReference Include="Excubo.Blazor.Canvas" Version="3.2.66" />
     <PackageReference Include="Markdig" Version="0.39.1" />
