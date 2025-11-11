@@ -105,6 +105,12 @@
                                 Run ollama and download the required models (for example, using the command
                                 <code>ollama pull &lt;model-id&gt;</code>).
                             </li>
+                            <li>
+                                To allow web access to local Ollama, set the environment variable:<br/>
+                                <code>OLLAMA_ORIGINS=https://dimonsmart.is-a.dev</code><br/>
+                                (or use <code>*</code> to allow all origins: <code>OLLAMA_ORIGINS=*</code>)<br/>
+                                Restart Ollama after setting this variable.
+                            </li>
                             <li>Make sure the server URL and password (if required) are correct.</li>
                             <li>Restart the application to apply the changes.</li>
                         </ol>
@@ -179,6 +185,19 @@
                     <strong>Assistant's response:</strong> @ResponseMessage
                 </div>
             </div>
+
+            <!-- System Prompt Editor -->
+            <div style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;">
+                <h4>System Prompt Editor</h4>
+                <p style="font-size: 0.9em; color: #666;">Edit the system prompt that controls the robot's behavior:</p>
+                <textarea @bind="_systemPrompt" 
+                          @bind:event="oninput"
+                          style="width: 100%; min-height: 200px; font-family: monospace; font-size: 0.9em; padding: 8px;"
+                          placeholder="Enter system prompt..."></textarea>
+                <div style="margin-top: 10px;">
+                    <button @onclick="ResetSystemPrompt">Reset to Default</button>
+                </div>
+            </div>
         }
     </section>
 
@@ -211,6 +230,7 @@
     private string _ollamaPassword = "";
     private bool _ignoreSslErrors = false;
     private int _mazeSeed = DefaultMazeSeed;
+    private string _systemPrompt = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -244,6 +264,9 @@
 
         if (preferences == null && AvailableModels.Count > 0)
             SelectedModelId = AvailableModels[0].ModelId;
+
+        // Initialize system prompt with default value
+        _systemPrompt = DefaultSystemPrompts.GetMazeRunnerPrompt();
 
         StateHasChanged();
     }
@@ -370,7 +393,7 @@
         if (_maze == null)
             throw new InvalidOperationException("Maze is not initialized");
 
-        var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, IncludePlugins: true, _openAIApiKey, LogStore, _ollamaServerUrl, _ollamaPassword, _ignoreSslErrors, async () => await InvokeAsync(StateHasChanged));
+        var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, true, _openAIApiKey, LogStore, _ollamaServerUrl, _ollamaPassword, _ignoreSslErrors, async () => await InvokeAsync(StateHasChanged));
         return KernelFactory.BuildKernel(kernelBuildParameters);
     }
 
@@ -396,17 +419,19 @@
         var movesIssued = 0;
         string? lastAssistantMessage = null;
 
+        // Create agent once outside the loop
+        var agent = new ChatCompletionAgent
+        {
+            Kernel = kernel,
+            Name = "MazeRunnerAgent",
+            Instructions = systemPrompt,
+            Description = "AI Assistant that controls a robot in a maze",
+            Arguments = new KernelArguments(executionSettings)
+        };
+
         while (movesIssued < MaxRobotStepsPerSession)
         {
-            var agent = new ChatCompletionAgent
-            {
-                Kernel = kernel,
-                Name = "MazeRunnerAgent",
-                Instructions = systemPrompt,
-                Description = "AI Assistant that controls a robot in a maze",
-                Arguments = new KernelArguments(executionSettings)
-            };
-
+            // Build UPDATED prompt with current maze state on each iteration
             var userPrompt = BuildIterationPrompt(recordedSteps, MaxRobotStepsPerSession - movesIssued);
             var messages = new List<ChatMessageContent>
             {
@@ -432,6 +457,9 @@
             recordedSteps.AddRange(newSteps);
             movesIssued += newSteps.Count;
 
+            // Force UI update to show the robot's new position
+            StateHasChanged();
+
             if (_maze.GoalAchieved)
             {
                 return lastAssistantMessage ?? $"Goal reported after {movesIssued} move(s).";
@@ -453,25 +481,13 @@
 
     private string BuildSystemPrompt()
     {
-        var initialPrompt = @"You control a single robot inside a rectangular maze.
+        return _systemPrompt;
+    }
 
-You can issue exactly one action per turn by calling one of the available functions:
-- MoveUp: Move the robot up one cell
-- MoveDown: Move the robot down one cell
-- MoveLeft: Move the robot left one cell
-- MoveRight: Move the robot right one cell
-- ReportGoalReached: Call this once the user's goal has been achieved
-
-Rules:
-1. Call exactly one function per response.
-2. Use the maze state provided in the user message; do not request additional observations.
-3. If a move fails (Err), rethink before moving again.
-4. Stop immediately and call ReportGoalReached as soon as the goal is satisfied.
-5. You have at most 1000 moves before control is revoked.
-
-Coordinates are zero-based with (0,0) at the top-left corner, X increases to the right, and Y increases downward.";
-
-        return initialPrompt;
+    private void ResetSystemPrompt()
+    {
+        _systemPrompt = DefaultSystemPrompts.GetMazeRunnerPrompt();
+        StateHasChanged();
     }
 
     private string BuildIterationPrompt(IReadOnlyList<string> commandHistory, int remainingSteps)
@@ -483,7 +499,6 @@ Coordinates are zero-based with (0,0) at the top-left corner, X increases to the
 
         var builder = new StringBuilder();
         builder.AppendLine($"Goal: {UserCommand}");
-        builder.AppendLine($"Remaining allowed moves: {remainingSteps}");
         builder.AppendLine("Previous steps:");
 
         if (commandHistory.Count == 0)
@@ -501,7 +516,7 @@ Coordinates are zero-based with (0,0) at the top-left corner, X increases to the
         builder.AppendLine();
         builder.AppendLine("Current maze state:");
         builder.AppendLine(_maze.MakeMazeAsTextRepresentation());
-        builder.AppendLine("Plan and call exactly one function: MoveUp, MoveDown, MoveLeft, MoveRight, or ReportGoalReached. Provide a short justification in natural language after issuing the function call.");
+        builder.AppendLine("Plan and call exactly one function: MazeRunnerRobotPlugin_MoveUp, MazeRunnerRobotPlugin_MoveDown, MazeRunnerRobotPlugin_MoveLeft, MazeRunnerRobotPlugin_MoveRight, or MazeRunnerRobotPlugin_ReportGoalReached. Provide a short justification in natural language after issuing the function call.");
 
         return builder.ToString();
     }

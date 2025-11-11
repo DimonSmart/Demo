@@ -9,10 +9,10 @@ namespace Demo.Demos.MazeRunner
         private readonly MazeRunnerMaze _maze;
         private readonly KernelBuildParameters _kernelBuildParameters;
 
-        public MazeRunnerRobotPlugin(KernelBuildParameters kernelBuildParameters)
+        public MazeRunnerRobotPlugin(MazeRunnerMaze maze, KernelBuildParameters kernelBuildParameters)
         {
             _kernelBuildParameters = kernelBuildParameters;
-            _maze = kernelBuildParameters.Maze;
+            _maze = maze;
         }
 
         [KernelFunction("MoveUp")]
