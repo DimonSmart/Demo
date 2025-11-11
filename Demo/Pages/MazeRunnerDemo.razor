@@ -5,6 +5,8 @@
 @using Demo.Demos.MazeRunner
 @using Demo.Services
 @using DimonSmart.MazeGenerator
+@using System.Linq
+@using System.Text
 @using Microsoft.SemanticKernel
 @using Microsoft.SemanticKernel.Services
 @using Microsoft.SemanticKernel.ChatCompletion
@@ -30,6 +32,15 @@
     <!-- Left container: Maze, Joystick, Settings and Chat -->
     <section style="flex: 1; overflow-y: auto; padding: 20px;">
         <div style="text-align: center; border: 1px solid #ccc; padding: 10px;">
+            <div style="margin-bottom: 10px;">
+                <label for="mazeSeed">Maze seed:</label>
+                <input id="mazeSeed"
+                       type="number"
+                       min="0"
+                       value="@_mazeSeed"
+                       @onchange="OnMazeSeedChanged" />
+                <button type="button" @onclick="RegenerateMazeWithCurrentSeed">Regenerate</button>
+            </div>
             <div>
                 <label for="connectionType">Connection Type:</label>
                 <select id="connectionType" @onchange="OnConnectionTypeChanged" value="@_connectionType">
@@ -93,6 +104,12 @@
                             <li>
                                 Run ollama and download the required models (for example, using the command
                                 <code>ollama pull &lt;model-id&gt;</code>).
+                            </li>
+                            <li>
+                                To allow web access to local Ollama, set the environment variable:<br/>
+                                <code>OLLAMA_ORIGINS=https://dimonsmart.is-a.dev</code><br/>
+                                (or use <code>*</code> to allow all origins: <code>OLLAMA_ORIGINS=*</code>)<br/>
+                                Restart Ollama after setting this variable.
                             </li>
                             <li>Make sure the server URL and password (if required) are correct.</li>
                             <li>Restart the application to apply the changes.</li>
@@ -168,6 +185,19 @@
                     <strong>Assistant's response:</strong> @ResponseMessage
                 </div>
             </div>
+
+            <!-- System Prompt Editor -->
+            <div style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;">
+                <h4>System Prompt Editor</h4>
+                <p style="font-size: 0.9em; color: #666;">Edit the system prompt that controls the robot's behavior:</p>
+                <textarea @bind="_systemPrompt" 
+                          @bind:event="oninput"
+                          style="width: 100%; min-height: 200px; font-family: monospace; font-size: 0.9em; padding: 8px;"
+                          placeholder="Enter system prompt..."></textarea>
+                <div style="margin-top: 10px;">
+                    <button @onclick="ResetSystemPrompt">Reset to Default</button>
+                </div>
+            </div>
         }
     </section>
 
@@ -178,6 +208,9 @@
 </div>
 
 @code {
+    private const int MaxRobotStepsPerSession = 1000;
+    private const int DefaultMazeSeed = 1;
+
     protected int XSize = 9;
     protected int YSize = 9;
     protected MazeRunnerMaze? _maze;
@@ -196,13 +229,12 @@
     private string _ollamaServerUrl = "http://localhost:11434";
     private string _ollamaPassword = "";
     private bool _ignoreSslErrors = false;
+    private int _mazeSeed = DefaultMazeSeed;
+    private string _systemPrompt = "";
 
     protected override async Task OnInitializedAsync()
     {
         PageTitleService.SetTitle("Maze runner");
-        GenerateMaze();
-
-        // Load user preferences (which includes the selected model, if any)
         var preferences = await UserPreferencesStorageService.LoadPreferencesAsync();
         if (preferences != null)
         {
@@ -215,16 +247,26 @@
             if (!string.IsNullOrEmpty(preferences.OpenAIModel))
                 _openAIModel = preferences.OpenAIModel;
             if (!string.IsNullOrEmpty(preferences.OllamaServerUrl))
-                _ollamaServerUrl = preferences.OllamaServerUrl;        
+                _ollamaServerUrl = preferences.OllamaServerUrl;
             if (!string.IsNullOrEmpty(preferences.OllamaPassword))
                 _ollamaPassword = preferences.OllamaPassword;
             _ignoreSslErrors = preferences.IgnoreSslErrors;
-    }
+            _mazeSeed = NormalizeSeed(preferences.MazeSeed);
+        }
+        else
+        {
+            _mazeSeed = DefaultMazeSeed;
+        }
 
-    AvailableModels = await OllamaModelService.GetLoadedModelsAsync();
+        GenerateMaze();
+
+        AvailableModels = await OllamaModelService.GetLoadedModelsAsync();
 
         if (preferences == null && AvailableModels.Count > 0)
             SelectedModelId = AvailableModels[0].ModelId;
+
+        // Initialize system prompt with default value
+        _systemPrompt = DefaultSystemPrompts.GetMazeRunnerPrompt();
 
         StateHasChanged();
     }
@@ -234,14 +276,55 @@
     {
         _maze = new MazeRunnerMaze(XSize, YSize);
         var options = new DimonSmart.MazeGenerator.MazeBuildOptions(0, 0); // Default values
-        var mazeBuilder = new MazeBuilder<MazeRunnerCellModel>(_maze, options);
+        _mazeSeed = NormalizeSeed(_mazeSeed);
+        var random = new Random(_mazeSeed);
+        var mazeBuilder = new MazeBuilder<MazeRunnerCellModel>(_maze, options, random);
         mazeBuilder.Build(this, CancellationToken.None);
     }
 
-    private string GetMazeStateString()
+    private static int NormalizeSeed(int seed) => seed < 0 ? Math.Abs(seed) : seed;
+
+    private async Task OnMazeSeedChanged(ChangeEventArgs e)
     {
-        if (_maze == null) return "No maze found.";
-        return $"Maze size: {XSize}x{YSize}. Robot at: {_maze.Robot.X}, {_maze.Robot.Y}";
+        if (e.Value is null)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        if (!int.TryParse(e.Value.ToString(), out var seed))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        seed = NormalizeSeed(seed);
+
+        if (seed == _mazeSeed)
+        {
+            return;
+        }
+
+        _mazeSeed = seed;
+        await RegenerateMazeAsync($"Maze seed changed: {_mazeSeed}");
+    }
+
+    private async Task RegenerateMazeWithCurrentSeed()
+    {
+        await RegenerateMazeAsync($"Maze regenerated with seed {_mazeSeed}");
+    }
+
+    private async Task RegenerateMazeAsync(string? logMessage = null)
+    {
+        GenerateMaze();
+
+        if (!string.IsNullOrWhiteSpace(logMessage))
+        {
+            LogStore.Messages.Add(new LogStore.LogMessage(logMessage, LogStore.LogType.UserInput));
+        }
+
+        await SaveSettings();
+        StateHasChanged();
     }
 
     async Task IMazePlotter.PlotWallAsync(int x, int y)
@@ -310,12 +393,20 @@
         if (_maze == null)
             throw new InvalidOperationException("Maze is not initialized");
 
-        var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, IncludePlugins: true, _openAIApiKey, LogStore, _ollamaServerUrl, _ollamaPassword, _ignoreSslErrors, async () => await InvokeAsync(StateHasChanged));
+        var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, true, _openAIApiKey, LogStore, _ollamaServerUrl, _ollamaPassword, _ignoreSslErrors, async () => await InvokeAsync(StateHasChanged));
         return KernelFactory.BuildKernel(kernelBuildParameters);
     }
 
     private async Task<string> ExecuteChatCompletion(Kernel kernel)
     {
+        if (_maze == null)
+        {
+            return "Maze is not initialized.";
+        }
+
+        _maze.CommandHistory.Clear();
+        _maze.GoalAchieved = false;
+
         var systemPrompt = BuildSystemPrompt();
 
         var executionSettings = new PromptExecutionSettings
@@ -323,6 +414,12 @@
             FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
         };
 
+        var recordedSteps = new List<string>();
+        var processedCount = 0;
+        var movesIssued = 0;
+        string? lastAssistantMessage = null;
+
+        // Create agent once outside the loop
         var agent = new ChatCompletionAgent
         {
             Kernel = kernel,
@@ -332,45 +429,96 @@
             Arguments = new KernelArguments(executionSettings)
         };
 
-        var messages = new List<ChatMessageContent>
+        while (movesIssued < MaxRobotStepsPerSession)
         {
-            new(AuthorRole.User, UserCommand)
-        };
-
-        var responses = agent.InvokeAsync(messages);
-        await foreach (var responseItem in responses)
-        {
-            if (responseItem.Message != null && !string.IsNullOrEmpty(responseItem.Message.Content))
+            // Build UPDATED prompt with current maze state on each iteration
+            var userPrompt = BuildIterationPrompt(recordedSteps, MaxRobotStepsPerSession - movesIssued);
+            var messages = new List<ChatMessageContent>
             {
-                return responseItem.Message.Content;
+                new(AuthorRole.User, userPrompt)
+            };
+
+            var responses = agent.InvokeAsync(messages);
+            await foreach (var responseItem in responses)
+            {
+                if (responseItem.Message != null && !string.IsNullOrWhiteSpace(responseItem.Message.Content))
+                {
+                    lastAssistantMessage = responseItem.Message.Content;
+                }
+            }
+
+            if (_maze.CommandHistory.Count <= processedCount)
+            {
+                return lastAssistantMessage ?? "The assistant did not issue a command.";
+            }
+
+            var newSteps = _maze.CommandHistory.Skip(processedCount).ToList();
+            processedCount = _maze.CommandHistory.Count;
+            recordedSteps.AddRange(newSteps);
+            movesIssued += newSteps.Count;
+
+            // Force UI update to show the robot's new position
+            StateHasChanged();
+
+            if (_maze.GoalAchieved)
+            {
+                return lastAssistantMessage ?? $"Goal reported after {movesIssued} move(s).";
             }
         }
 
-        return "No response from agent";
+        if (_maze.GoalAchieved)
+        {
+            return lastAssistantMessage ?? "The robot reported completion.";
+        }
+
+        if (lastAssistantMessage != null)
+        {
+            return $"{lastAssistantMessage} (controller stopped after {movesIssued} move(s) without completion).";
+        }
+
+        return $"Step limit reached ({MaxRobotStepsPerSession}) without completing the goal.";
     }
 
     private string BuildSystemPrompt()
     {
-        var initialPrompt = @"You are a Robot in a maze.
+        return _systemPrompt;
+    }
 
-You have access to the following functions to control the robot:
-- MoveUp: Move the robot up one cell
-- MoveDown: Move the robot down one cell
-- MoveLeft: Move the robot left one cell
-- MoveRight: Move the robot right one cell
-- LookAround: Get a visual representation of the complete maze state (call it befor moving))
-    The maze uses the following symbols:
-    - R = Robot position
-    - # = Wall (impassable)
-    - A = Apple
-    - P = Pear
-    - _ = Empty space
+    private void ResetSystemPrompt()
+    {
+        _systemPrompt = DefaultSystemPrompts.GetMazeRunnerPrompt();
+        StateHasChanged();
+    }
 
-When the user asks you to control the robot, use the available functions to move the robot and LookAround the maze as needed.
+    private string BuildIterationPrompt(IReadOnlyList<string> commandHistory, int remainingSteps)
+    {
+        if (_maze == null)
+        {
+            return "Maze is not initialized.";
+        }
 
-Coordinates are zero-based with (0,0) at the top-left corner. X increases going right, Y increases going down.";
+        var builder = new StringBuilder();
+        builder.AppendLine($"Goal: {UserCommand}");
+        builder.AppendLine("Previous steps:");
 
-        return initialPrompt;
+        if (commandHistory.Count == 0)
+        {
+            builder.AppendLine("None so far.");
+        }
+        else
+        {
+            for (var i = 0; i < commandHistory.Count; i++)
+            {
+                builder.AppendLine($"{i + 1}. {commandHistory[i]}");
+            }
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("Current maze state:");
+        builder.AppendLine(_maze.MakeMazeAsTextRepresentation());
+        builder.AppendLine("Plan and call exactly one function: MazeRunnerRobotPlugin_MoveUp, MazeRunnerRobotPlugin_MoveDown, MazeRunnerRobotPlugin_MoveLeft, MazeRunnerRobotPlugin_MoveRight, or MazeRunnerRobotPlugin_ReportGoalReached. Provide a short justification in natural language after issuing the function call.");
+
+        return builder.ToString();
     }
 
     private void HandleError(string userMessage, Exception ex)
@@ -425,7 +573,8 @@ Coordinates are zero-based with (0,0) at the top-left corner. X increases going 
             OpenAIModel = _openAIModel,
             OllamaServerUrl = _ollamaServerUrl,
             OllamaPassword = _ollamaPassword,
-            IgnoreSslErrors = _ignoreSslErrors
+            IgnoreSslErrors = _ignoreSslErrors,
+            MazeSeed = _mazeSeed
         };
         await UserPreferencesStorageService.SavePreferencesAsync(preferences);
     }

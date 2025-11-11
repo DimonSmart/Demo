@@ -25,7 +25,7 @@ public static class KernelFactory
                 var ollamaHttpClient = new HttpClient(new LoggingHttpMessageHandler(parameters.LogStore, ollamaHandler))
                 {
                     BaseAddress = new Uri(parameters.OllamaServerUrl),
-                    Timeout = TimeSpan.FromMinutes(20)
+                    Timeout = TimeSpan.FromHours(2)
                 };
 
                 if (!string.IsNullOrEmpty(parameters.OllamaPassword))
@@ -47,7 +47,10 @@ public static class KernelFactory
                     openAiHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
                 }
 
-                var openAiHttpClient = new HttpClient(new LoggingHttpMessageHandler(parameters.LogStore, openAiHandler));
+                var openAiHttpClient = new HttpClient(new LoggingHttpMessageHandler(parameters.LogStore, openAiHandler))
+                {
+                    Timeout = TimeSpan.FromHours(2)
+                };
                 builder.AddOpenAIChatCompletion(
                     modelId: parameters.OpenAiModelId,
                     apiKey: parameters.OpenAIApiKey,
@@ -73,7 +76,7 @@ public static class KernelFactory
             builder.Services.AddSingleton(parameters.Maze);
             builder.Plugins.AddFromType<TimeInformationPlugin>();
 
-            var mazeRunnerPlugin = new MazeRunnerRobotPlugin(parameters);
+            var mazeRunnerPlugin = new MazeRunnerRobotPlugin(parameters.Maze, parameters);
             builder.Plugins.AddFromObject(mazeRunnerPlugin);
         }
         var kernel = builder.Build();
