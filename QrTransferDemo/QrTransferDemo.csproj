@@ -24,10 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Docs/QrTransferDataFlow.md">
-      <Link>wwwroot/docs/QrTransferDataFlow.md</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
+    <EmbeddedResource Include="Docs/QrTransferDataFlow.md" />
   </ItemGroup>
 </Project>
