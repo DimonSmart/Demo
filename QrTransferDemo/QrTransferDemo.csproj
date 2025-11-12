@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="KristofferStrube.Blazor.MediaCaptureStreams" Version="0.4.0" />
+    <PackageReference Include="Markdig" Version="0.39.1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.3" />
     <PackageReference Include="Net.Codecrete.QrCodeGenerator" Version="2.0.7" />
@@ -20,5 +21,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Demo.Abstractions\Demo.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Docs/QrTransferDataFlow.md">
+      <Link>wwwroot/docs/QrTransferDataFlow.md</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 </Project>

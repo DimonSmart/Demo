@@ -1,0 +1,113 @@
+@page "/qr-transfer/protocol"
+
+@using Markdig
+
+<PageTitle>QR transfer - protocol</PageTitle>
+
+<style>
+    .markdown-body {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 3rem 1rem;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+
+    .markdown-body h1,
+    .markdown-body h2,
+    .markdown-body h3,
+    .markdown-body h4,
+    .markdown-body h5,
+    .markdown-body h6 {
+        margin-top: 1.8rem;
+        margin-bottom: 0.8rem;
+        font-weight: 600;
+    }
+
+    .markdown-body p {
+        margin-bottom: 1rem;
+    }
+
+    .markdown-body ul,
+    .markdown-body ol {
+        padding-left: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .markdown-body table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1.5rem;
+    }
+
+    .markdown-body th,
+    .markdown-body td {
+        border: 1px solid var(--bs-border-color);
+        padding: 0.5rem 0.75rem;
+    }
+
+    .markdown-body code {
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: 0.25rem;
+        padding: 0.2rem 0.4rem;
+        font-size: 85%;
+    }
+
+    .markdown-body pre code {
+        display: block;
+        padding: 1rem;
+    }
+</style>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <h1 class="h3 mb-0">Как работает передача данных через QR-коды</h1>
+        <a class="btn btn-outline-primary" href="/qr-transfer/send">Назад к передаче</a>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="text-muted">Загрузка описания протокола...</div>
+    }
+    else if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@_errorMessage</div>
+    }
+    else if (!string.IsNullOrEmpty(_protocolHtml))
+    {
+        <article class="markdown-body">@((MarkupString)_protocolHtml)</article>
+    }
+</div>
+
+@code {
+    private bool _isLoading = true;
+    private string? _protocolHtml;
+    private string? _errorMessage;
+
+    [Inject] private HttpClient HttpClient { get; set; } = default!;
+    [Inject] private IPageTitleService PageTitleService { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.SetTitle("QR transfer - protocol");
+
+        try
+        {
+            var markdown = await HttpClient.GetStringAsync("docs/QrTransferDataFlow.md");
+            var pipeline = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .UsePipeTables()
+                .UseTaskLists()
+                .Build();
+            _protocolHtml = Markdown.ToHtml(markdown, pipeline);
+        }
+        catch
+        {
+            _errorMessage = "Не удалось загрузить описание протокола.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
