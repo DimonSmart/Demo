@@ -1,6 +1,8 @@
 @page "/qr-transfer/protocol"
 
 @using Markdig
+@using System.IO
+@using System.Reflection
 
 <PageTitle>QR transfer - protocol</PageTitle>
 
@@ -84,7 +86,6 @@
     private string? _protocolHtml;
     private string? _errorMessage;
 
-    [Inject] private HttpClient HttpClient { get; set; } = default!;
     [Inject] private IPageTitleService PageTitleService { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
@@ -93,7 +94,17 @@
 
         try
         {
-            var markdown = await HttpClient.GetStringAsync("docs/QrTransferDataFlow.md");
+            var assembly = typeof(QrTransferProtocol).Assembly;
+            using var stream = assembly.GetManifestResourceStream("QrTransferDemo.Docs.QrTransferDataFlow.md");
+
+            if (stream is null)
+            {
+                _errorMessage = "Failed to load the protocol description.";
+                return;
+            }
+
+            using var reader = new StreamReader(stream);
+            var markdown = await reader.ReadToEndAsync();
             var pipeline = new MarkdownPipelineBuilder()
                 .UseAdvancedExtensions()
                 .UsePipeTables()
