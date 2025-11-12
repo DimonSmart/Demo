@@ -33,6 +33,18 @@
                                               SecondaryLanguage2="@SecondaryLanguage2"
                                               HighlightTerms="@HighlightTerms" />
 
+        @if (CurrentQuestion?.QuestionCheckDescription is not null)
+        {
+            <div class="pdd-question-problem">
+                <span class="pdd-question-problem-text">@CurrentQuestion.QuestionCheckDescription</span>
+                <button type="button"
+                        class="pdd-question-problem-clear"
+                        @onclick="ClearProblemDescription">
+                    Очистить
+                </button>
+            </div>
+        }
+
         @if (CurrentQuestion?.RuleDescription != null &&
         (!string.IsNullOrEmpty(CurrentQuestion.RuleDescription.English) ||
         !string.IsNullOrEmpty(CurrentQuestion.RuleDescription.Russian) ||
@@ -82,8 +94,18 @@
     public TextTranslationService TranslationService { get; set; } = null!;
 
     private const string ImagesBaseAddress = @"https://DimonSmart.github.io/DGT/images/";
-    
+
     private QuestionItem? CurrentQuestion => QuestionWrapper?.Question;
+
+    private void ClearProblemDescription()
+    {
+        if (CurrentQuestion is null)
+        {
+            return;
+        }
+
+        CurrentQuestion.QuestionCheckDescription = null;
+    }
 
     private void ToggleExplanation()
     {
