@@ -130,6 +130,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     private long _capturedFrames;
     private long _consecutiveCaptureMisses;
     private long _consecutiveDecodeFailures;
+    private int _consecutivePartialDetections;
     private long _decodedFrames;
     private long _acceptedPackets;
 
@@ -397,10 +398,11 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
         byte[]? decoded = null;
         Exception? decodeError = null;
+        var detection = QrFrameDetectionInfo.None;
 
         try
         {
-            if (_frameDecoder.TryDecode(pixels, width, height, out var data) && data is { Length: > 0 })
+            if (_frameDecoder.TryDecode(pixels, width, height, out var data, out detection) && data is { Length: > 0 })
             {
                 decoded = data;
             }
@@ -433,10 +435,33 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             {
                 LogDiagnostic($"Frame decode returned no payload (failures: {failureCount}).");
             }
+
+            if (detection.HasPartialDetection)
+            {
+                var partialCount = Interlocked.Increment(ref _consecutivePartialDetections);
+                if (partialCount == 1 || partialCount % 10 == 0)
+                {
+                    LogDiagnostic($"Partial QR detection observed (points: {detection.ResultPointCount}, streak: {partialCount}).");
+                    await InvokeAsync(() =>
+                    {
+                        if (_errorMessage is null)
+                        {
+                            _statusMessage = "QR code is partially visible. Adjust the view so the entire code fits in the frame.";
+                        }
+
+                        StateHasChanged();
+                    });
+                }
+            }
+            else
+            {
+                Interlocked.Exchange(ref _consecutivePartialDetections, 0);
+            }
             return;
         }
 
         Interlocked.Exchange(ref _consecutiveDecodeFailures, 0);
+        Interlocked.Exchange(ref _consecutivePartialDetections, 0);
         var decodedCount = Interlocked.Increment(ref _decodedFrames);
         LogDiagnostic($"Decoded frame #{decodedCount} with payload length {decoded.Length} bytes.");
 

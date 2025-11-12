@@ -42,7 +42,7 @@ Metadata are built in `QrChunkBuilder.BuildMetadata` and contain transfer parame
 
 ## Reception Frame Format
 
-After capturing an image, `QrFrameDecoder.TryDecode` extracts the QR raw bytes. Next, `QrTransferReceiverTab.TryParsePacket` interprets the **5‑byte** header and payload, checking:
+After capturing an image, `QrFrameDecoder.TryDecode` attempts to extract the QR raw bytes and reports how many QR finder points were detected. `QrTransferReceiverTab` uses this hint to surface partial detections to the user before interpreting the **5‑byte** header and payload in `TryParsePacket`, checking:
 
 * correctness of reserved bits and the file index range;
 * initial fixation of the stream `totalLength` upon the first frame;
