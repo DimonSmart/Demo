@@ -70,14 +70,11 @@
         overflow: hidden;
     }
 
-    .transmission-card.fullscreen .card-header {
-        display: none;
-    }
-
     .transmission-card.fullscreen .card-body {
         flex: 1;
         display: flex;
         padding: 0;
+        position: relative;
         align-items: center;
         justify-content: center;
     }
@@ -133,6 +130,13 @@
     .qr-payload {
         align-self: stretch;
         text-align: center;
+    }
+
+    .transmission-status-overlay {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        pointer-events: none;
     }
 
     .transmission-details {
@@ -250,14 +254,23 @@
 </div>
 
 <div class="card transmission-card @(_isFullscreen ? "fullscreen" : string.Empty)">
-    <div class="card-header d-flex align-items-center @( _isRunning ? "justify-content-end" : "justify-content-between")">
-        @if (!_isRunning)
-        {
-            <span>Transmission</span>
-        }
-        <span class="badge @GetTransmissionBadgeClass()">@GetTransmissionStatus()</span>
-    </div>
+    @if (!_isFullscreen)
+    {
+        <div class="card-header d-flex align-items-center @( _isRunning ? "justify-content-end" : "justify-content-between")">
+            @if (!_isRunning)
+            {
+                <span>Transmission</span>
+            }
+            <span class="badge @GetTransmissionBadgeClass()">@GetTransmissionStatus()</span>
+        </div>
+    }
     <div class="card-body">
+        @if (_isFullscreen)
+        {
+            <div class="transmission-status-overlay">
+                <span class="badge @GetTransmissionBadgeClass()">@GetTransmissionStatus()</span>
+            </div>
+        }
         <div class="row g-3 transmission-layout">
             <div class="col-lg-6">
                 <div class="qr-preview @(_isFullscreen ? "clickable" : string.Empty)"
