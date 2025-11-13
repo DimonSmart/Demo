@@ -23,7 +23,6 @@ public class BlackjackGameBase
     private int _currentPlayerHandIndex;
 
 
-    // TODO Will be defined later
     public int GamesPlayedInShoe;
 
     protected BlackjackRulesOptions RulesOptions { get; }
@@ -115,7 +114,6 @@ public class BlackjackGameBase
         _logger?.Info($"CanStartNewRound: {CanStartNewRound()}");
     }
 
-    // Can methods
     public bool CanStartNewRound() => CurrentGameState != GameState.GameStarted;
 
     public bool CanHit()
@@ -169,7 +167,6 @@ public class BlackjackGameBase
                hand.Cards.Count == 2;
     }
 
-    // Action methods
     public async Task StartNewRoundAsync()
     {
         if (!CanStartNewRound())
@@ -190,7 +187,6 @@ public class BlackjackGameBase
         await OnGameStateChangedAsync(false);
     }
 
-    // Updated method calls
     public async Task HitAsync()
     {
         LogGameState("Action selected: Hit");
@@ -234,7 +230,6 @@ public class BlackjackGameBase
         var card = DealCardToHand(hand);
         _logger?.Info($"Player receives one card: {card}. Hand value: {hand.HandValue}");
 
-        // Ends the turn automatically after Double Down
         await StandAsync();
         await OnGameStateChangedAsync(false);
     }
@@ -394,9 +389,7 @@ public class BlackjackGameBase
                 continue;
             }
 
-            // Push case
-            SetOutcomeAndLog(hand, 0, "Push. No money lost or gained.");
-            PlayerBalance += hand.Bet;
+            ApplyPushOutcome(hand);
         }
 
         _logger?.Info($"Game over. Player money: {PlayerBalance}");
@@ -406,6 +399,12 @@ public class BlackjackGameBase
     {
         hand.SetOutcome(new HandOutcome(money, message));
         _logger?.Info($"{hand.Outcome}");
+    }
+
+    private void ApplyPushOutcome(PlayerHand hand)
+    {
+        SetOutcomeAndLog(hand, 0, "Push. No money lost or gained.");
+        PlayerBalance += hand.Bet;
     }
 
 

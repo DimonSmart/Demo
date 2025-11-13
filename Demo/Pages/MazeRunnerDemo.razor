@@ -20,16 +20,10 @@
 
 @implements IMazePlotter
 
-<!--
-  Maze Runner Demo
-  A simple page that generates a maze and controls a robot via joystick or chat commands.
--->
-
 <link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze Generator Demo</PageTitle>
 
 <div class="page-container maze-runner-container" style="display: flex;">
-    <!-- Left container: Maze, Joystick, Settings and Chat -->
     <section style="flex: 1; overflow-y: auto; padding: 20px;">
         <div style="text-align: center; border: 1px solid #ccc; padding: 10px;">
             <div style="margin-bottom: 10px;">
@@ -150,7 +144,6 @@
         @if (_maze != null)
         {
             <div style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-items: flex-start;">
-                <!-- Maze display container -->
                 <div style="flex: 1 1 300px;">
                     <div style="display: flex; justify-content: center;">
                         <CascadingValue Value="_maze.Robot">
@@ -163,7 +156,6 @@
                     </div>
                 </div>
 
-                <!-- Joystick control container -->
                 <div style="flex: 0 0 auto;">
                     <Joystick Width="150px" Height="150px"
                               OnUpClicked="OnUpClicked"
@@ -173,7 +165,6 @@
                 </div>
             </div>
 
-            <!-- Chat block -->
             <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
                 <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., 'move right')" style="width:300px;" />
                 <button @onclick="ProcessUserCommand" disabled="@IsProcessingCommand">Send Command</button>
@@ -186,7 +177,6 @@
                 </div>
             </div>
 
-            <!-- System Prompt Editor -->
             <div style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;">
                 <h4>System Prompt Editor</h4>
                 <p style="font-size: 0.9em; color: #666;">Edit the system prompt that controls the robot's behavior:</p>
@@ -201,7 +191,6 @@
         }
     </section>
 
-    <!-- Right container: Log view (full height) -->
     <section style="min-width: 200px; width: 33%; border-left: 1px solid #ccc; height: 100%; overflow-y: auto;">
         <LogView LogMessages="@LogStore.Messages" />
     </section>
@@ -219,11 +208,11 @@
     private string UserCommand { get; set; } = "";
     private string ResponseMessage { get; set; } = "";
 
-    // The available LLM models found by the IOllamaModelService
     private IReadOnlyList<OllamaModelInfo> AvailableModels { get; set; } = new List<OllamaModelInfo>();
     private string SelectedModelId { get; set; } = "";
 
-    private string _connectionType = "ollama"; // default to ollama
+    private const string DefaultConnectionType = "ollama";
+    private string _connectionType = DefaultConnectionType;
     private string _openAIApiKey = "";
     private string _openAIModel = "gpt-4.0-mini";
     private string _ollamaServerUrl = "http://localhost:11434";
@@ -265,17 +254,15 @@
         if (preferences == null && AvailableModels.Count > 0)
             SelectedModelId = AvailableModels[0].ModelId;
 
-        // Initialize system prompt with default value
         _systemPrompt = DefaultSystemPrompts.GetMazeRunnerPrompt();
 
         StateHasChanged();
     }
 
-    // Generates the initial maze
     private void GenerateMaze()
     {
         _maze = new MazeRunnerMaze(XSize, YSize);
-        var options = new DimonSmart.MazeGenerator.MazeBuildOptions(0, 0); // Default values
+        var options = new DimonSmart.MazeGenerator.MazeBuildOptions(0, 0);
         _mazeSeed = NormalizeSeed(_mazeSeed);
         var random = new Random(_mazeSeed);
         var mazeBuilder = new MazeBuilder<MazeRunnerCellModel>(_maze, options, random);
@@ -419,19 +406,10 @@
         var movesIssued = 0;
         string? lastAssistantMessage = null;
 
-        // Create agent once outside the loop
-        var agent = new ChatCompletionAgent
-        {
-            Kernel = kernel,
-            Name = "MazeRunnerAgent",
-            Instructions = systemPrompt,
-            Description = "AI Assistant that controls a robot in a maze",
-            Arguments = new KernelArguments(executionSettings)
-        };
+        var agent = CreateMazeRunnerAgent(kernel, systemPrompt, executionSettings);
 
         while (movesIssued < MaxRobotStepsPerSession)
         {
-            // Build UPDATED prompt with current maze state on each iteration
             var userPrompt = BuildIterationPrompt(recordedSteps, MaxRobotStepsPerSession - movesIssued);
             var messages = new List<ChatMessageContent>
             {
@@ -457,7 +435,6 @@
             recordedSteps.AddRange(newSteps);
             movesIssued += newSteps.Count;
 
-            // Force UI update to show the robot's new position
             StateHasChanged();
 
             if (_maze.GoalAchieved)
@@ -541,7 +518,7 @@
 
     private async Task OnConnectionTypeChanged(ChangeEventArgs e)
     {
-        _connectionType = e.Value?.ToString() ?? "ollama";
+        _connectionType = e.Value?.ToString() ?? DefaultConnectionType;
         await SaveSettings();
         LogStore.Messages.Add(new LogStore.LogMessage($"Connection type changed: {_connectionType}", LogStore.LogType.UserInput));
         StateHasChanged();
@@ -577,5 +554,20 @@
             MazeSeed = _mazeSeed
         };
         await UserPreferencesStorageService.SavePreferencesAsync(preferences);
+    }
+
+    private static ChatCompletionAgent CreateMazeRunnerAgent(
+        Kernel kernel,
+        string systemPrompt,
+        PromptExecutionSettings executionSettings)
+    {
+        return new ChatCompletionAgent
+        {
+            Kernel = kernel,
+            Name = "MazeRunnerAgent",
+            Instructions = systemPrompt,
+            Description = "AI Assistant that controls a robot in a maze",
+            Arguments = new KernelArguments(executionSettings)
+        };
     }
 }
