@@ -34,12 +34,17 @@ namespace Demo.Demos.MazeRunner
 
         [KernelFunction("ReportGoalReached")]
         [Description("Call this when the robot has accomplished the goal. Signals that no further movement is required.")]
-        public string ReportGoalReached()
+        public async Task<string> ReportGoalReached()
         {
             _maze.GoalAchieved = true;
             const string message = "ReportGoalReached => Goal reported as complete";
             _kernelBuildParameters.LogStore.Messages.Add(new LogStore.LogMessage(message, LogStore.LogType.RobotMovements));
             _maze.RecordCommand(message);
+            if (_kernelBuildParameters.OnStateChangedAsync != null)
+            {
+                await _kernelBuildParameters.OnStateChangedAsync();
+            }
+
             return "Goal reported as complete.";
         }
 

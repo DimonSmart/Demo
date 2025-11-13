@@ -165,9 +165,39 @@
                 </div>
             </div>
 
+            <div class="recorder-controls-container">
+                <div class="recorder-controls">
+                    <button class="magneto-button record-button @GetRecordButtonClass()"
+                            @onclick="ToggleRecording"
+                            disabled="@(_maze == null || _isPlaybackInProgress || _recordingState == RecordingState.Stopping)">
+                        <span class="icon"></span>
+                    </button>
+                    <button class="magneto-button play-button"
+                            @onclick="PlayRecording"
+                            disabled="@(!_recordedSnapshots.Any() || _recordingState != RecordingState.Idle || _isPlaybackInProgress || IsProcessingCommand)">
+                        <span class="play-icon">&#9658;</span>
+                    </button>
+                    <label class="frame-duration-label">
+                        Frame (ms):
+                        <input type="number" min="0" step="50" @bind="FrameDurationMs" @bind:event="oninput" />
+                    </label>
+                </div>
+                @if (_recordingState == RecordingState.Recording)
+                {
+                    <div class="recording-indicator">
+                        <span class="indicator-dot"></span>
+                        Recording...
+                    </div>
+                }
+                @if (_isPlaybackInProgress)
+                {
+                    <div class="playback-indicator">Playback in progress...</div>
+                }
+            </div>
+
             <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
                 <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., 'move right')" style="width:300px;" />
-                <button @onclick="ProcessUserCommand" disabled="@IsProcessingCommand">Send Command</button>
+                <button @onclick="ProcessUserCommand" disabled="@(IsProcessingCommand || _isPlaybackInProgress)">Send Command</button>
                 @if (IsProcessingCommand)
                 {
                     <Spinner />
@@ -220,6 +250,18 @@
     private bool _ignoreSslErrors = false;
     private int _mazeSeed = DefaultMazeSeed;
     private string _systemPrompt = "";
+
+    private RecordingState _recordingState = RecordingState.Idle;
+    private readonly List<MazeSnapshot> _recordedSnapshots = new();
+    private MazeSnapshot? _lastRecordedSnapshot;
+    private bool _isPlaybackInProgress;
+    private int _frameDurationMs = 500;
+
+    private int FrameDurationMs
+    {
+        get => _frameDurationMs;
+        set => _frameDurationMs = Math.Max(0, value);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -321,38 +363,175 @@
     }
 
     #region Joystick event handlers
-    private void OnUpClicked()
+    private void OnUpClicked() => HandleManualMove(robot => robot.MoveUp(), "up");
+
+    private void OnDownClicked() => HandleManualMove(robot => robot.MoveDown(), "down");
+
+    private void OnLeftClicked() => HandleManualMove(robot => robot.MoveLeft(), "left");
+
+    private void OnRightClicked() => HandleManualMove(robot => robot.MoveRight(), "right");
+
+    private void HandleManualMove(Func<Robot, string> moveFunc, string direction)
     {
-        var result = _maze?.Robot.MoveUp();
-        LogStore.Messages.Add(new LogStore.LogMessage($"Manual move up: {result}", LogStore.LogType.RobotMovements));
+        if (_maze == null || _isPlaybackInProgress)
+        {
+            return;
+        }
+
+        var result = moveFunc(_maze.Robot);
+        LogStore.Messages.Add(new LogStore.LogMessage($"Manual move {direction}: {result}", LogStore.LogType.RobotMovements));
+
+        if (result == "Ok")
+        {
+            RecordSnapshot();
+        }
+
         StateHasChanged();
     }
 
-    private void OnDownClicked()
+    private async Task ToggleRecording()
     {
-        var result = _maze?.Robot.MoveDown();
-        LogStore.Messages.Add(new LogStore.LogMessage($"Manual move down: {result}", LogStore.LogType.RobotMovements));
+        if (_maze == null || _isPlaybackInProgress || _recordingState == RecordingState.Stopping)
+        {
+            return;
+        }
+
+        if (_recordingState == RecordingState.Idle)
+        {
+            StartRecording();
+            StateHasChanged();
+            return;
+        }
+
+        if (_recordingState == RecordingState.Recording)
+        {
+            await StopRecordingAsync();
+        }
+    }
+
+    private void StartRecording()
+    {
+        if (_maze == null)
+        {
+            return;
+        }
+
+        _recordedSnapshots.Clear();
+        _lastRecordedSnapshot = null;
+        _recordingState = RecordingState.Recording;
+        RecordSnapshot(force: true);
+    }
+
+    private async Task StopRecordingAsync()
+    {
+        if (_recordingState != RecordingState.Recording)
+        {
+            return;
+        }
+
+        _recordingState = RecordingState.Stopping;
+        StateHasChanged();
+        await Task.Yield();
+
+        RecordSnapshot(force: true);
+
+        _recordingState = RecordingState.Idle;
         StateHasChanged();
     }
 
-    private void OnLeftClicked()
+    private async Task PlayRecording()
     {
-        var result = _maze?.Robot.MoveLeft();
-        LogStore.Messages.Add(new LogStore.LogMessage($"Manual move left: {result}", LogStore.LogType.RobotMovements));
+        if (_maze == null || _isPlaybackInProgress || _recordedSnapshots.Count == 0 || _recordingState != RecordingState.Idle || IsProcessingCommand)
+        {
+            return;
+        }
+
+        _isPlaybackInProgress = true;
         StateHasChanged();
+
+        try
+        {
+            var snapshots = _recordedSnapshots.ToList();
+
+            foreach (var snapshot in snapshots)
+            {
+                ApplySnapshot(snapshot);
+                StateHasChanged();
+
+                var delay = FrameDurationMs;
+                if (delay > 0)
+                {
+                    await Task.Delay(delay);
+                }
+            }
+        }
+        finally
+        {
+            _isPlaybackInProgress = false;
+            StateHasChanged();
+        }
     }
 
-    private void OnRightClicked()
+    private string GetRecordButtonClass() => _recordingState switch
     {
-        var result = _maze?.Robot.MoveRight();
-        LogStore.Messages.Add(new LogStore.LogMessage($"Manual move right: {result}", LogStore.LogType.RobotMovements));
-        StateHasChanged();
+        RecordingState.Idle => "record-ready",
+        RecordingState.Recording => "record-active",
+        RecordingState.Stopping => "record-stopping",
+        _ => "record-ready"
+    };
+
+    private void RecordSnapshot(bool force = false)
+    {
+        if (_maze == null)
+        {
+            return;
+        }
+
+        if (!force && _recordingState != RecordingState.Recording)
+        {
+            return;
+        }
+
+        var snapshot = MazeSnapshot.FromMaze(_maze);
+
+        if (_lastRecordedSnapshot != null && _lastRecordedSnapshot == snapshot)
+        {
+            return;
+        }
+
+        _recordedSnapshots.Add(snapshot);
+        _lastRecordedSnapshot = snapshot;
+    }
+
+    private void ApplySnapshot(MazeSnapshot snapshot)
+    {
+        if (_maze == null)
+        {
+            return;
+        }
+
+        _maze.GoalAchieved = snapshot.GoalAchieved;
+        _maze.Robot.SetPosition(snapshot.RobotX, snapshot.RobotY);
+    }
+
+    private Task OnMazeStateChangedAsync()
+    {
+        return InvokeAsync(() =>
+        {
+            if (_maze == null)
+            {
+                return;
+            }
+
+            RecordSnapshot();
+            StateHasChanged();
+        });
     }
     #endregion
 
     private async Task ProcessUserCommand()
     {
-        if (IsProcessingCommand) return;
+        if (IsProcessingCommand || _isPlaybackInProgress) return;
 
         IsProcessingCommand = true;
         StateHasChanged();
@@ -380,7 +559,7 @@
         if (_maze == null)
             throw new InvalidOperationException("Maze is not initialized");
 
-        var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, true, _openAIApiKey, LogStore, _ollamaServerUrl, _ollamaPassword, _ignoreSslErrors, async () => await InvokeAsync(StateHasChanged));
+        var kernelBuildParameters = new KernelBuildParameters(_maze, _connectionType, SelectedModelId, _openAIModel, true, _openAIApiKey, LogStore, _ollamaServerUrl, _ollamaPassword, _ignoreSslErrors, OnMazeStateChangedAsync);
         return KernelFactory.BuildKernel(kernelBuildParameters);
     }
 
@@ -569,5 +748,18 @@
             Description = "AI Assistant that controls a robot in a maze",
             Arguments = new KernelArguments(executionSettings)
         };
+    }
+
+    private enum RecordingState
+    {
+        Idle,
+        Recording,
+        Stopping
+    }
+
+    private sealed record MazeSnapshot(int RobotX, int RobotY, bool GoalAchieved, string MazeSignature)
+    {
+        public static MazeSnapshot FromMaze(MazeRunnerMaze maze) =>
+            new(maze.Robot.X, maze.Robot.Y, maze.GoalAchieved, maze.MakeMazeAsTextRepresentation(true));
     }
 }
