@@ -8,20 +8,7 @@ namespace Demo.Demos.MazeRunner
             var password = await configProvider.GetPasswordAsync();
             var ignoreSslErrors = await configProvider.GetIgnoreSslErrorsAsync();
 
-            HttpClient client;
-
-            if (ignoreSslErrors && !OperatingSystem.IsBrowser())
-            {
-                // Create HttpClientHandler with SSL validation disabled
-                var handler = new HttpClientHandler();
-                handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
-                
-                client = new HttpClient(handler);
-            }
-            else
-            {
-                client = httpClientFactory.CreateClient();
-            }
+            var client = CreateHttpClient(ignoreSslErrors);
 
             client.BaseAddress = new Uri(serverUrl ?? "http://localhost:11434");
             client.Timeout = TimeSpan.FromMinutes(20);
@@ -33,6 +20,21 @@ namespace Demo.Demos.MazeRunner
             }
 
             return client;
+        }
+
+        private HttpClient CreateHttpClient(bool ignoreSslErrors)
+        {
+            if (ignoreSslErrors && !OperatingSystem.IsBrowser())
+            {
+                var handler = new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+                };
+
+                return new HttpClient(handler);
+            }
+
+            return httpClientFactory.CreateClient();
         }
     }
 }

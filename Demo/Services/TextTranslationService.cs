@@ -8,14 +8,13 @@ namespace Demo.Services
     {
         private readonly MarkdownPipeline _markdownPipeline;
 
-        // A set of dark colors used for highlighting different terms
-        private static readonly string[] TermColors = new[]
+        private static readonly string[] HighlightColors =
         {
-            "#8B008B", // DarkMagenta
-            "#800000", // Maroon
-            "#004080", // Dark blue
-            "#808000", // Olive
-            "#400080"  // Another dark shade
+            "#8B008B",
+            "#800000",
+            "#004080",
+            "#808000",
+            "#400080"
         };
 
         public TextTranslationService()
@@ -27,31 +26,30 @@ namespace Demo.Services
 
         public string GetLocalizedContent(LocalizedText text, string languageCode, List<LocalizedText>? terms = null, bool highlightTerms = false)
         {
-            var content = "";
-
-            // Get content for the requested language
-            if (languageCode == "en" && !string.IsNullOrWhiteSpace(text.English))
-                content = text.English;
-            else if (languageCode == "es" && !string.IsNullOrWhiteSpace(text.Spanish))
-                content = text.Spanish;
-            else if (languageCode == "ru" && !string.IsNullOrWhiteSpace(text.Russian))
-                content = text.Russian;
+            var content = languageCode switch
+            {
+                "en" when !string.IsNullOrWhiteSpace(text.English) => text.English!,
+                "es" when !string.IsNullOrWhiteSpace(text.Spanish) => text.Spanish!,
+                "ru" when !string.IsNullOrWhiteSpace(text.Russian) => text.Russian!,
+                _ => string.Empty
+            };
 
             if (string.IsNullOrEmpty(content))
-                return string.Empty;
-
-            // Apply term highlighting if needed
-            if (highlightTerms && terms != null && terms.Any())
             {
-                if (languageCode == "ru")
-                    content = HighlightAllTerms(content, terms, term => term.Russian);
-                else if (languageCode == "es")
-                    content = HighlightAllTerms(content, terms, term => term.Spanish);
-                else if (languageCode == "en")
-                    content = HighlightAllTerms(content, terms, term => term.English);
+                return string.Empty;
             }
 
-            // Convert markdown to HTML
+            if (highlightTerms && terms is { Count: > 0 })
+            {
+                content = languageCode switch
+                {
+                    "ru" => HighlightAllTerms(content, terms, term => term.Russian),
+                    "es" => HighlightAllTerms(content, terms, term => term.Spanish),
+                    "en" => HighlightAllTerms(content, terms, term => term.English),
+                    _ => content
+                };
+            }
+
             return Markdown.ToHtml(content, _markdownPipeline);
         }
 
@@ -62,14 +60,14 @@ namespace Demo.Services
         {
             var result = originalText;
 
-            for (var i = 0; i < terms.Count && i < TermColors.Length; i++)
+            for (var i = 0; i < terms.Count && i < HighlightColors.Length; i++)
             {
                 var term = selectTermText(terms[i]);
                 if (string.IsNullOrWhiteSpace(term))
                     continue;
 
                 var pattern = $"\\b{Regex.Escape(term)}\\b";
-                var color = TermColors[i];
+                var color = HighlightColors[i];
 
                 result = Regex.Replace(
                     result,
