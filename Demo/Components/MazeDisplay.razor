@@ -4,15 +4,48 @@
 
 @if (Maze != null)
 {
-    <div style="display: grid; grid-template-columns: repeat(@Maze.Width, 20px); gap: 1px;">
-        @for (var y = 0; y < Maze.Height; y++)
-        {
-            for (var x = 0; x < Maze.Width; x++)
+    if (ShowCoordinates)
+    {
+        <div style="@GetGridStyle(includeCoordinates: true)">
+            <div></div>
+            @for (var x = 0; x < Maze.Width; x++)
             {
-                @CellTemplate(new CellContext<TCell> { X = x, Y = y, Cell = Maze[x, y] })
+                <div style="@CoordinateStyle">@x</div>
             }
-        }
-    </div>
+            <div></div>
+
+            @for (var y = 0; y < Maze.Height; y++)
+            {
+                <div style="@CoordinateStyle">@y</div>
+                @for (var x = 0; x < Maze.Width; x++)
+                {
+                    <div style="@CellWrapperStyle">
+                        @CellTemplate(new CellContext<TCell> { X = x, Y = y, Cell = Maze[x, y] })
+                    </div>
+                }
+                <div style="@CoordinateStyle">@y</div>
+            }
+
+            <div></div>
+            @for (var x = 0; x < Maze.Width; x++)
+            {
+                <div style="@CoordinateStyle">@x</div>
+            }
+            <div></div>
+        </div>
+    }
+    else
+    {
+        <div style="@GetGridStyle(includeCoordinates: false)">
+            @for (var y = 0; y < Maze.Height; y++)
+            {
+                for (var x = 0; x < Maze.Width; x++)
+                {
+                    @CellTemplate(new CellContext<TCell> { X = x, Y = y, Cell = Maze[x, y] })
+                }
+            }
+        </div>
+    }
 }
 else
 {
@@ -31,6 +64,9 @@ else
     [Parameter]
     public EventCallback<(int X, int Y, string Button)> OnMazeCellClick { get; set; }
 
+    [Parameter]
+    public bool ShowCoordinates { get; set; }
+
     public class CellContext<T>
     {
         public int X { get; set; }
@@ -38,6 +74,30 @@ else
         public T? Cell { get; set; }
     }
 
+
+    private const int CellSize = 20;
+    private const int CoordinateSize = 20;
+
+    private string CoordinateStyle =>
+        $"width: {CoordinateSize}px; height: {CoordinateSize}px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #555;";
+
+    private string CellWrapperStyle =>
+        $"width: {CellSize}px; height: {CellSize}px; display: flex; align-items: center; justify-content: center;";
+
+    private string GetGridStyle(bool includeCoordinates)
+    {
+        if (Maze == null)
+        {
+            return string.Empty;
+        }
+
+        if (includeCoordinates)
+        {
+            return $"display: grid; grid-template-columns: {CoordinateSize}px repeat({Maze.Width}, {CellSize}px) {CoordinateSize}px; grid-template-rows: {CoordinateSize}px repeat({Maze.Height}, {CellSize}px) {CoordinateSize}px; gap: 1px;";
+        }
+
+        return $"display: grid; grid-template-columns: repeat({Maze.Width}, {CellSize}px); gap: 1px;";
+    }
 
     private async Task HandleCellClick((int X, int Y, string Button) cellClickInfo)
     {
