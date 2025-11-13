@@ -72,6 +72,29 @@
             return "Err";
         }
 
+        public void SetPosition(int x, int y)
+        {
+            var maze = CurrentMaze;
+
+            if (x < 0 || x >= maze.Width)
+            {
+                throw new ArgumentOutOfRangeException(nameof(x), "Robot X coordinate is outside of the maze.");
+            }
+
+            if (y < 0 || y >= maze.Height)
+            {
+                throw new ArgumentOutOfRangeException(nameof(y), "Robot Y coordinate is outside of the maze.");
+            }
+
+            if (maze.IsWall(x, y))
+            {
+                throw new InvalidOperationException("Robot cannot be placed on a wall cell.");
+            }
+
+            X = x;
+            Y = y;
+        }
+
         private bool CanMoveTo(int newX, int newY)
         {
             var maze = CurrentMaze;

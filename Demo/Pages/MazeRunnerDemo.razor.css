@@ -1,0 +1,136 @@
+.recorder-controls-container {
+    margin-top: 20px;
+    text-align: center;
+    border: 1px solid #ccc;
+    padding: 12px;
+    border-radius: 6px;
+    background-color: #fafafa;
+}
+
+.recorder-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.magneto-button {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.15s ease;
+}
+
+.magneto-button:not(:disabled):hover {
+    transform: scale(1.05);
+}
+
+.magneto-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.record-button .icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 3px solid #d9534f;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.record-button.record-ready .icon {
+    background-color: transparent;
+}
+
+.record-button.record-active .icon {
+    background-color: #d9534f;
+    box-shadow: 0 0 8px rgba(217, 83, 79, 0.5);
+}
+
+.record-button.record-stopping .icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 3px solid #111;
+    background-color: #111;
+}
+
+.play-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #2f6f2f;
+}
+
+.play-button .play-icon {
+    font-size: 18px;
+    color: #2f6f2f;
+    line-height: 1;
+}
+
+.play-button:disabled .play-icon {
+    color: #7a7a7a;
+}
+
+.frame-duration-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.frame-duration-label input {
+    width: 80px;
+    padding: 4px 6px;
+}
+
+.recording-indicator,
+.playback-indicator {
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.95rem;
+}
+
+.recording-indicator {
+    color: #d9534f;
+    font-weight: 600;
+}
+
+.playback-indicator {
+    color: #2f6f2f;
+}
+
+.indicator-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #d9534f;
+    animation: recorder-pulse 1s ease-in-out infinite;
+}
+
+@keyframes recorder-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.4);
+        opacity: 0.6;
+    }
+}
