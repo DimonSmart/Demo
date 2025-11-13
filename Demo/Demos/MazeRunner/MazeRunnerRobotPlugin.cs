@@ -33,11 +33,14 @@ namespace Demo.Demos.MazeRunner
         public Task<string> MoveRight() => ExecuteMoveAsync(_maze.Robot.MoveRight, "MoveRight");
 
         [KernelFunction("ReportGoalReached")]
-        [Description("Call this when the robot has accomplished the goal. Signals that no further movement is required.")]
-        public async Task<string> ReportGoalReached()
+        [Description("Call this when the robot has accomplished the goal. Provide a short summary of the work using the 'summary' parameter.")]
+        public async Task<string> ReportGoalReached(string summary = "")
         {
             _maze.GoalAchieved = true;
-            const string message = "ReportGoalReached => Goal reported as complete";
+            var trimmedSummary = summary?.Trim();
+            var message = string.IsNullOrWhiteSpace(trimmedSummary)
+                ? "ReportGoalReached => Goal reported as complete"
+                : $"ReportGoalReached => Goal reported as complete. Summary: {trimmedSummary}";
             _kernelBuildParameters.LogStore.Messages.Add(new LogStore.LogMessage(message, LogStore.LogType.RobotMovements));
             _maze.RecordCommand(message);
             if (_kernelBuildParameters.OnStateChangedAsync != null)
@@ -45,7 +48,9 @@ namespace Demo.Demos.MazeRunner
                 await _kernelBuildParameters.OnStateChangedAsync();
             }
 
-            return "Goal reported as complete.";
+            return string.IsNullOrWhiteSpace(trimmedSummary)
+                ? "Goal reported as complete."
+                : $"Goal reported as complete. Summary noted: {trimmedSummary}";
         }
 
         private async Task<string> ExecuteMoveAsync(Func<string> move, string commandName)
