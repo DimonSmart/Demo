@@ -38,6 +38,43 @@
     padding-bottom: 0.5rem;
 }
 
+.nav-folder-header {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.nav-folder-toggle {
+    background: none;
+    border: 0;
+    color: #d7d7d7;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.nav-folder-toggle:hover {
+    color: white;
+}
+
+.nav-folder-toggle:focus-visible {
+    outline: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+}
+
+.caret-icon {
+    display: inline-block;
+    width: 1rem;
+    text-align: center;
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.nav-folder ::deep a {
+    margin-left: 0.25rem;
+}
+
     .nav-item:first-of-type {
         padding-top: 1rem;
     }

@@ -64,16 +64,30 @@
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> QR receive
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="pdd">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Spanish driving rules
-            </NavLink>
+        <div class="nav-item px-3 nav-folder">
+            <div class="nav-folder-header">
+                <button type="button"
+                        class="nav-folder-toggle"
+                        title="@(ShouldShowPddSubmenu ? "Hide Spanish driving rules submenu" : "Show Spanish driving rules submenu")"
+                        @onclick="TogglePddSubmenu"
+                        @onclick:stopPropagation="true"
+                        aria-expanded="@ShouldShowPddSubmenu"
+                        aria-controls="pdd-submenu">
+                    <span class="caret-icon" aria-hidden="true">@(ShouldShowPddSubmenu ? "▾" : "▸")</span>
+                </button>
+                <NavLink class="nav-link flex-grow-1" href="pdd">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Spanish driving rules
+                </NavLink>
+            </div>
         </div>
-        <div class="nav-item px-3 ms-3">
-            <NavLink class="nav-link" href="pdd/statistics">
-                <span class="bi bi-bar-chart-fill-nav-menu" aria-hidden="true"></span> Statistics
-            </NavLink>
-        </div>
+        @if (ShouldShowPddSubmenu)
+        {
+            <div id="pdd-submenu" class="nav-item px-3 ms-4">
+                <NavLink class="nav-link" href="pdd/statistics">
+                    <span class="bi bi-bar-chart-fill-nav-menu" aria-hidden="true"></span> Statistics
+                </NavLink>
+            </div>
+        }
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="mazerunnerdemo">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> AI Controlled maze runner
@@ -87,13 +101,45 @@
     </nav>
 </div>
 
+@implements IDisposable
+
 @code {
     private bool collapseNavMenu = true;
+    private bool userExpandedPdd;
+
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+
+    private bool ShouldShowPddSubmenu => userExpandedPdd || IsPddStatisticsActive;
+
+    private bool IsPddStatisticsActive => Navigation
+        .ToBaseRelativePath(Navigation.Uri)
+        .StartsWith("pdd/statistics", System.StringComparison.OrdinalIgnoreCase);
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    private void TogglePddSubmenu()
+    {
+        userExpandedPdd = !userExpandedPdd;
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 }
