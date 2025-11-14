@@ -73,10 +73,10 @@
                         @onclick:stopPropagation="true"
                         aria-expanded="@ShouldShowPddSubmenu"
                         aria-controls="pdd-submenu">
-                    <span class="caret-icon" aria-hidden="true">@(ShouldShowPddSubmenu ? "▾" : "▸")</span>
+                    <span class="bi @(ShouldShowPddSubmenu ? "bi-list-submenu-expanded-nav-menu" : "bi-list-submenu-collapsed-nav-menu")" aria-hidden="true"></span>
                 </button>
                 <NavLink class="nav-link flex-grow-1" href="pdd">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Spanish driving rules
+                    Spanish driving rules
                 </NavLink>
             </div>
         </div>
