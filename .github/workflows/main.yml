@@ -16,13 +16,13 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.x'
-
-    - name: Install wasm-tools workload
-      run: dotnet workload install wasm-tools
+        dotnet-version: '9.0.101'
 
     - name: Restore dependencies
       run: dotnet restore Demo
+
+    - name: Install wasm-tools workload
+      run: dotnet workload install wasm-tools
 
     - name: Update base href in index.html
       if: false
