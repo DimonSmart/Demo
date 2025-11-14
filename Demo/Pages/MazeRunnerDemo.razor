@@ -7,6 +7,7 @@
 @using DimonSmart.MazeGenerator
 @using System.Linq
 @using System.Text
+@using System.Threading
 @using Microsoft.SemanticKernel
 @using Microsoft.SemanticKernel.Services
 @using Microsoft.SemanticKernel.ChatCompletion
@@ -197,9 +198,10 @@
 
             <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
                 <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., 'move right')" style="width:300px;" />
-                <button @onclick="ProcessUserCommand" disabled="@(IsProcessingCommand || _isPlaybackInProgress)">Send Command</button>
+                <button @onclick="ProcessUserCommand" disabled="@(_isPlaybackInProgress || IsProcessingCommand)">Send Command</button>
                 @if (IsProcessingCommand)
                 {
+                    <button style="margin-left:10px;" @onclick="CancelProcessing" disabled="@_isPlaybackInProgress">Cancel</button>
                     <Spinner />
                 }
                 <div style="margin-top:10px;">
@@ -208,9 +210,8 @@
             </div>
 
             <div style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;">
-                <h4>System Prompt Editor</h4>
                 <p style="font-size: 0.9em; color: #666;">Edit the system prompt that controls the robot's behavior:</p>
-                <textarea @bind="_systemPrompt" 
+                <textarea @bind="_systemPrompt"
                           @bind:event="oninput"
                           style="width: 100%; min-height: 200px; font-family: monospace; font-size: 0.9em; padding: 8px;"
                           placeholder="Enter system prompt..."></textarea>
@@ -256,6 +257,7 @@
     private MazeSnapshot? _lastRecordedSnapshot;
     private bool _isPlaybackInProgress;
     private int _frameDurationMs = 500;
+    private CancellationTokenSource? _commandCancellationTokenSource;
 
     private int FrameDurationMs
     {
@@ -534,14 +536,19 @@
         if (IsProcessingCommand || _isPlaybackInProgress) return;
 
         IsProcessingCommand = true;
+        _commandCancellationTokenSource = new CancellationTokenSource();
         StateHasChanged();
 
         try
         {
             var kernel = GetKernel();
-            var response = await ExecuteChatCompletion(kernel);
+            var response = await ExecuteChatCompletion(kernel, _commandCancellationTokenSource.Token);
             ResponseMessage = response;
             LogStore.Messages.Add(new LogStore.LogMessage($"Semantic: {ResponseMessage}", LogStore.LogType.SemanticKernel));
+        }
+        catch (OperationCanceledException)
+        {
+            ResponseMessage = "Command processing was cancelled.";
         }
         catch (Exception ex)
         {
@@ -550,8 +557,20 @@
         finally
         {
             IsProcessingCommand = false;
+            _commandCancellationTokenSource?.Dispose();
+            _commandCancellationTokenSource = null;
             StateHasChanged();
         }
+    }
+
+    private void CancelProcessing()
+    {
+        if (!IsProcessingCommand)
+        {
+            return;
+        }
+
+        _commandCancellationTokenSource?.Cancel();
     }
 
     private Kernel GetKernel()
@@ -563,7 +582,7 @@
         return KernelFactory.BuildKernel(kernelBuildParameters);
     }
 
-    private async Task<string> ExecuteChatCompletion(Kernel kernel)
+    private async Task<string> ExecuteChatCompletion(Kernel kernel, CancellationToken cancellationToken)
     {
         if (_maze == null)
         {
@@ -589,14 +608,15 @@
 
         while (movesIssued < MaxRobotStepsPerSession)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var userPrompt = BuildIterationPrompt(recordedSteps, MaxRobotStepsPerSession - movesIssued);
             var messages = new List<ChatMessageContent>
             {
                 new(AuthorRole.User, userPrompt)
             };
 
-            var responses = agent.InvokeAsync(messages);
-            await foreach (var responseItem in responses)
+            var responses = agent.InvokeAsync(messages, cancellationToken: cancellationToken);
+            await foreach (var responseItem in responses.WithCancellation(cancellationToken))
             {
                 if (responseItem.Message != null && !string.IsNullOrWhiteSpace(responseItem.Message.Content))
                 {
@@ -672,7 +692,7 @@
         builder.AppendLine();
         builder.AppendLine("Current maze state:");
         builder.AppendLine(_maze.MakeMazeAsTextRepresentation());
-        builder.AppendLine("Plan and call exactly one function: MazeRunnerRobotPlugin_MoveUp, MazeRunnerRobotPlugin_MoveDown, MazeRunnerRobotPlugin_MoveLeft, MazeRunnerRobotPlugin_MoveRight, or MazeRunnerRobotPlugin_ReportGoalReached. Provide a short justification in natural language after issuing the function call.");
+        builder.AppendLine("Plan your next step(s) and call the necessary functions from MazeRunnerRobotPlugin (MoveUp, MoveDown, MoveLeft, MoveRight, ReportGoalReached). Provide a short justification in natural language after issuing the function call(s). When the goal is achieved, call MazeRunnerRobotPlugin_ReportGoalReached with a brief summary of the work performed.");
 
         return builder.ToString();
     }

@@ -30,7 +30,7 @@ namespace Demo.Demos.MazeRunner
 
             // Add coordinate system explanation
             sb.AppendLine("# Maze representation with zero-based coordinates (0,0 at top-left)");
-            sb.AppendLine("# Robot position: " + (maze.Robot != null ? $"({maze.Robot.X},{maze.Robot.Y})" : "not placed"));
+            sb.AppendLine("# Robot position (x, y): " + (maze.Robot != null ? $"x={maze.Robot.X}, y={maze.Robot.Y}" : "not placed"));
             sb.AppendLine();
 
             // Column headers
@@ -85,13 +85,11 @@ namespace Demo.Demos.MazeRunner
                 return "R";
             }
 
-            // Wall
             if (cell.IsWall())
             {
                 return "#";
             }
 
-            // Apple or Pear (they won't coexist in the same cell)
             if (cell.IsApple())
             {
                 return "A";
@@ -102,7 +100,7 @@ namespace Demo.Demos.MazeRunner
                 return "P";
             }
 
-            // Otherwise, an empty cell represented as '_'
+            // Empty cell represented as '_'
             return "_";
         }
     }
