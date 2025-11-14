@@ -18,11 +18,11 @@ jobs:
       with:
         dotnet-version: '9.0.x'
 
-    - name: Install wasm-tools workload
-      run: dotnet workload install wasm-tools-net9
-
     - name: Restore dependencies
       run: dotnet restore Demo
+      
+    - name: Restore workloads
+      run: dotnet workload restore Demo/Demo.csproj
 
     - name: Update base href in index.html
       if: false
