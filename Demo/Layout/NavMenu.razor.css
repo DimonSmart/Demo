@@ -41,13 +41,13 @@
 .nav-folder-header {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.5rem;
 }
 
 .nav-folder-toggle {
     background: none;
     border: 0;
-    color: #d7d7d7;
+    color: inherit;
     padding: 0;
     display: inline-flex;
     align-items: center;
@@ -63,12 +63,12 @@
     border-radius: 4px;
 }
 
-.caret-icon {
-    display: inline-block;
-    width: 1rem;
-    text-align: center;
-    font-size: 0.95rem;
-    line-height: 1;
+.bi-list-submenu-collapsed-nav-menu {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M2 3.5h6a.5.5 0 0 1 0 1H2a.5.5 0 0 1 0-1zm0 4h6a.5.5 0 0 1 0 1H2a.5.5 0 0 1 0-1zm0 4h6a.5.5 0 0 1 0 1H2a.5.5 0 0 1 0-1z'/%3E%3Cpath d='M10.5 4.5a.5.5 0 0 1 .8-.4l3 2.5a.5.5 0 0 1 0 .8l-3 2.5a.5.5 0 0 1-.8-.4v-5z'/%3E%3C/svg%3E");
+}
+
+.bi-list-submenu-expanded-nav-menu {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M2 3.5h6a.5.5 0 0 1 0 1H2a.5.5 0 0 1 0-1zm0 4h6a.5.5 0 0 1 0 1H2a.5.5 0 0 1 0-1zm0 4h6a.5.5 0 0 1 0 1H2a.5.5 0 0 1 0-1z'/%3E%3Cpath d='M9.646 7.646a.5.5 0 0 1 .708 0L12 9.293l1.646-1.647a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
 }
 
 .nav-folder ::deep a {
