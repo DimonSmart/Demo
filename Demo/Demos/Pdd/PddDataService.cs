@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 
 namespace Demo.Demos.Pdd;
@@ -18,8 +19,10 @@ public class PddDataService(HttpClient httpClient, ILogger<PddDataService> logge
             logger.LogInformation("Loading PDD database from remote URL");
             var response = await httpClient.GetAsync("https://DimonSmart.github.io/DGT/pdd-v2.json");
             response.EnsureSuccessStatusCode();
-            var json = await response.Content.ReadAsStreamAsync();
-            var database = await JsonSerializer.DeserializeAsync<PddDatabase>(json) ?? new PddDatabase();
+            await using var jsonStream = await response.Content.ReadAsStreamAsync();
+            using var reader = new StreamReader(jsonStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            var json = await reader.ReadToEndAsync();
+            var database = JsonSerializer.Deserialize<PddDatabase>(json) ?? new PddDatabase();
             _cachedDatabase = database;
             return database;
         }
