@@ -373,5 +373,31 @@ namespace DemoTests.InvisibleCharacters
             AssertDoesNotContainString(result.CleanedText, "−"); // MINUS SIGN gone
             Assert.Contains("-", result.CleanedText); // Regular hyphen present
         }
+
+        [Fact]
+        public void CleanSelectedCategories_WithAllAlgorithms_RemovesInvisibleCharactersFromDemoExample()
+        {
+            var demoText = InvisibleUnicodeDemoGenerator.BuildMarkdown();
+            var detector = new InvisibleCharacterDetectorService();
+            var cleaner = new InvisibleCharacterCleanerService();
+
+            var initialDetection = detector.DetectInvisibleCharacters(demoText);
+            Assert.True(initialDetection.HasInvisibleCharacters);
+
+            var enabledCategories = Enum.GetValues<InvisibleCharacterCategory>().ToHashSet();
+            var cleaningOptions = new CleaningOptions
+            {
+                SkipCodeBlocks = true,
+                TabSize = 4,
+                InvisibleMathToSpace = true,
+                PreserveZWJZWNJ = false
+            };
+
+            var result = cleaner.CleanSelectedCategories(demoText, enabledCategories, cleaningOptions);
+
+            Assert.False(result.AfterCleaningDetection.HasInvisibleCharacters);
+            Assert.Empty(result.AfterCleaningDetection.DetectedCharacters);
+            Assert.Contains("Comprehensive invisible character test", result.CleanedText);
+        }
     }
 }

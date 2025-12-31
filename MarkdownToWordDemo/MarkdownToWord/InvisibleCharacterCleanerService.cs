@@ -124,10 +124,7 @@ namespace Demo.Demos.MarkdownToWord
             {
                 if (positionsToClean.TryGetValue(position, out var charDetection))
                 {
-                    // Use a more aggressive preset for confusables when explicitly selected
-                    var presetForAction = charDetection.Category == InvisibleCharacterCategory.Confusables
-                        ? CleaningPreset.Aggressive
-                        : CleaningPreset.Safe;
+                    var presetForAction = GetPresetForSelectedCategory(charDetection.Category);
 
                     var cleaningAction = charDetection.GetCleaningAction(presetForAction);
                     var processedChar = ApplyCleaningAction(rune, cleaningAction, new CleaningContext
@@ -267,6 +264,21 @@ namespace Demo.Demos.MarkdownToWord
                     InvisibleMathToSpace = false
                 },
                 _ => new CleaningOptions()
+            };
+        }
+
+        private static CleaningPreset GetPresetForSelectedCategory(InvisibleCharacterCategory category)
+        {
+            return category switch
+            {
+                InvisibleCharacterCategory.Confusables => CleaningPreset.Aggressive,
+                InvisibleCharacterCategory.NoBreakSpaces => CleaningPreset.Aggressive,
+                InvisibleCharacterCategory.ZeroWidthFormat => CleaningPreset.Aggressive,
+                InvisibleCharacterCategory.VariationSelectors => CleaningPreset.Aggressive,
+                InvisibleCharacterCategory.EmojiTags => CleaningPreset.Aggressive,
+                InvisibleCharacterCategory.CombiningMarks => CleaningPreset.Aggressive,
+                InvisibleCharacterCategory.Tab => CleaningPreset.Aggressive,
+                _ => CleaningPreset.Safe
             };
         }
     }
