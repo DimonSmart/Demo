@@ -12,8 +12,10 @@ using KristofferStrube.Blazor.MediaCaptureStreams;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Options;
+using System.Text;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddBlazoredLocalStorageAsSingleton(options =>

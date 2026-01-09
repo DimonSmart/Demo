@@ -461,10 +461,9 @@
         if (_uploadedFiles.Count == 0 || _isProcessing)
             return;
 
-        await InitializeProcessing();
-
         try
         {
+            await InitializeProcessing();
             var cropSettings = GetCropSettings();
             var optimizationSettings = GetOptimizationSettings();
 
@@ -476,6 +475,11 @@
             {
                 await ProcessIndividualFiles(cropSettings, optimizationSettings);
             }
+        }
+        catch (Exception ex)
+        {
+            _processingErrors.Add(ExceptionMessageHelper.BuildExceptionMessage("Processing failed", ex));
+            Console.Error.WriteLine(ex);
         }
         finally
         {
@@ -568,8 +572,8 @@
         }
         catch (Exception ex)
         {
-
-            _processingErrors.Add($"Failed to process {file.Name}: {ex.Message}");
+            _processingErrors.Add(ExceptionMessageHelper.BuildExceptionMessage($"Failed to process {file.Name}", ex));
+            Console.Error.WriteLine(ex);
             _currentProgressPercentage = null;
             StateHasChanged();
 
@@ -603,8 +607,8 @@
         }
         catch (Exception ex)
         {
-
-            _processingErrors.Add($"Failed to merge documents: {ex.Message}");
+            _processingErrors.Add(ExceptionMessageHelper.BuildExceptionMessage("Failed to merge documents", ex));
+            Console.Error.WriteLine(ex);
             _currentProgressPercentage = null;
             StateHasChanged();
         }
@@ -672,7 +676,8 @@
         }
         catch (Exception ex)
         {
-            _processingErrors.Add($"Failed to process merged document: {ex.Message}");
+            _processingErrors.Add(ExceptionMessageHelper.BuildExceptionMessage("Failed to process merged document", ex));
+            Console.Error.WriteLine(ex);
             _currentProgressPercentage = null;
             StateHasChanged();
         }
@@ -698,6 +703,7 @@
 
         await UpdateProcessingState(message: null, percentage: null);
     }
+
 
     private static int? ResolveCompressionLevel(string key)
     {
