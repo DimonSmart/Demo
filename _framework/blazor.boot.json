@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "Demo",
   "resources": {
-    "hash": "sha256-NWcD4z0MQV3y4aNPfAKNvglIG7/071NaEr7k3sFQlZU=",
+    "hash": "sha256-/SCyPxJwW6M0V5fQZqI3BLnefbN3aN2DH0nuVe5CJyE=",
     "fingerprinting": {
       "Azure.AI.OpenAI.j8zyfakwt1.wasm": "Azure.AI.OpenAI.wasm",
       "Azure.Core.ltf0pljmuu.wasm": "Azure.Core.wasm",
@@ -11,7 +11,7 @@
       "DimonSmart.AiUtils.qgk9rrbjel.wasm": "DimonSmart.AiUtils.wasm",
       "DimonSmart.HashX.pc1h9fshzl.wasm": "DimonSmart.HashX.wasm",
       "DimonSmart.MazeGenerator.s2r6yx7vnk.wasm": "DimonSmart.MazeGenerator.wasm",
-      "DimonSmart.PdfCropper.g6b22uqe28.wasm": "DimonSmart.PdfCropper.wasm",
+      "DimonSmart.PdfCropper.9h2gynj257.wasm": "DimonSmart.PdfCropper.wasm",
       "DimonSmart.StringDiff.g2czv7cqeb.wasm": "DimonSmart.StringDiff.wasm",
       "Blazor.Canvas.f4j2trvhby.wasm": "Blazor.Canvas.wasm",
       "Excubo.Generators.Blazor.Attributes.zpv3sgtlrf.wasm": "Excubo.Generators.Blazor.Attributes.wasm",
@@ -165,11 +165,11 @@
       "mscorlib.ze7h7bhdbf.wasm": "mscorlib.wasm",
       "netstandard.fg1o7l110d.wasm": "netstandard.wasm",
       "System.Private.CoreLib.dqcy2z1x00.wasm": "System.Private.CoreLib.wasm",
-      "Demo.Abstractions.obyreqkuhl.wasm": "Demo.Abstractions.wasm",
-      "GeneticAlgorithm.fpc1bxvrm1.wasm": "GeneticAlgorithm.wasm",
-      "MarkdownToWordDemo.l4evl5w0s6.wasm": "MarkdownToWordDemo.wasm",
-      "QrTransferDemo.rccwzhnhws.wasm": "QrTransferDemo.wasm",
-      "Demo.g1i2xhtk9d.wasm": "Demo.wasm",
+      "Demo.Abstractions.a0l6v3yhfp.wasm": "Demo.Abstractions.wasm",
+      "GeneticAlgorithm.hvuh8j6zbp.wasm": "GeneticAlgorithm.wasm",
+      "MarkdownToWordDemo.nbv0bco22s.wasm": "MarkdownToWordDemo.wasm",
+      "QrTransferDemo.7x8gbohw5m.wasm": "QrTransferDemo.wasm",
+      "Demo.889w15nyx3.wasm": "Demo.wasm",
       "dotnet.native.df97tqx4ld.js": "dotnet.native.js",
       "dotnet.native.mb7urckoaf.wasm": "dotnet.native.wasm",
       "dotnet.js": "dotnet.js",
@@ -205,7 +205,7 @@
       "DimonSmart.AiUtils.qgk9rrbjel.wasm": "sha256-2oYg0ygmpzpebZbQcyE/6NNe88Ett1w/Bw5lTUQ6NkA=",
       "DimonSmart.HashX.pc1h9fshzl.wasm": "sha256-GWbxNAvpJtxUlRfaqRw2Lgksx+9CYEfaRD5icDhoi8U=",
       "DimonSmart.MazeGenerator.s2r6yx7vnk.wasm": "sha256-bHv6o0rhGbvzZuAq6JHNDFKkbmZ2cr9T3uaCh0jwkt4=",
-      "DimonSmart.PdfCropper.g6b22uqe28.wasm": "sha256-GD9VB8bZQCZquHEWH2VPB0JV2ny2lChh8HpV/Q7hEok=",
+      "DimonSmart.PdfCropper.9h2gynj257.wasm": "sha256-jT7TBVHZxPNustQdElFAWrEaE01lYgJahi9fc2yH1d0=",
       "DimonSmart.StringDiff.g2czv7cqeb.wasm": "sha256-2GIfD8XW3skZBe8HByCkf1+YysabyQiy8R3Lq02xfso=",
       "Blazor.Canvas.f4j2trvhby.wasm": "sha256-T4ZgGnBBqgFn7l9BvL+qKQ2iaa4XQcYzJtX0D9NLX2U=",
       "Excubo.Generators.Blazor.Attributes.zpv3sgtlrf.wasm": "sha256-qVC+LIPC1NiSLnwtgPgDy8x2ViPcFHEh0j+pB1GfDyk=",
@@ -357,13 +357,13 @@
       "System.t4d4s3f398.wasm": "sha256-fVP2BxRRKpBA0PmBbKxmO45bXDrAXVn1GthlDclLbeU=",
       "mscorlib.ze7h7bhdbf.wasm": "sha256-ywLVrT4T9wAT7PgwIlSFhD88wYhz0Rhya7rW/ikdQsU=",
       "netstandard.fg1o7l110d.wasm": "sha256-X0j1h5hb458nPPYTMJ0C3U44OaxPrdiKzuCsP8E7UhY=",
-      "Demo.Abstractions.obyreqkuhl.wasm": "sha256-hBw9IZhjtj9p5MBYQroScs4qDpB6yHcF9t2TVi2bG2o=",
-      "GeneticAlgorithm.fpc1bxvrm1.wasm": "sha256-bUrY95fStee+RQcyGkgJicgZI0IHCZSLODOvAo0LyDA=",
-      "Demo.g1i2xhtk9d.wasm": "sha256-1Dzz2cEhBGF8LIsz2f0Uf2H+Zm8sPI8Tx7mRhqRQ23Y="
+      "Demo.Abstractions.a0l6v3yhfp.wasm": "sha256-JoVrQltbOcmGe2qImJMPpybRDSBi399BJhNU175DT34=",
+      "GeneticAlgorithm.hvuh8j6zbp.wasm": "sha256-jQqABrZ604AH7cRq2ocZCsiEnx4YJ0S5f1hf1Icxwp8=",
+      "Demo.889w15nyx3.wasm": "sha256-uLvx3z+K15Ayn/S6qmLQ0iHX81xNLmTMd8gPWlQdj+0="
     },
     "lazyAssembly": {
-      "MarkdownToWordDemo.l4evl5w0s6.wasm": "sha256-RcLL2EEIAcFlJz0NdTQZt8C1sDiZGpeTQ8SkIigDFxE=",
-      "QrTransferDemo.rccwzhnhws.wasm": "sha256-dWJmdCq3q7qNAlc6JG6Aqr3HO+CRZ5XRJPGWG8id8Jw="
+      "MarkdownToWordDemo.nbv0bco22s.wasm": "sha256-kznCKw9E8WFtrD3ZZeHNGpxDMc/Jw9etAg6+MyCfhRc=",
+      "QrTransferDemo.7x8gbohw5m.wasm": "sha256-1ROmLAqSNKfFF/TFDwPtkxFb6OTZUKfkfo2+9jB+vW8="
     }
   },
   "cacheBootResources": true,
