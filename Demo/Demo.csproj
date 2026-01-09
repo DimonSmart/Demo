@@ -12,7 +12,7 @@
     <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
     <PackageReference Include="BouncyCastle.Crypto.dll" Version="1.8.1" />
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
-    <PackageReference Include="DimonSmart.PdfCropper" Version="1.7.1" />
+    <PackageReference Include="DimonSmart.PdfCropper" Version="1.7.2" />
     <PackageReference Include="DimonSmart.AiUtils" Version="1.25624.1027" />
     <PackageReference Include="DimonSmart.HashX" Version="1.24813.951" />
     <PackageReference Include="DimonSmart.MazeGenerator" Version="1.25627.1545" />
