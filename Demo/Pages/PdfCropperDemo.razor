@@ -79,18 +79,40 @@
         <div class="card mb-4">
             <div class="card-header">Crop settings</div>
             <div class="card-body row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">Cropping method</label>
-                    <InputSelect @bind-Value="_options.Method" class="form-select">
-                        @foreach (var method in CropMethods)
-                        {
-                            <option value="@method">@GetMethodLabel(method)</option>
-                        }
-                    </InputSelect>
+                <div class="col-12">
+                    <div class="border rounded-3 p-3 bg-light h-100">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                            <div class="fw-semibold">Margins (pt)</div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ApplyMarginToAll" title="Copies the top margin to all sides.">Use top for all sides</button>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <label class="form-label">Top</label>
+                                <InputNumber @bind-Value="_options.MarginTop" class="form-control" step="0.25" min="0" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Right</label>
+                                <InputNumber @bind-Value="_options.MarginRight" class="form-control" step="0.25" min="0" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Bottom</label>
+                                <InputNumber @bind-Value="_options.MarginBottom" class="form-control" step="0.25" min="0" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Left</label>
+                                <InputNumber @bind-Value="_options.MarginLeft" class="form-control" step="0.25" min="0" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Safety margin (pt)</label>
-                    <InputNumber @bind-Value="_options.Margin" class="form-control" step="0.25" min="0" />
+                <div class="col-12">
+                    <label class="form-label" for="pageRanges">Page ranges</label>
+                    <InputText @bind-Value="_options.PageRangeExpression" class="form-control" id="pageRanges" placeholder="e.g. 1,4-6,8-" @oninput="ClearPageRangeError" />
+                    <div class="form-text">Leave empty to crop all pages. Examples: 1,4-6,8-.</div>
+                    @if (!string.IsNullOrEmpty(_pageRangeError))
+                    {
+                        <div class="text-danger small">@_pageRangeError</div>
+                    }
                 </div>
                 <div class="col-md-4 d-flex align-items-center">
                     <div class="form-check mt-4">
@@ -98,25 +120,29 @@
                         <label class="form-check-label" for="excludeEdge">Ignore objects touching the edge</label>
                     </div>
                 </div>
-                <div class="col-md-4 d-flex align-items-center">
-                    <div class="form-check mt-4">
-                        <InputCheckbox @bind-Value="_options.DetectRepeatedObjects" class="form-check-input" id="detectRepeatedObjects" />
-                        <label class="form-check-label" for="detectRepeatedObjects">Analyze repeated headers and footers</label>
+                <div class="col-12">
+                    <div class="border rounded-3 p-3 bg-light">
+                        <div class="fw-semibold mb-3">Repeated headers and footers</div>
+                        <div class="row g-3">
+                            <div class="col-md-4 d-flex align-items-center">
+                                <div class="form-check mt-4">
+                                    <InputCheckbox @bind-Value="_options.DetectRepeatedObjects" class="form-check-input" id="detectRepeatedObjects" />
+                                    <label class="form-check-label" for="detectRepeatedObjects">Analyze repeated headers and footers</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Occurrence threshold (%)</label>
+                                <InputNumber @bind-Value="_options.RepeatedObjectOccurrenceThreshold" class="form-control" step="1" min="1" max="100" disabled="@(!_options.DetectRepeatedObjects)" />
+                                <div class="form-text">Objects seen on at least this percentage of pages are ignored.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Minimum page count</label>
+                                <InputNumber @bind-Value="_options.RepeatedObjectMinimumPageCount" class="form-control" step="1" min="1" disabled="@(!_options.DetectRepeatedObjects)" />
+                                <div class="form-text">Detection is skipped for shorter documents.</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                @if (_options.DetectRepeatedObjects)
-                {
-                    <div class="col-md-4">
-                        <label class="form-label">Occurrence threshold (%)</label>
-                        <InputNumber @bind-Value="_options.RepeatedObjectOccurrenceThreshold" class="form-control" step="1" min="1" max="100" />
-                        <div class="form-text">Objects seen on at least this percentage of pages are ignored.</div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Minimum page count</label>
-                        <InputNumber @bind-Value="_options.RepeatedObjectMinimumPageCount" class="form-control" step="1" min="1" />
-                        <div class="form-text">Detection is skipped for shorter documents.</div>
-                    </div>
-                }
             </div>
         </div>
 
@@ -357,7 +383,6 @@
     private const int ProgressLogLimit = 8;
     private static readonly TimeSpan ProgressUiDebounceInterval = TimeSpan.FromMilliseconds(100);
 
-    private static readonly CropMethod[] CropMethods = { CropMethod.ContentBased };
     private static readonly IReadOnlyList<CompressionOption> CompressionOptions = BuildCompressionOptions();
     private static readonly IReadOnlyList<TargetVersionOption> TargetVersionOptions = BuildTargetVersionOptions();
 
@@ -377,6 +402,7 @@
     private bool _isAnalyzingFiles;
     private string? _activeFileName;
     private string? _latestLogMessage;
+    private string? _pageRangeError;
     private int? _currentProgressPercentage;
     private DateTime _lastProgressUiRefresh;
 
@@ -391,6 +417,7 @@
         _processingErrors.Clear();
         _results.Clear();
         _uploadedFiles.Clear();
+        _pageRangeError = null;
     }
 
     private bool IsValidPdfFile(IBrowserFile file)
@@ -461,10 +488,18 @@
         if (_uploadedFiles.Count == 0 || _isProcessing)
             return;
 
+        var pageRange = ResolvePageRange();
+        if (_pageRangeError != null)
+        {
+            _processingErrors.Clear();
+            _processingErrors.Add(_pageRangeError);
+            return;
+        }
+
         try
         {
             await InitializeProcessing();
-            var cropSettings = GetCropSettings();
+            var cropSettings = GetCropSettings(pageRange);
             var optimizationSettings = GetOptimizationSettings();
 
             if (_options.MergeIntoSingleDocument && _uploadedFiles.Count > 1)
@@ -519,16 +554,55 @@
         await Task.Yield();
     }
 
-    private CropSettings GetCropSettings()
+    private void ApplyMarginToAll()
     {
+        var value = _options.MarginTop;
+        _options.MarginRight = value;
+        _options.MarginBottom = value;
+        _options.MarginLeft = value;
+    }
+
+    private void ClearPageRangeError(ChangeEventArgs _)
+    {
+        _pageRangeError = null;
+    }
+
+    private PageRange? ResolvePageRange()
+    {
+        _pageRangeError = null;
+        var expression = _options.PageRangeExpression?.Trim();
+        if (string.IsNullOrWhiteSpace(expression))
+        {
+            return null;
+        }
+
+        var pageRange = new PageRange(expression);
+        if (pageRange.HasError)
+        {
+            _pageRangeError = pageRange.ErrorMessage ?? "Invalid page range expression.";
+            return null;
+        }
+
+        return pageRange;
+    }
+
+    private CropSettings GetCropSettings(PageRange? pageRange)
+    {
+        var margins = new CropMargins(
+            left: (float)_options.MarginLeft,
+            bottom: (float)_options.MarginBottom,
+            right: (float)_options.MarginRight,
+            top: (float)_options.MarginTop);
+
         return new CropSettings(
-            _options.Method,
+            CropMethod.ContentBased,
             _options.ExcludeEdgeTouchingObjects,
-            (float)_options.Margin,
+            margins,
             edgeExclusionTolerance: CropSettings.Default.EdgeExclusionTolerance,
             detectRepeatedObjects: _options.DetectRepeatedObjects,
             repeatedObjectOccurrenceThreshold: (double)_options.RepeatedObjectOccurrenceThreshold,
-            repeatedObjectMinimumPageCount: _options.RepeatedObjectMinimumPageCount);
+            repeatedObjectMinimumPageCount: _options.RepeatedObjectMinimumPageCount,
+            pageRange: pageRange);
     }
 
     private PdfOptimizationSettings GetOptimizationSettings()
@@ -800,16 +874,6 @@
         return outputStream.ToArray();
     }
 
-    private static string GetMethodLabel(CropMethod method)
-    {
-        return method switch
-        {
-            CropMethod.ContentBased => "Content analysis (faster)",
-            CropMethod.BitmapBased => "Rasterization (more precise)",
-            _ => method.ToString()
-        };
-    }
-
     private static string FormatFileSize(long bytes)
     {
         if (bytes <= 0)
@@ -826,12 +890,15 @@
 
     private sealed class PdfCropperOptions
     {
-        public CropMethod Method { get; set; } = CropMethod.ContentBased;
-        public decimal Margin { get; set; } = 0.5m;
+        public decimal MarginTop { get; set; } = 0m;
+        public decimal MarginRight { get; set; } = 0m;
+        public decimal MarginBottom { get; set; } = 0m;
+        public decimal MarginLeft { get; set; } = 0m;
         public bool ExcludeEdgeTouchingObjects { get; set; } = true;
         public bool DetectRepeatedObjects { get; set; }
         public decimal RepeatedObjectOccurrenceThreshold { get; set; } = 40m;
         public int RepeatedObjectMinimumPageCount { get; set; } = 3;
+        public string PageRangeExpression { get; set; } = string.Empty;
         public string CompressionLevelKey { get; set; } = string.Empty;
         public string TargetPdfVersionValue { get; set; } = string.Empty;
         public bool EnableFullCompression { get; set; }
