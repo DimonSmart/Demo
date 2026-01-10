@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "Demo",
   "resources": {
-    "hash": "sha256-/SCyPxJwW6M0V5fQZqI3BLnefbN3aN2DH0nuVe5CJyE=",
+    "hash": "sha256-FH/0vvHhtVcBc6PokyeikVLkYc1JGujzJUFXedUm870=",
     "fingerprinting": {
       "Azure.AI.OpenAI.j8zyfakwt1.wasm": "Azure.AI.OpenAI.wasm",
       "Azure.Core.ltf0pljmuu.wasm": "Azure.Core.wasm",
@@ -11,7 +11,7 @@
       "DimonSmart.AiUtils.qgk9rrbjel.wasm": "DimonSmart.AiUtils.wasm",
       "DimonSmart.HashX.pc1h9fshzl.wasm": "DimonSmart.HashX.wasm",
       "DimonSmart.MazeGenerator.s2r6yx7vnk.wasm": "DimonSmart.MazeGenerator.wasm",
-      "DimonSmart.PdfCropper.9h2gynj257.wasm": "DimonSmart.PdfCropper.wasm",
+      "DimonSmart.PdfCropper.u6womgx70x.wasm": "DimonSmart.PdfCropper.wasm",
       "DimonSmart.StringDiff.g2czv7cqeb.wasm": "DimonSmart.StringDiff.wasm",
       "Blazor.Canvas.f4j2trvhby.wasm": "Blazor.Canvas.wasm",
       "Excubo.Generators.Blazor.Attributes.zpv3sgtlrf.wasm": "Excubo.Generators.Blazor.Attributes.wasm",
@@ -34,7 +34,7 @@
       "Markdig.y4i0b9whld.wasm": "Markdig.wasm",
       "Microsoft.AspNetCore.Components.4srbxllwsb.wasm": "Microsoft.AspNetCore.Components.wasm",
       "Microsoft.AspNetCore.Components.Forms.i0lxhaz8pu.wasm": "Microsoft.AspNetCore.Components.Forms.wasm",
-      "Microsoft.AspNetCore.Components.Web.3mjip8tbax.wasm": "Microsoft.AspNetCore.Components.Web.wasm",
+      "Microsoft.AspNetCore.Components.Web.kx1fjb1gao.wasm": "Microsoft.AspNetCore.Components.Web.wasm",
       "Microsoft.AspNetCore.Components.WebAssembly.frs0dlnm1c.wasm": "Microsoft.AspNetCore.Components.WebAssembly.wasm",
       "Microsoft.Bcl.HashCode.gfbo4c6st8.wasm": "Microsoft.Bcl.HashCode.wasm",
       "Microsoft.DotNet.PlatformAbstractions.l5f1k5rpem.wasm": "Microsoft.DotNet.PlatformAbstractions.wasm",
@@ -165,11 +165,11 @@
       "mscorlib.ze7h7bhdbf.wasm": "mscorlib.wasm",
       "netstandard.fg1o7l110d.wasm": "netstandard.wasm",
       "System.Private.CoreLib.dqcy2z1x00.wasm": "System.Private.CoreLib.wasm",
-      "Demo.Abstractions.a0l6v3yhfp.wasm": "Demo.Abstractions.wasm",
-      "GeneticAlgorithm.hvuh8j6zbp.wasm": "GeneticAlgorithm.wasm",
-      "MarkdownToWordDemo.nbv0bco22s.wasm": "MarkdownToWordDemo.wasm",
-      "QrTransferDemo.7x8gbohw5m.wasm": "QrTransferDemo.wasm",
-      "Demo.889w15nyx3.wasm": "Demo.wasm",
+      "Demo.Abstractions.u767jxsvmj.wasm": "Demo.Abstractions.wasm",
+      "GeneticAlgorithm.uj6nahwtrp.wasm": "GeneticAlgorithm.wasm",
+      "MarkdownToWordDemo.3kpup1uevp.wasm": "MarkdownToWordDemo.wasm",
+      "QrTransferDemo.utsg5utmb4.wasm": "QrTransferDemo.wasm",
+      "Demo.jrrlyb9ui2.wasm": "Demo.wasm",
       "dotnet.native.df97tqx4ld.js": "dotnet.native.js",
       "dotnet.native.mb7urckoaf.wasm": "dotnet.native.wasm",
       "dotnet.js": "dotnet.js",
@@ -205,7 +205,7 @@
       "DimonSmart.AiUtils.qgk9rrbjel.wasm": "sha256-2oYg0ygmpzpebZbQcyE/6NNe88Ett1w/Bw5lTUQ6NkA=",
       "DimonSmart.HashX.pc1h9fshzl.wasm": "sha256-GWbxNAvpJtxUlRfaqRw2Lgksx+9CYEfaRD5icDhoi8U=",
       "DimonSmart.MazeGenerator.s2r6yx7vnk.wasm": "sha256-bHv6o0rhGbvzZuAq6JHNDFKkbmZ2cr9T3uaCh0jwkt4=",
-      "DimonSmart.PdfCropper.9h2gynj257.wasm": "sha256-jT7TBVHZxPNustQdElFAWrEaE01lYgJahi9fc2yH1d0=",
+      "DimonSmart.PdfCropper.u6womgx70x.wasm": "sha256-9p4YEgMz1c56DRDfkily5ceyWC46QRc91vA4FNcOwQA=",
       "DimonSmart.StringDiff.g2czv7cqeb.wasm": "sha256-2GIfD8XW3skZBe8HByCkf1+YysabyQiy8R3Lq02xfso=",
       "Blazor.Canvas.f4j2trvhby.wasm": "sha256-T4ZgGnBBqgFn7l9BvL+qKQ2iaa4XQcYzJtX0D9NLX2U=",
       "Excubo.Generators.Blazor.Attributes.zpv3sgtlrf.wasm": "sha256-qVC+LIPC1NiSLnwtgPgDy8x2ViPcFHEh0j+pB1GfDyk=",
@@ -228,7 +228,7 @@
       "Markdig.y4i0b9whld.wasm": "sha256-LrX4yrb2vyi8O8AjNTkqYrOAMLTaPBVsT/Fjji1HxIY=",
       "Microsoft.AspNetCore.Components.4srbxllwsb.wasm": "sha256-nBmeL3suE7fg4iWqNGGqBVUUECZduP1ebpD1Aa5aNns=",
       "Microsoft.AspNetCore.Components.Forms.i0lxhaz8pu.wasm": "sha256-ojE49aeu241xAyntQUkKBQxMNrzPPdPjKSh4BnIEnHA=",
-      "Microsoft.AspNetCore.Components.Web.3mjip8tbax.wasm": "sha256-y5wSPBdDeGtc7RjuegHf7kKIjRJSfficF55Jm8dta9s=",
+      "Microsoft.AspNetCore.Components.Web.kx1fjb1gao.wasm": "sha256-eDmcW4UFttLOiZID107pwP6CCPU0sYIjTCjMbdk4elQ=",
       "Microsoft.AspNetCore.Components.WebAssembly.frs0dlnm1c.wasm": "sha256-Zd09tFUB3bfurMogvoSZPP3NdfP5ocBKGHLtV22rVoo=",
       "Microsoft.Bcl.HashCode.gfbo4c6st8.wasm": "sha256-3OMNy/2VRU1BJsB1XSppo6yKKvhDQv3fcHDVi5jGv3k=",
       "Microsoft.DotNet.PlatformAbstractions.l5f1k5rpem.wasm": "sha256-+bp3smw6HF4P5NLzNAbp7j/Fzp163jJn8MhPIgaJpu0=",
@@ -357,13 +357,13 @@
       "System.t4d4s3f398.wasm": "sha256-fVP2BxRRKpBA0PmBbKxmO45bXDrAXVn1GthlDclLbeU=",
       "mscorlib.ze7h7bhdbf.wasm": "sha256-ywLVrT4T9wAT7PgwIlSFhD88wYhz0Rhya7rW/ikdQsU=",
       "netstandard.fg1o7l110d.wasm": "sha256-X0j1h5hb458nPPYTMJ0C3U44OaxPrdiKzuCsP8E7UhY=",
-      "Demo.Abstractions.a0l6v3yhfp.wasm": "sha256-JoVrQltbOcmGe2qImJMPpybRDSBi399BJhNU175DT34=",
-      "GeneticAlgorithm.hvuh8j6zbp.wasm": "sha256-jQqABrZ604AH7cRq2ocZCsiEnx4YJ0S5f1hf1Icxwp8=",
-      "Demo.889w15nyx3.wasm": "sha256-uLvx3z+K15Ayn/S6qmLQ0iHX81xNLmTMd8gPWlQdj+0="
+      "Demo.Abstractions.u767jxsvmj.wasm": "sha256-xk2TE6udEvfFvXuQhjSX/UrB8O414NLtWDubc/Xp/2Q=",
+      "GeneticAlgorithm.uj6nahwtrp.wasm": "sha256-6u4TfTPEmJhvn/EtmJ/8B/qgS7uatCQ+jAJp970RAHM=",
+      "Demo.jrrlyb9ui2.wasm": "sha256-MQLH7D+YgrWJ/Tt/aV+qGlDpEz1Nj5raiVC1QkslzII="
     },
     "lazyAssembly": {
-      "MarkdownToWordDemo.nbv0bco22s.wasm": "sha256-kznCKw9E8WFtrD3ZZeHNGpxDMc/Jw9etAg6+MyCfhRc=",
-      "QrTransferDemo.7x8gbohw5m.wasm": "sha256-1ROmLAqSNKfFF/TFDwPtkxFb6OTZUKfkfo2+9jB+vW8="
+      "MarkdownToWordDemo.3kpup1uevp.wasm": "sha256-HWYwU3HVQv62OAyMFTTBhFu2VeAqJfOLeTKbTPT023o=",
+      "QrTransferDemo.utsg5utmb4.wasm": "sha256-8qIk5q7s7gUV8fpwR2CzcXL1LRMOaP5YVGDsyNHYoxw="
     }
   },
   "cacheBootResources": true,
