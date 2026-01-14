@@ -16,10 +16,10 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.101'
+        dotnet-version: '10.0.102'
 
     - name: Restore dependencies
-      run: dotnet restore Demo
+      run: dotnet restore Demo/Demo.csproj
 
     - name: Install wasm-tools workload
       run: dotnet workload install wasm-tools
@@ -29,7 +29,7 @@ jobs:
       run: sed -i 's|<base href="/" />|<base href="/Demo/" />|g' Demo/wwwroot/index.html
 
     - name: Publish
-      run: dotnet publish Demo -c release -o release
+      run: dotnet publish Demo/Demo.csproj -c release -o release
 
     - name: copy index.html to 404.html
       run: cp ./release/wwwroot/index.html ./release/wwwroot/404.html
