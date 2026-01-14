@@ -65,39 +65,255 @@ a, .btn-link {
         content: "An error has occurred."
     }
 
-.loading-progress {
-    position: relative;
-    display: block;
-    width: 8rem;
-    height: 8rem;
-    margin: 20vh auto 1rem auto;
-}
-
-    .loading-progress circle {
-        fill: none;
-        stroke: #e0e0e0;
-        stroke-width: 0.6rem;
-        transform-origin: 50% 50%;
-        transform: rotate(-90deg);
-    }
-
-        .loading-progress circle:last-child {
-            stroke: #1b6ec2;
-            stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
-            transition: stroke-dasharray 0.05s ease-in-out;
-        }
-
-.loading-progress-text {
-    position: absolute;
-    text-align: center;
-    font-weight: bold;
-    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
-}
-
-    .loading-progress-text:after {
-        content: var(--blazor-load-percentage-text, "Loading");
-    }
-
 code {
     color: #c02d76;
+}
+
+body.app-loading {
+    background:
+        radial-gradient(circle at 12% 20%, rgba(252, 211, 165, 0.7), transparent 55%),
+        radial-gradient(circle at 78% 12%, rgba(94, 234, 212, 0.3), transparent 45%),
+        linear-gradient(135deg, #f8fafc 0%, #fef6e4 50%, #f1f5f9 100%);
+    color: #0f172a;
+}
+
+body.app-loading #app {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(1.5rem, 4vw, 3.25rem);
+}
+
+.app-loader {
+    position: relative;
+    width: min(980px, 94vw);
+    font-family: "Space Grotesk", "Segoe UI", sans-serif;
+    color: #0f172a;
+}
+
+    .app-loader::before,
+    .app-loader::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        pointer-events: none;
+    }
+
+    .app-loader::before {
+        width: 240px;
+        height: 240px;
+        background: radial-gradient(circle, rgba(14, 116, 144, 0.25), transparent 70%);
+        top: -90px;
+        right: -50px;
+    }
+
+    .app-loader::after {
+        width: 320px;
+        height: 320px;
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.25), transparent 70%);
+        bottom: -140px;
+        left: -130px;
+    }
+
+.app-loader__panel {
+    position: relative;
+    padding: clamp(1.6rem, 3vw, 2.6rem);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
+    backdrop-filter: blur(18px);
+}
+
+    .app-loader__panel::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        border-radius: 28px 28px 0 0;
+        background: linear-gradient(90deg, #0f766e, #f59e0b);
+    }
+
+.app-loader__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #0f766e;
+    background: rgba(15, 118, 110, 0.12);
+}
+
+.app-loader__badge-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0f766e;
+    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.15);
+    animation: loaderPulse 2.6s ease infinite;
+}
+
+.app-loader__header {
+    margin-top: 1rem;
+}
+
+.app-loader__title {
+    margin: 0 0 0.35rem;
+    font-size: clamp(1.8rem, 3vw, 2.6rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.app-loader__subtitle {
+    margin: 0;
+    font-size: 1rem;
+    color: #475569;
+}
+
+.app-loader__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin: 1.2rem 0 1rem;
+}
+
+.app-loader__stat {
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    color: #0f172a;
+    background: rgba(15, 23, 42, 0.06);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.app-loader__progress-track {
+    height: 10px;
+    background: rgba(15, 23, 42, 0.1);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.app-loader__progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #0f766e, #f59e0b, #0f766e);
+    background-size: 180% 100%;
+    animation: loaderGradient 2.6s ease infinite;
+    transition: width 0.18s ease;
+}
+
+.app-loader__progress-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.6rem;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.app-loader__list {
+    margin-top: 1.4rem;
+}
+
+.app-loader__list-title {
+    margin-bottom: 0.6rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.app-loader__list-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.app-loader__list-item {
+    display: grid;
+    grid-template-columns: 100px 1fr auto;
+    gap: 0.7rem;
+    align-items: center;
+    padding: 0.45rem 0.7rem;
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.05);
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    font-size: 0.85rem;
+}
+
+    .app-loader__list-item .type {
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #0f766e;
+    }
+
+    .app-loader__list-item .name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #0f172a;
+    }
+
+    .app-loader__list-item .status {
+        font-size: 0.7rem;
+        color: #64748b;
+    }
+
+    .app-loader__list-item.is-loaded .status {
+        color: #0f766e;
+    }
+
+    .app-loader__list-item.is-failed .status {
+        color: #b91c1c;
+    }
+
+@media (max-width: 720px) {
+    body.app-loading #app {
+        padding: 1.5rem;
+    }
+
+    .app-loader__panel {
+        padding: 1.5rem;
+    }
+
+    .app-loader__list-item {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+}
+
+@keyframes loaderPulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+}
+
+@keyframes loaderGradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
 }

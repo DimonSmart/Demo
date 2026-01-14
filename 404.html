@@ -42,17 +42,43 @@
     <link rel="stylesheet" href="css/demos.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carter+One&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap">
     <link rel="stylesheet" href="Demo.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
 </head>
 
-<body>
+<body class="app-loading">
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <div class="app-loader" role="status" aria-live="polite">
+            <div class="app-loader__panel">
+                <div class="app-loader__badge">
+                    <span class="app-loader__badge-dot"></span>
+                    Demo Suite
+                </div>
+                <div class="app-loader__header">
+                    <h1 class="app-loader__title">Preparing the playground</h1>
+                    <p class="app-loader__subtitle" id="loading-status">Booting the WebAssembly runtime and demos.</p>
+                </div>
+                <div class="app-loader__stats">
+                    <span class="app-loader__stat" id="loading-runtime">Runtime: waiting</span>
+                    <span class="app-loader__stat" id="loading-assemblies">Assemblies: 0</span>
+                    <span class="app-loader__stat" id="loading-assets">Assets: 0</span>
+                </div>
+                <div class="app-loader__progress">
+                    <div class="app-loader__progress-track" aria-hidden="true">
+                        <div class="app-loader__progress-bar" id="loading-bar"></div>
+                    </div>
+                    <div class="app-loader__progress-meta">
+                        <span id="loading-percent">0%</span>
+                        <span id="loading-count">0/0 files</span>
+                    </div>
+                </div>
+                <div class="app-loader__list">
+                    <div class="app-loader__list-title">Loading now</div>
+                    <ul class="app-loader__list-items" id="loading-resource-list"></ul>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="blazor-error-ui">
@@ -102,7 +128,149 @@
     <script src="js/imageProcessing.js"></script>
     <script src="js/textFunctiones.js"></script>
     <script src="js/feedback.js"></script>
-    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+    <script>
+        (function () {
+            var list = document.getElementById("loading-resource-list");
+            var bar = document.getElementById("loading-bar");
+            var percent = document.getElementById("loading-percent");
+            var count = document.getElementById("loading-count");
+            var runtime = document.getElementById("loading-runtime");
+            var assemblies = document.getElementById("loading-assemblies");
+            var assets = document.getElementById("loading-assets");
+            var status = document.getElementById("loading-status");
+
+            var state = {
+                total: 0,
+                loaded: 0,
+                runtimeTotal: 0,
+                runtimeLoaded: 0,
+                assemblyLoaded: 0,
+                assetLoaded: 0
+            };
+
+            var maxItems = 6;
+            var runtimeTypes = new Set(["dotnetjs", "dotnetwasm"]);
+            var assemblyTypes = new Set(["assembly"]);
+            var assetTypes = new Set(["asset", "satellite"]);
+            var typeLabels = {
+                dotnetjs: "Runtime JS",
+                dotnetwasm: "Runtime WASM",
+                assembly: "Assembly",
+                pdb: "Symbols",
+                satellite: "Satellite",
+                asset: "Asset"
+            };
+
+            function updateProgress() {
+                var total = Math.max(state.total, 1);
+                var pct = Math.min(100, Math.round((state.loaded / total) * 100));
+                if (bar) {
+                    bar.style.width = pct + "%";
+                }
+                if (percent) {
+                    percent.textContent = pct + "%";
+                }
+                if (count) {
+                    count.textContent = state.loaded + "/" + state.total + " files";
+                }
+                if (runtime) {
+                    if (state.runtimeTotal === 0) {
+                        runtime.textContent = "Runtime: waiting";
+                    } else if (state.runtimeLoaded < state.runtimeTotal) {
+                        runtime.textContent = "Runtime: " + state.runtimeLoaded + "/" + state.runtimeTotal;
+                    } else {
+                        runtime.textContent = "Runtime: ready";
+                    }
+                }
+                if (assemblies) {
+                    assemblies.textContent = "Assemblies: " + state.assemblyLoaded;
+                }
+                if (assets) {
+                    assets.textContent = "Assets: " + state.assetLoaded;
+                }
+            }
+
+            function addItem(type, name) {
+                if (!list) {
+                    return null;
+                }
+                var item = document.createElement("li");
+                item.className = "app-loader__list-item";
+
+                var typeSpan = document.createElement("span");
+                typeSpan.className = "type";
+                typeSpan.textContent = typeLabels[type] || type;
+
+                var nameSpan = document.createElement("span");
+                nameSpan.className = "name";
+                nameSpan.textContent = name;
+
+                var statusSpan = document.createElement("span");
+                statusSpan.className = "status";
+                statusSpan.textContent = "Loading";
+
+                item.appendChild(typeSpan);
+                item.appendChild(nameSpan);
+                item.appendChild(statusSpan);
+                list.insertBefore(item, list.firstChild);
+
+                while (list.children.length > maxItems) {
+                    list.removeChild(list.lastChild);
+                }
+                return item;
+            }
+
+            Blazor.start({
+                loadBootResource: function (type, name, defaultUri, integrity) {
+                    state.total += 1;
+                    if (runtimeTypes.has(type)) {
+                        state.runtimeTotal += 1;
+                        if (status) {
+                            status.textContent = "Loading runtime and core libraries.";
+                        }
+                    }
+
+                    var item = addItem(type, name);
+                    updateProgress();
+
+                    return fetch(defaultUri, { cache: "no-cache", integrity: integrity })
+                        .then(function (response) {
+                            state.loaded += 1;
+                            if (runtimeTypes.has(type)) {
+                                state.runtimeLoaded += 1;
+                            }
+                            if (assemblyTypes.has(type)) {
+                                state.assemblyLoaded += 1;
+                            }
+                            if (assetTypes.has(type)) {
+                                state.assetLoaded += 1;
+                            }
+                            if (item) {
+                                item.classList.add("is-loaded");
+                                item.querySelector(".status").textContent = "Loaded";
+                            }
+                            updateProgress();
+                            return response;
+                        })
+                        .catch(function (error) {
+                            if (item) {
+                                item.classList.add("is-failed");
+                                item.querySelector(".status").textContent = "Failed";
+                            }
+                            updateProgress();
+                            throw error;
+                        });
+                }
+            }).then(function () {
+                document.body.classList.remove("app-loading");
+            }).catch(function () {
+                if (status) {
+                    status.textContent = "Failed to load. Check network or refresh.";
+                }
+            });
+        })();
+    </script>
 </body>
 
 </html>
