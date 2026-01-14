@@ -221,6 +221,24 @@
                 return item;
             }
 
+            function markLoaded(type, item) {
+                state.loaded += 1;
+                if (runtimeTypes.has(type)) {
+                    state.runtimeLoaded += 1;
+                }
+                if (assemblyTypes.has(type)) {
+                    state.assemblyLoaded += 1;
+                }
+                if (assetTypes.has(type)) {
+                    state.assetLoaded += 1;
+                }
+                if (item) {
+                    item.classList.add("is-loaded");
+                    item.querySelector(".status").textContent = "Loaded";
+                }
+                updateProgress();
+            }
+
             Blazor.start({
                 loadBootResource: function (type, name, defaultUri, integrity) {
                     state.total += 1;
@@ -234,23 +252,14 @@
                     var item = addItem(type, name);
                     updateProgress();
 
+                    if (type === "dotnetjs") {
+                        markLoaded(type, item);
+                        return defaultUri;
+                    }
+
                     return fetch(defaultUri, { cache: "no-cache", integrity: integrity })
                         .then(function (response) {
-                            state.loaded += 1;
-                            if (runtimeTypes.has(type)) {
-                                state.runtimeLoaded += 1;
-                            }
-                            if (assemblyTypes.has(type)) {
-                                state.assemblyLoaded += 1;
-                            }
-                            if (assetTypes.has(type)) {
-                                state.assetLoaded += 1;
-                            }
-                            if (item) {
-                                item.classList.add("is-loaded");
-                                item.querySelector(".status").textContent = "Loaded";
-                            }
-                            updateProgress();
+                            markLoaded(type, item);
                             return response;
                         })
                         .catch(function (error) {

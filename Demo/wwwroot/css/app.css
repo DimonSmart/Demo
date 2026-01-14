@@ -126,17 +126,6 @@ body.app-loading #app {
     backdrop-filter: blur(18px);
 }
 
-    .app-loader__panel::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 6px;
-        border-radius: 28px 28px 0 0;
-        background: linear-gradient(90deg, #0f766e, #f59e0b);
-    }
-
 .app-loader__badge {
     display: inline-flex;
     align-items: center;
