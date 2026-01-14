@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "Demo",
   "resources": {
-    "hash": "sha256-eriXGf4/2ItoKOSoCWLHi+yRy8zW1MhZF7D2el3fdJM=",
+    "hash": "sha256-NDYbF+LfHTEKhLg0oHU1NCnOc3pVi0ud+8Qjm5WhwmE=",
     "fingerprinting": {
       "Azure.AI.OpenAI.j8zyfakwt1.wasm": "Azure.AI.OpenAI.wasm",
       "Azure.Core.ltf0pljmuu.wasm": "Azure.Core.wasm",
@@ -165,11 +165,11 @@
       "mscorlib.ht3ltnq91o.wasm": "mscorlib.wasm",
       "netstandard.wkrkv56yxv.wasm": "netstandard.wasm",
       "System.Private.CoreLib.jttlt8373q.wasm": "System.Private.CoreLib.wasm",
-      "Demo.Abstractions.ytu78ag6nh.wasm": "Demo.Abstractions.wasm",
-      "GeneticAlgorithm.qoqax5islt.wasm": "GeneticAlgorithm.wasm",
-      "MarkdownToWordDemo.gw7puo8fao.wasm": "MarkdownToWordDemo.wasm",
-      "QrTransferDemo.qkuefmuubd.wasm": "QrTransferDemo.wasm",
-      "Demo.d5ulb2li3y.wasm": "Demo.wasm",
+      "Demo.Abstractions.oprjo02ph6.wasm": "Demo.Abstractions.wasm",
+      "GeneticAlgorithm.4zrvx3rxnn.wasm": "GeneticAlgorithm.wasm",
+      "MarkdownToWordDemo.v5gt077b8x.wasm": "MarkdownToWordDemo.wasm",
+      "QrTransferDemo.b1cclk8swh.wasm": "QrTransferDemo.wasm",
+      "Demo.hlp7sr0fyd.wasm": "Demo.wasm",
       "dotnet.native.jbje43cb7x.js": "dotnet.native.js",
       "dotnet.native.mtz5s8i52u.wasm": "dotnet.native.wasm",
       "dotnet.js": "dotnet.js",
@@ -357,13 +357,13 @@
       "System.7mkjnfwul0.wasm": "sha256-H4K9w0OHWwZCaMDfVwQjW0dSqnnS/iuCkysBB+Q2c3A=",
       "mscorlib.ht3ltnq91o.wasm": "sha256-ayC8cxF/55DljqJvCDXrzk840aOLgqg4vvTxU72d6W8=",
       "netstandard.wkrkv56yxv.wasm": "sha256-YKRVtJdkGrDvtI0PJ7QRb9MCr76jK26pEUbq1A1byBw=",
-      "Demo.Abstractions.ytu78ag6nh.wasm": "sha256-1odugXBKA28oghhqb05ySrvUGK5I15eAu1I4MmByHAU=",
-      "GeneticAlgorithm.qoqax5islt.wasm": "sha256-ZkVOOuD9BjzN3SvWwxcR27NYw6Tp5HyT60aZRlLr/Yg=",
-      "Demo.d5ulb2li3y.wasm": "sha256-H3EZcI3bNpzQYgY34dD2DTKe//sjUrpfM1BsgIUlfpU="
+      "Demo.Abstractions.oprjo02ph6.wasm": "sha256-9HTP2lE3KGTmqSS7dAANEXaUrK2IvmTBX/556JPUbVg=",
+      "GeneticAlgorithm.4zrvx3rxnn.wasm": "sha256-YDyUugZRTWY3EpBM00jjuEKHCou0aQ42CzHjSG9e/Ig=",
+      "Demo.hlp7sr0fyd.wasm": "sha256-VSU+NsoRrRZtsh8GWhsMrizI9eb4SS8TVZwJrigScDE="
     },
     "lazyAssembly": {
-      "MarkdownToWordDemo.gw7puo8fao.wasm": "sha256-wI1F+TAtJse0XzSpSaKU+0s9yek6u1tQK7qGwrFeprw=",
-      "QrTransferDemo.qkuefmuubd.wasm": "sha256-SnkDR4ruNJA0B3rSVPxDNio7mjYniAUe537Jb6fMas0="
+      "MarkdownToWordDemo.v5gt077b8x.wasm": "sha256-7Vy+UQlpf5WWKnJbKbYbQHWvbm/PBx4fkZXe2RUqq2M=",
+      "QrTransferDemo.b1cclk8swh.wasm": "sha256-EbMsi3eJJ5Dq10hfOjp7ejEz78E4y6T+UNhcGd1G6u8="
     }
   },
   "cacheBootResources": true,
