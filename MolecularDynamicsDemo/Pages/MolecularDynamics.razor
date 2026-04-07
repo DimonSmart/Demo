@@ -1,0 +1,226 @@
+@page "/molecular-dynamics"
+@inject IPageTitleService TitleService
+
+<PageTitle>Molecular Dynamics</PageTitle>
+<link rel="stylesheet" href="_content/MolecularDynamicsDemo/molecular-dynamics.css" />
+
+@if (CurrentSession is null)
+{
+    <div class="md-shell">
+        <section class="md-hero">
+            <div>
+                <div class="md-badge">Interactive physics demo</div>
+                <h1>Molecular Dynamics Lab</h1>
+                <p class="md-lead">
+                    A chamber full of particles with heated walls, temporary bonds, and a bottom cannon.
+                    Change the starting state, vary the temperature, and watch the system move between a calm
+                    condensed layer and fast gas-like motion.
+                </p>
+            </div>
+
+            <div class="md-hero-actions">
+                <button type="button" class="md-button md-button--primary" @onclick="StartSimulation">Start simulation</button>
+                <a class="md-button md-button--secondary" href="/molecular-dynamics/how-it-works">How it works</a>
+            </div>
+        </section>
+
+        <section class="md-grid md-grid--setup">
+            <article class="md-panel">
+                <div class="md-panel__eyebrow">Lab setup</div>
+                <h2>Particle count</h2>
+                <p class="md-panel__text">
+                    Increase the count to make collisions denser and the bonded layer heavier. The default starts gently,
+                    but the chamber remains readable even when several thousand particles are active.
+                </p>
+
+                <div class="md-slider-block">
+                    <div class="md-slider-header">
+                        <strong>@ParticleCount</strong>
+                        <span>Max: @MolecularSimulationConstants.MaximumParticleCount</span>
+                    </div>
+                    <input type="range"
+                           min="@MolecularSimulationConstants.MinimumParticleCount"
+                           max="@MolecularSimulationConstants.MaximumParticleCount"
+                           step="50"
+                           @bind="ParticleCount" />
+                    <div class="md-slider-scale">
+                        <span>Light</span>
+                        <span>Dense chamber</span>
+                    </div>
+                </div>
+            </article>
+
+            <article class="md-panel">
+                <div class="md-panel__eyebrow">Initial state</div>
+                <h2>Choose the starting phase</h2>
+                <div class="md-state-list">
+                    @foreach (var state in AvailableInitialStates)
+                    {
+                        <button type="button"
+                                class="@GetInitialStateButtonClass(state)"
+                                @onclick="() => SelectedInitialState = state">
+                            <span class="md-state-title">@GetInitialStateTitle(state)</span>
+                            <span class="md-state-description">@GetInitialStateDescription(state)</span>
+                        </button>
+                    }
+                </div>
+            </article>
+        </section>
+
+        <section class="md-grid md-grid--notes">
+            <section class="md-panel md-panel--reading">
+                <div class="md-panel__eyebrow">Physics in the chamber</div>
+                <div class="md-reading md-reading--compact">
+                    <p>
+                        Temperature here is particle speed: hot walls send particles back faster, cold walls drain
+                        energy, and the average motion tells you whether the chamber is calm or agitated.
+                    </p>
+                    <p>
+                        When neighbouring particles stay close and move gently, they can lock into short spring-like
+                        bonds. Strong heating or a cannon burst tears those bonds apart and turns the dense layer back
+                        into a loose cloud.
+                    </p>
+                </div>
+            </section>
+
+            <article class="md-panel">
+                <div class="md-panel__eyebrow">Controls</div>
+                <ul class="md-list">
+                    <li>Heat both walls independently to force evaporation or condensation.</li>
+                    <li>Hold the fire button to inject energetic particles from the bottom cannon.</li>
+                    <li>Drag any visible particle inside the chamber to disturb the local structure.</li>
+                </ul>
+            </article>
+        </section>
+    </div>
+}
+else
+{
+    <div class="md-shell">
+        <header class="md-header">
+            <div>
+                <h1>Molecular Dynamics Lab</h1>
+                <p class="md-lead">
+                    Drag particles directly in the chamber, vary the wall temperatures, and inject high-energy particles
+                    to push the system between liquid and gas-like behaviour.
+                </p>
+            </div>
+
+            <div class="md-header-actions">
+                <button type="button" class="md-button md-button--secondary" @onclick="ReturnToSetup">Back to setup</button>
+                <a class="md-button md-button--secondary" href="/molecular-dynamics/how-it-works">How it works</a>
+            </div>
+        </header>
+
+        <section class="md-stat-grid">
+            <article class="md-stat-card">
+                <span>Particles</span>
+                <strong>@CurrentStatistics.ParticleCount</strong>
+            </article>
+            <article class="md-stat-card">
+                <span>Mean speed^2</span>
+                <strong>@CurrentStatistics.AverageSpeedSquared.ToString("0.00")</strong>
+            </article>
+            <article class="md-stat-card">
+                <span>Bonds</span>
+                <strong>@CurrentStatistics.BondCount</strong>
+            </article>
+            <article class="md-stat-card">
+                <span>FPS</span>
+                <strong>@CurrentStatistics.FramesPerSecond.ToString("0")</strong>
+            </article>
+        </section>
+
+        <div class="md-grid md-grid--live">
+            <section class="md-stage">
+                <MolecularDynamicsViewport Session="CurrentSession"
+                                           IsPaused="IsPaused"
+                                           LeftWallTemperature="LeftWallTemperature"
+                                           RightWallTemperature="RightWallTemperature"
+                                           CannonAngleDegrees="CannonAngleDegrees"
+                                           CannonPower="CannonPower"
+                                           IsCannonFiring="IsCannonFiring"
+                                           StatisticsChanged="OnStatisticsChanged" />
+            </section>
+
+            <aside class="md-sidebar">
+                <section class="md-panel">
+                    <div class="md-button-row">
+                        <button type="button" class="md-button md-button--primary" @onclick="TogglePause">
+                            @(IsPaused ? "Resume" : "Pause")
+                        </button>
+                        <button type="button" class="md-button md-button--secondary" @onclick="ResetSimulation">Reset</button>
+                    </div>
+                </section>
+
+                <section class="md-panel">
+                    <div class="md-panel__eyebrow">Wall temperature</div>
+                    <div class="md-control">
+                        <label for="left-temperature">Left wall</label>
+                        <div class="md-control__value">@LeftWallTemperature.ToString("0.0")</div>
+                        <input id="left-temperature"
+                               type="range"
+                               min="@MolecularSimulationConstants.MinimumWallTemperature"
+                               max="@MolecularSimulationConstants.MaximumWallTemperature"
+                               step="0.1"
+                               @bind="LeftWallTemperature" />
+                    </div>
+                    <div class="md-control">
+                        <label for="right-temperature">Right wall</label>
+                        <div class="md-control__value">@RightWallTemperature.ToString("0.0")</div>
+                        <input id="right-temperature"
+                               type="range"
+                               min="@MolecularSimulationConstants.MinimumWallTemperature"
+                               max="@MolecularSimulationConstants.MaximumWallTemperature"
+                               step="0.1"
+                               @bind="RightWallTemperature" />
+                    </div>
+                </section>
+
+                <section class="md-panel">
+                    <div class="md-panel__eyebrow">Cannon</div>
+                    <div class="md-control">
+                        <label for="cannon-angle">Angle</label>
+                        <div class="md-control__value">@CannonAngleDegrees.ToString("0")&deg;</div>
+                        <input id="cannon-angle"
+                               type="range"
+                               min="@MolecularSimulationConstants.MinimumCannonAngleDegrees"
+                               max="@MolecularSimulationConstants.MaximumCannonAngleDegrees"
+                               step="1"
+                               @bind="CannonAngleDegrees" />
+                    </div>
+                    <div class="md-control">
+                        <label for="cannon-power">Power</label>
+                        <div class="md-control__value">@CannonPower.ToString("0.0")</div>
+                        <input id="cannon-power"
+                               type="range"
+                               min="@MolecularSimulationConstants.MinimumCannonPower"
+                               max="@MolecularSimulationConstants.MaximumCannonPower"
+                               step="0.5"
+                               @bind="CannonPower" />
+                    </div>
+                    <button type="button"
+                            class="md-button md-button--accent"
+                            @onpointerdown="BeginFiring"
+                            @onpointerup="EndFiring"
+                            @onpointerleave="EndFiring"
+                            @onpointercancel="EndFiring">
+                        Hold to fire
+                    </button>
+                </section>
+
+                <section class="md-panel md-panel--reading">
+                    <div class="md-panel__eyebrow">Interpretation</div>
+                    <div class="md-reading md-reading--compact">
+                        <p>Blue walls cool particles and red walls feed kinetic energy back into the chamber.</p>
+                        <p>
+                            Grey bonds mark temporary links between neighbours. If enough energy arrives, those links
+                            stretch, snap, and the bonded layer breaks apart.
+                        </p>
+                        <p>The cannon adds a local impulse, so even a cold chamber can be disturbed from below.</p>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </div>
+}

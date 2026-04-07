@@ -26,6 +26,7 @@
     <ProjectReference Include="..\Demo\Demo.csproj" />
     <ProjectReference Include="..\MarkdownToWordDemo\MarkdownToWordDemo.csproj" />
     <ProjectReference Include="..\QrTransferDemo\QrTransferDemo.csproj" />
+    <ProjectReference Include="..\MolecularDynamicsDemo\MolecularDynamicsDemo.csproj" />
   </ItemGroup>
 
   <ItemGroup>

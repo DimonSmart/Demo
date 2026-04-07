@@ -20,6 +20,7 @@
 @code {
     private readonly List<Assembly> _additionalAssemblies = new();
     private bool _markdownModuleLoaded;
+    private bool _molecularDynamicsModuleLoaded;
     private bool _qrTransferModuleLoaded;
 
     private async Task HandleNavigationAsync(NavigationContext args)
@@ -29,6 +30,14 @@
             var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "MarkdownToWordDemo.dll" });
             _additionalAssemblies.AddRange(assemblies);
             _markdownModuleLoaded = true;
+            StateHasChanged();
+        }
+
+        if (!_molecularDynamicsModuleLoaded && args.Path.StartsWith("molecular-dynamics", StringComparison.OrdinalIgnoreCase))
+        {
+            var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "MolecularDynamicsDemo.dll" });
+            _additionalAssemblies.AddRange(assemblies);
+            _molecularDynamicsModuleLoaded = true;
             StateHasChanged();
         }
 

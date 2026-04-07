@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.Abstractions", "Demo.A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QrTransferDemo", "QrTransferDemo\QrTransferDemo.csproj", "{AE703A4E-824A-4F66-8590-C750081B7618}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MolecularDynamicsDemo", "MolecularDynamicsDemo\MolecularDynamicsDemo.csproj", "{476DF26E-657C-4918-8289-1D84883A3ADC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -125,6 +127,18 @@ Global
 		{AE703A4E-824A-4F66-8590-C750081B7618}.Release|x64.Build.0 = Release|Any CPU
 		{AE703A4E-824A-4F66-8590-C750081B7618}.Release|x86.ActiveCfg = Release|Any CPU
 		{AE703A4E-824A-4F66-8590-C750081B7618}.Release|x86.Build.0 = Release|Any CPU
+		{476DF26E-657C-4918-8289-1D84883A3ADC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{476DF26E-657C-4918-8289-1D84883A3ADC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{476DF26E-657C-4918-8289-1D84883A3ADC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{476DF26E-657C-4918-8289-1D84883A3ADC}.Debug|x64.Build.0 = Debug|Any CPU
+		{476DF26E-657C-4918-8289-1D84883A3ADC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{476DF26E-657C-4918-8289-1D84883A3ADC}.Debug|x86.Build.0 = Debug|Any CPU
+		{476DF26E-657C-4918-8289-1D84883A3ADC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{476DF26E-657C-4918-8289-1D84883A3ADC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{476DF26E-657C-4918-8289-1D84883A3ADC}.Release|x64.ActiveCfg = Release|Any CPU
+		{476DF26E-657C-4918-8289-1D84883A3ADC}.Release|x64.Build.0 = Release|Any CPU
+		{476DF26E-657C-4918-8289-1D84883A3ADC}.Release|x86.ActiveCfg = Release|Any CPU
+		{476DF26E-657C-4918-8289-1D84883A3ADC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,83 @@
+@page "/molecular-dynamics/how-it-works"
+@inject IPageTitleService TitleService
+
+<PageTitle>Molecular Dynamics: How It Works</PageTitle>
+<link rel="stylesheet" href="_content/MolecularDynamicsDemo/molecular-dynamics.css" />
+
+<div class="md-shell">
+    <header class="md-header">
+        <div>
+            <div class="md-badge">Physics guide</div>
+            <h1>How the molecular model works</h1>
+            <p class="md-lead">
+                This guide explains what the controls change inside the chamber and why heating, cooling, bonding, and
+                cannon shots produce different large-scale behaviour.
+            </p>
+        </div>
+
+        <div class="md-header-actions">
+            <a class="md-button md-button--secondary" href="/molecular-dynamics">Open simulator</a>
+        </div>
+    </header>
+
+    <section class="md-panel md-panel--reading">
+        <div class="md-panel__eyebrow">Reading guide</div>
+        <div class="md-reading">
+            <section class="md-reading-section">
+                <h2>Temperature and kinetic energy</h2>
+                <p>
+                    Temperature is derived from particle speed. When a particle hits a hot wall, the outgoing velocity
+                    is rescaled toward a higher target speed. Cold walls do the opposite, so the average kinetic energy
+                    drops and the chamber calms down.
+                </p>
+                <p>
+                    Because the walls are the main energy source and sink, even a small slider change can gradually
+                    reshape the whole chamber. One side can stay calm and condensed while the hotter side remains lively
+                    and gas-like.
+                </p>
+            </section>
+
+            <section class="md-reading-section">
+                <h2>Bonds and the dense layer</h2>
+                <p>
+                    Nearby particles can form spring-like bonds when their relative kinetic energy is low enough. The
+                    bond is not permanent: it breaks when stretched too far or when the pair moves too violently
+                    relative to each other.
+                </p>
+                <p>
+                    This is why cooling tends to build a dense liquid-like layer near the bottom of the chamber. The
+                    particles still move, but the local links give the group enough cohesion to behave like a single
+                    body instead of a free cloud.
+                </p>
+            </section>
+
+            <section class="md-reading-section">
+                <h2>Repulsion and excluded volume</h2>
+                <p>
+                    Particles are strictly two-dimensional in this demo. If two centers get too close, the engine
+                    pushes them apart and applies a short-range repulsion impulse so the chamber behaves like a dense
+                    but still mobile fluid.
+                </p>
+                <p>
+                    Without that rule, the bonded layer would collapse into unrealistic overlaps. Repulsion gives each
+                    particle a visible personal space and makes compression, splashing, and rebound easier to read.
+                </p>
+            </section>
+
+            <section class="md-reading-section">
+                <h2>Condensation, evaporation, and shocks</h2>
+                <p>
+                    Cooling reduces relative motion, so bond creation becomes more likely and the particles settle into
+                    a liquid or solid-like layer. Heating injects enough energy to tear bonds apart, which looks like
+                    evaporation.
+                </p>
+                <p>
+                    The bottom cannon spawns energetic particles with a controllable angle and power. That local burst
+                    can punch through the bonded layer, create a hot plume, and briefly restore gas-like behaviour even
+                    in an otherwise cold chamber.
+                </p>
+            </section>
+        </div>
+    </section>
+
+</div>

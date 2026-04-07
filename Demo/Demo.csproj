@@ -50,10 +50,12 @@
     <ProjectReference Include="..\GeneticAlgorithm\GeneticAlgorithm.csproj" />
     <ProjectReference Include="..\MarkdownToWordDemo\MarkdownToWordDemo.csproj" />
     <ProjectReference Include="..\QrTransferDemo\QrTransferDemo.csproj" />
+    <ProjectReference Include="..\MolecularDynamicsDemo\MolecularDynamicsDemo.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <BlazorWebAssemblyLazyLoad Include="MarkdownToWordDemo.dll" />
+    <BlazorWebAssemblyLazyLoad Include="MolecularDynamicsDemo.dll" />
     <BlazorWebAssemblyLazyLoad Include="QrTransferDemo.dll" />
   </ItemGroup>
 

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">Molecular dynamics card</title>
+  <desc id="desc">Stylized molecular chamber with connected particles and a cannon.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#07111f"/>
+      <stop offset="60%" stop-color="#0b1b31"/>
+      <stop offset="100%" stop-color="#040913"/>
+    </linearGradient>
+    <linearGradient id="wallLeft" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="wallRight" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fb7185" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0.85"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="540" rx="28" fill="url(#bg)"/>
+  <g opacity="0.18" stroke="#dbeafe" stroke-width="1">
+    <path d="M120 100h720M120 180h720M120 260h720M120 340h720M120 420h720"/>
+    <path d="M180 80v380M300 80v380M420 80v380M540 80v380M660 80v380M780 80v380"/>
+  </g>
+  <rect x="90" y="70" width="20" height="400" rx="10" fill="url(#wallLeft)"/>
+  <rect x="850" y="70" width="20" height="400" rx="10" fill="url(#wallRight)"/>
+  <rect x="100" y="70" width="760" height="400" rx="22" fill="none" stroke="#94a3b8" stroke-width="4" opacity="0.65"/>
+  <g stroke="#7c8ea3" stroke-width="3" stroke-linecap="round" opacity="0.7">
+    <path d="M275 320 325 300 365 330 415 295 465 320 515 300 555 332"/>
+    <path d="M325 300 340 255 388 248 415 295"/>
+    <path d="M465 320 480 268 530 252 555 332"/>
+  </g>
+  <g>
+    <circle cx="275" cy="320" r="10" fill="#93c5fd"/>
+    <circle cx="325" cy="300" r="10" fill="#60a5fa"/>
+    <circle cx="365" cy="330" r="10" fill="#60a5fa"/>
+    <circle cx="415" cy="295" r="10" fill="#38bdf8"/>
+    <circle cx="465" cy="320" r="10" fill="#22d3ee"/>
+    <circle cx="515" cy="300" r="10" fill="#38bdf8"/>
+    <circle cx="555" cy="332" r="10" fill="#60a5fa"/>
+    <circle cx="340" cy="255" r="10" fill="#f8fafc"/>
+    <circle cx="388" cy="248" r="10" fill="#c084fc"/>
+    <circle cx="480" cy="268" r="10" fill="#f8fafc"/>
+    <circle cx="530" cy="252" r="10" fill="#fb7185"/>
+  </g>
+  <g fill="#93c5fd" opacity="0.85">
+    <circle cx="220" cy="150" r="6"/>
+    <circle cx="260" cy="200" r="5"/>
+    <circle cx="310" cy="140" r="6"/>
+    <circle cx="720" cy="170" r="5"/>
+    <circle cx="770" cy="220" r="6"/>
+    <circle cx="690" cy="245" r="4"/>
+  </g>
+  <g transform="translate(480 460)">
+    <circle r="22" fill="#2563eb"/>
+    <circle r="11" fill="none" stroke="#dbeafe" stroke-width="3" opacity="0.55"/>
+    <g transform="rotate(-25)">
+      <rect x="0" y="-8" width="68" height="16" rx="5" fill="#475569"/>
+      <rect x="56" y="-9" width="14" height="18" rx="4" fill="#f59e0b"/>
+    </g>
+  </g>
+  <g fill="#fbbf24" opacity="0.95">
+    <circle cx="545" cy="430" r="12"/>
+    <circle cx="566" cy="420" r="7"/>
+    <circle cx="582" cy="432" r="5"/>
+  </g>
+  <text x="130" y="118" fill="#e2e8f0" font-size="42" font-family="Segoe UI, Arial, sans-serif" font-weight="700">
+    Molecular Dynamics
+  </text>
+  <text x="130" y="154" fill="#93c5fd" font-size="22" font-family="Segoe UI, Arial, sans-serif">
+    Pure C# simulation and rendering inside Blazor WebAssembly
+  </text>
+</svg>
