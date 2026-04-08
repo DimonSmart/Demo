@@ -1,37 +1,92 @@
 .stringdiff-container {
     display: flex;
     flex-direction: column;
-    height: 100%;
     gap: 1rem;
-    max-height: 100%;
+    min-width: 0;
 }
 
 .stringdiff-textareas {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
-    flex: 1;
-    min-height: 6em;
+    align-items: stretch;
+}
+
+.stringdiff-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.stringdiff-editor__label {
+    color: var(--demo-text-muted);
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .stringdiff-textareas textarea {
-    width: 50%;
-    height: 100%;
-    resize: none;
-    min-height: 3em;
+    width: 100%;
+    min-height: clamp(14rem, 28vh, 20rem);
+    resize: vertical;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--demo-border-strong);
+    border-radius: var(--demo-radius-m);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-.stringdiff-options {
-    flex: 0 0 auto;
+.stringdiff-textareas textarea:focus {
+    outline: none;
+    border-color: rgba(37, 99, 235, 0.58);
+    box-shadow:
+        0 0 0 4px rgba(59, 130, 246, 0.14),
+        inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.stringdiff-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.stringdiff-examples {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.85rem 1rem;
+}
+
+.stringdiff-examples__label {
+    color: var(--demo-text-subtle);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.stringdiff-examples__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
 }
 
 @media (max-width: 640.98px) {
     .stringdiff-textareas {
-        flex-direction: column;
+        grid-template-columns: 1fr;
     }
 
     .stringdiff-textareas textarea {
+        min-height: 12rem;
+    }
+
+    .stringdiff-examples {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .stringdiff-examples__list {
         width: 100%;
-        height: 200px;
-        min-height: 3em;
     }
 }

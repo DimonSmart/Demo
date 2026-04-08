@@ -1,0 +1,12 @@
+.log-viewer {
+    width: 100%;
+    height: auto;
+    padding: 0.75rem 0.9rem;
+    overflow-y: auto;
+    border: 1px solid var(--demo-border-color);
+    border-radius: var(--demo-radius-m);
+    background: rgba(255, 255, 255, 0.82);
+    font-family: Consolas, monospace;
+    white-space: pre-wrap;
+    line-height: 1.15;
+}

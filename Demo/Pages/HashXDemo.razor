@@ -5,10 +5,8 @@
 @using DimonSmart.Hash.Interfaces
 @using Demo.Services
 @using GeneticAlgorithm.GeneralGenetic
-@inject PageTitleService PageTitleService
+@inject IDemoPageChromeService PageChrome
 @inject IHashAlgorithm Md5Algorithm
-
-<link rel="stylesheet" href="css/demos.css" />
 <PageTitle>HashX Research</PageTitle>
 <div class="page-container">
     <div class="hash-dashboard-container">
@@ -48,56 +46,99 @@
                 <p>Please upload the file first.</p>
             }
         </div>
-        <div class="hash-dashboard-item hash-dashboard-item">
+        <div class="hash-dashboard-item">
+            <div class="hash-options-panel">
+                <div class="hash-options-heading">
+                    <h2 class="demo-section-title">Calculation settings</h2>
+                    <p class="demo-control-note">Choose which algorithms to run and how large each analyzed buffer should be.</p>
+                </div>
 
-            <div class="hash-options">
-                <!-- Md5 Component -->
-                <label>
-                    <input type="checkbox" @bind="_md5Selected" />
-                    <strong>Md5:</strong>
-                    <span>Generates an MD5 hash from the input buffer.</span>
-                </label>
+                <div class="hash-options">
+                    <div class="hash-option-card demo-control-card demo-control-card--compact">
+                        <div class="hash-option-card__header">
+                            <label class="demo-pill-toggle demo-pill-toggle--compact hash-option-card__toggle" for="hash-md5">
+                                <input id="hash-md5" type="checkbox" @bind="_md5Selected" />
+                                <span>MD5</span>
+                            </label>
+                        </div>
+                        <p class="demo-control-note">Generates a 128-bit (16-byte) MD5 digest for each analyzed buffer window.</p>
+                    </div>
 
-                <!-- Sha1 Component -->
-                <label>
-                    <input type="checkbox" @bind="_sha1Selected" />
-                    <strong>Sha1:</strong>
-                    <span>Generates a SHA1 hash from the input buffer.</span>
-                </label>
+                    <div class="hash-option-card demo-control-card demo-control-card--compact">
+                        <div class="hash-option-card__header">
+                            <label class="demo-pill-toggle demo-pill-toggle--compact hash-option-card__toggle" for="hash-sha1">
+                                <input id="hash-sha1" type="checkbox" @bind="_sha1Selected" />
+                                <span>SHA-1</span>
+                            </label>
+                        </div>
+                        <p class="demo-control-note">Generates a 160-bit (20-byte) SHA-1 digest for each analyzed buffer window.</p>
+                    </div>
 
-                <!-- Xor Component -->
-                <label>
-                    <input type="checkbox" @bind="_xorSelected" />
-                    <strong>Xor:</strong>
-                    <input type="number" min="@XorMinValue" max="@XorMaxValue" @bind="XorHashSize" />
-                    <span>Xor incoming byte and shift next xor position by one bit, wrap it at the end of buffer.</span>
-                </label>
+                    <div class="hash-option-card demo-control-card demo-control-card--compact">
+                        <div class="hash-option-card__header hash-option-card__header--split">
+                            <label class="demo-pill-toggle demo-pill-toggle--compact hash-option-card__toggle" for="hash-xor">
+                                <input id="hash-xor" type="checkbox" @bind="_xorSelected" />
+                                <span>XOR</span>
+                            </label>
 
-                <!-- Zero Component -->
-                <label>
-                    <input type="checkbox" @bind="_zeroSelected" />
-                    <strong>Zero:</strong>
-                    <span>Hash always equals buffer. Used as a baseline for collision calculation.</span>
-                </label>
+                            <label class="demo-input-field hash-option-card__field" for="xor-hash-size">
+                                <span class="demo-field-label">Hash size</span>
+                                <input id="xor-hash-size" class="demo-input" type="number" min="@XorMinValue" max="@XorMaxValue" @bind="XorHashSize" />
+                            </label>
+                        </div>
+                        <p class="demo-control-note">Xors incoming bytes and shifts the next XOR position by one bit, wrapping at the end of the buffer.</p>
+                    </div>
 
-                <!-- Buffer length -->
-                <label>
-                    <strong>BufferLength:</strong>
-                    <input type="number" min="@BufferMinValue" max="@BufferMaxValue" @bind="BufferValue" />
-                    <span>Length of the block to be hashed.</span>
-                </label>
+                    <div class="hash-option-card demo-control-card demo-control-card--compact">
+                        <div class="hash-option-card__header">
+                            <label class="demo-pill-toggle demo-pill-toggle--compact hash-option-card__toggle" for="hash-zero">
+                                <input id="hash-zero" type="checkbox" @bind="_zeroSelected" />
+                                <span>Zero</span>
+                            </label>
+                        </div>
+                        <p class="demo-control-note">Uses the original buffer as the hash. Useful as a collision baseline.</p>
+                    </div>
+
+                    <div class="hash-option-card demo-control-card demo-control-card--compact hash-option-card--static">
+                        <div class="hash-option-card__header hash-option-card__header--split">
+                            <div class="hash-option-card__title-group">
+                                <strong class="hash-option-card__title">Buffer length</strong>
+                            </div>
+
+                            <label class="demo-input-field hash-option-card__field" for="buffer-length">
+                                <span class="demo-field-label">Bytes</span>
+                                <input id="buffer-length" class="demo-input" type="number" min="@BufferMinValue" max="@BufferMaxValue" @bind="BufferValue" />
+                            </label>
+                        </div>
+                        <p class="demo-control-note">Controls how many bytes are included in each hash window.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Progress Indicator -->
-    <p>
-        <strong>Progress:</strong> @_progressText
-    </p>
+    @if (HasVisibleProgress)
+    {
+        <p class="hash-progress">
+            <strong>Progress:</strong> @_progressText
+        </p>
+    }
 
-    <button @onclick="StartCalculation" disabled="@(_isCalculationRunning || _fileData == null)">Start</button>
+    <div class="demo-action-bar hash-action-bar">
+        <button type="button"
+                class="demo-pill-button demo-pill-button--primary"
+                @onclick="StartCalculation"
+                disabled="@(_isCalculationRunning || _fileData == null)">
+            Start
+        </button>
 
-    <button @onclick="CancelCalculation" disabled="@(_isCalculationRunning == false)">Cancel</button>
+        <button type="button"
+                class="demo-pill-button"
+                @onclick="CancelCalculation"
+                disabled="@(_isCalculationRunning == false)">
+            Cancel
+        </button>
+    </div>
 
     <div class="hash-result-container">
 
@@ -141,7 +182,7 @@
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        PageTitleService.SetTitle("HashX Research demo");
+        PageChrome.SetPage("HashX Research demo");
     }
 
     private LogViewer _logViewer = null!;
@@ -186,7 +227,9 @@
         set => _bufferValue = Math.Clamp(value, BufferMinValue, BufferMaxValue);
     }
 
-    private string _progressText = "Waiting for input...";
+    private const string DefaultProgressText = "Waiting for input...";
+    private string _progressText = DefaultProgressText;
+    private bool HasVisibleProgress => !string.Equals(_progressText, DefaultProgressText, StringComparison.Ordinal);
 
     private Task SetFileAsync(FileData fileData)
     {
@@ -350,140 +393,3 @@
 
 }
 
-<style>
-    :root {
-        --gap-size: 10px;
-    }
-
-    .hash-dashboard-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: left;
-        gap: var(--gap-size);
-    }
-
-    .hash-dashboard-item {
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        box-sizing: border-box;
-    }
-
-    .hash-dashboard-droparea {
-        flex: 1 1 200px;
-        min-width: 150px;
-        max-width: 100%;
-    }
-
-    .hash-dashboard-options {
-        flex: 2 1 auto;
-        min-width: 300px;
-        max-width: 100%;
-    }
-
-    .hash-result-container {
-        margin-top: var(--gap-size);
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: left;
-        gap: var(--gap-size);
-    }
-
-    .hash-result-card {
-        flex: 1 1 calc(33.333% - var(--gap-size));
-        display: flex;
-        flex-direction: column;
-        min-width: 200px;
-        max-width: 300px;
-        border: 1px solid gray;
-        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.25);
-        border-radius: 5px;
-        overflow: hidden;
-        box-sizing: border-box;
-        flex-grow: 1;
-    }
-
-    .drop-area {
-        border: 2px dashed grey;
-        padding: 10px;
-        text-align: center;
-    }
-
-    .info-text {
-        margin-top: 5px;
-        font-style: italic;
-        color: grey;
-        font-size: 1.0rem;
-    }
-
-    .dropzone {
-        border: 3px dashed steelblue;
-        margin-bottom: 5px;
-        padding: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
-        color: black;
-        font-size: 1.0rem;
-        cursor: pointer;
-        position: relative;
-    }
-
-        .dropzone:hover {
-            background-color: #f3f3f3;
-            color: #333;
-        }
-
-        .dropzone input[type=file] {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-    .dropzone-drag {
-        background-color: palegreen;
-    }
-
-    .file-info-table {
-        border-collapse: collapse;
-        margin-top: 5px;
-    }
-
-        .file-info-table td {
-            padding: 2px 5px;
-            vertical-align: top;
-        }
-
-            .file-info-table td:first-child {
-                font-weight: bold;
-            }
-
-    .hash-options {
-        margin: 0;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        background-color: #f9f9f9;
-    }
-
-        .hash-options label {
-            display: block;
-            margin-bottom: 10px;
-        }
-
-            .hash-options label strong {
-                margin-right: 5px;
-            }
-
-        .hash-options input[type="checkbox"] {
-            margin-right: 5px;
-        }
-
-        .hash-options input[type="number"] {
-            margin-top: 5px;
-            width: 100px;
-        }
-</style>

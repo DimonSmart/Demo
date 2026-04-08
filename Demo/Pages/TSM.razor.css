@@ -1,0 +1,77 @@
+.tsm-page {
+    gap: var(--demo-gap-3);
+}
+
+.tsm-controls-strip-wrap {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.tsm-controls-strip {
+    row-gap: 0.55rem;
+}
+
+.tsm-controls-strip__actions {
+    gap: 0.55rem;
+    margin-left: 0.25rem;
+}
+
+.tsm-stage {
+    min-width: 0;
+}
+
+.tsm-stage__empty {
+    min-height: 26rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 2rem;
+    text-align: center;
+    border: 1px dashed var(--demo-border-color);
+    border-radius: var(--demo-radius-l);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(248, 250, 252, 0.72)),
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 52%);
+}
+
+.tsm-stage__empty .demo-muted-note {
+    margin: 0;
+    max-width: 34rem;
+}
+
+.tsm-map-shell {
+    min-height: 42rem;
+}
+
+::deep .map-component {
+    flex-grow: 1;
+    min-height: 42rem;
+    height: 100%;
+    border-radius: var(--demo-radius-l);
+    overflow: hidden;
+    background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 28%),
+        #ffffff;
+    border: 1px solid var(--demo-border-color);
+    box-shadow: var(--demo-shadow-m);
+}
+
+::deep canvas {
+    display: block;
+    border: 0;
+}
+
+@media (max-width: 640.98px) {
+    .tsm-controls-strip {
+        display: flex;
+        width: 100%;
+    }
+
+    .tsm-map-shell,
+    .tsm-stage__empty,
+    ::deep .map-component {
+        min-height: 28rem;
+    }
+}

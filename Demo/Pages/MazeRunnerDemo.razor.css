@@ -1,10 +1,82 @@
-.recorder-controls-container {
-    margin-top: 20px;
+.maze-runner-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--demo-gap-4);
+    min-width: 0;
+}
+
+.maze-runner-config-panel,
+.maze-runner-command-panel,
+.maze-runner-prompt-panel {
+    align-items: center;
     text-align: center;
-    border: 1px solid #ccc;
-    padding: 12px;
-    border-radius: 6px;
-    background-color: #fafafa;
+}
+
+.maze-runner-config-panel {
+    gap: 0.75rem;
+}
+
+.maze-runner-seed-row,
+.maze-runner-field-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.maze-runner-field-row {
+    width: 100%;
+}
+
+.maze-runner-field-row label {
+    font-weight: 600;
+    color: var(--demo-text);
+}
+
+.maze-runner-field-row--inline {
+    justify-content: center;
+}
+
+.maze-runner-installation-list {
+    display: inline-block;
+    margin: 0;
+    padding-left: 1.25rem;
+    text-align: left;
+}
+
+.maze-runner-stage-panel {
+    gap: var(--demo-gap-4);
+}
+
+.maze-runner-stage {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: center;
+    gap: var(--demo-gap-4);
+}
+
+.maze-runner-board {
+    flex: 1 1 300px;
+    min-width: 0;
+}
+
+.maze-runner-board-frame {
+    display: flex;
+    justify-content: center;
+}
+
+.maze-runner-joystick {
+    flex: 0 0 auto;
+}
+
+.recorder-controls-container {
+    text-align: center;
+    border: 1px solid var(--demo-border-color);
+    padding: 0.85rem 1rem;
+    border-radius: var(--demo-radius-m);
+    background-color: rgba(248, 250, 252, 0.94);
 }
 
 .recorder-controls {
@@ -95,6 +167,39 @@
     padding: 4px 6px;
 }
 
+.maze-runner-command-input {
+    width: min(100%, 20rem);
+}
+
+.maze-runner-cancel-button {
+    margin-left: 0.625rem;
+}
+
+.maze-runner-response {
+    margin-top: 0.625rem;
+}
+
+.maze-runner-prompt-note {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--demo-text-muted);
+}
+
+.maze-runner-prompt-textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 0.5rem;
+    font-family: Consolas, monospace;
+    font-size: 0.9rem;
+    border: 1px solid var(--demo-border-color);
+    border-radius: var(--demo-radius-m);
+    background: rgba(255, 255, 255, 0.96);
+}
+
+.maze-runner-side {
+    min-width: 0;
+}
+
 .recording-indicator,
 .playback-indicator {
     margin-top: 10px;
@@ -132,5 +237,19 @@
     50% {
         transform: scale(1.4);
         opacity: 0.6;
+    }
+}
+
+@media (max-width: 900px) {
+    .maze-runner-config-panel,
+    .maze-runner-command-panel,
+    .maze-runner-prompt-panel {
+        align-items: stretch;
+        text-align: left;
+    }
+
+    .maze-runner-seed-row,
+    .maze-runner-field-row {
+        justify-content: flex-start;
     }
 }

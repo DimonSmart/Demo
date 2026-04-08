@@ -1,0 +1,17 @@
+.player-hands-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.hand-wrapper {
+    flex: 1 1 100px;
+}
+
+.current-hand {
+    padding: 0.45rem;
+    border: 2px solid #fde047;
+    border-radius: 0.8rem;
+    box-shadow: 0 0 0 1px rgba(253, 224, 71, 0.35);
+}

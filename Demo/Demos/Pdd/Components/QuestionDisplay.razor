@@ -9,8 +9,7 @@
         <div class="pdd-question-text-and-image">
             <div class="pdd-image-container">
                 <img src="@Path.Combine(ImagesBaseAddress, $"{CurrentQuestion?.Id}.jpg")"
-                     class="pdd-question-image"
-                     style="object-fit: scale-down" />
+                     class="pdd-question-image pdd-question-image--scaled" />
                 <div class="pdd-question-id">@CurrentQuestion?.Id</div>
             </div>
             <div class="pdd-question-text">

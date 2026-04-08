@@ -1,4 +1,4 @@
-@page "/pdd/statistics"
+﻿@page "/pdd/statistics"
 @using Demo.Demos.Common
 @using Demo.Demos.Pdd
 @using Demo.Services
@@ -7,12 +7,11 @@
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
 @inject UserPreferencesStorageService<PddUserPreferences> PreferencesStorage
 @inject CardStorageService CardStorage
-@inject PageTitleService PageTitleService
+@inject IDemoPageChromeService PageChrome
 @inject IPddStatisticsService statisticsService
 @inject IPddLanguageService languageService
 
 <link rel="stylesheet" href="css/pdd.css" />
-<link rel="stylesheet" href="css/demos.css" />
 
 <div class="pdd-page-container">
     <div class="pdd-top-nav-bar fixed-top-bar">
@@ -24,7 +23,7 @@
                 }
             </div>
             <div class="pdd-navigation">
-                <a href="/pdd" class="pdd-back-link">← Back to Learning</a>
+                <a href="/pdd" class="pdd-back-link">в†ђ Back to Learning</a>
             </div>
         </div>
     </div>
@@ -49,7 +48,7 @@
         {
             <!-- Overall Statistics -->
             <div class="pdd-stats-section">
-                <h3>📊 Overall Statistics</h3>
+                <h3>рџ“Љ Overall Statistics</h3>
                 <div class="pdd-stats-grid">
                     <div class="pdd-stat-card">
                         <div class="pdd-stat-value">@statistics.OverallMetrics.TotalQuestions</div>
@@ -84,7 +83,7 @@
 
             <!-- Topic Statistics -->
             <div class="pdd-stats-section">
-                <h3>📚 Statistics by Topic</h3>
+                <h3>рџ“љ Statistics by Topic</h3>
                 <div class="pdd-topics-stats">
                     @foreach (var topicStat in statistics.TopicStatistics)
                     {
@@ -134,7 +133,7 @@
 
             <!-- Most Difficult Questions -->
             <div class="pdd-stats-section">
-                <h3>🎯 Top 10 Difficult Questions</h3>
+                <h3>рџЋЇ Top 10 Difficult Questions</h3>
                 <div class="pdd-difficult-questions">
                     @if (statistics.MostDifficultQuestions.Any())
                     {
@@ -183,12 +182,12 @@
                         <div class="pdd-no-difficult">
                             @if (statistics.OverallMetrics.LearnedQuestions + statistics.OverallMetrics.InProgressQuestions < 10)
                             {
-                                <p>📚 Insufficient data to determine difficult questions.</p>
+                                <p>рџ“љ Insufficient data to determine difficult questions.</p>
                                 <p>Try answering more questions first - we need some attempt history to identify which questions are challenging for you.</p>
                             }
                             else
                             {
-                                <p>🎉 Congratulations! No difficult questions found.</p>
+                                <p>рџЋ‰ Congratulations! No difficult questions found.</p>
                                 <p>All questions are either learned or being studied successfully!</p>
                             }
                         </div>
@@ -207,7 +206,7 @@
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        PageTitleService.SetTitle("PDD Learning Statistics");
+        PageChrome.SetPage("PDD Learning Statistics");
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

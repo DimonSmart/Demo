@@ -1,5 +1,4 @@
-﻿@inject PageTitleService PageTitleService
-<link rel="stylesheet" href="css/demos.css" />
+﻿@inject IDemoPageChromeService PageChrome
 
 
 @page "/"
@@ -99,37 +98,7 @@
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        PageTitleService.SetTitle("My projects");
+        PageChrome.SetPage("My projects");
     }
 }
 
-<style>
-    .card {
-        flex: 1 1 calc(33.333% - var(--gap-size));
-        display: flex;
-        flex-direction: column;
-        min-width: 200px;
-        max-width: 400px;
-        border: 2px solid black;
-        padding: 20px;
-        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.25);
-        border-radius: 8px;
-        overflow: hidden;
-        box-sizing: border-box;
-        flex-grow: 1;
-    }
-
-        .card img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            object-fit: cover;
-        }
-
-    .card-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: left;
-        gap: var(--gap-size);
-    }
-</style>

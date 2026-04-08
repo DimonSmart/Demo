@@ -132,6 +132,10 @@
     height: auto;
 }
 
+.pdd-question-image--scaled {
+    object-fit: scale-down;
+}
+
 /* Responsive adjustments for smaller screens */
 @media (max-width: 640px) {
     .pdd-question-text-and-image {

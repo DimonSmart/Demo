@@ -8,7 +8,7 @@
 
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
 @inject UserPreferencesStorageService<PddUserPreferences> PreferencesStorage
-@inject PageTitleService PageTitleService
+@inject IDemoPageChromeService PageChrome
 @inject CardStorageService CardStorage
 @inject IJSRuntime JSRuntime
 @inject TextTranslationService TranslationService
@@ -16,7 +16,6 @@
 @inject IPddDataService PddDataService
 
 <link rel="stylesheet" href="css/pdd.css" />
-<link rel="stylesheet" href="css/demos.css" />
 <link rel="stylesheet" href="css/multilanguage.css" />
 
 <div class="pdd-page-container"
@@ -97,7 +96,7 @@
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        PageTitleService.SetTitle("Practice DGT Spanish Driving Theory Test");
+        PageChrome.SetPage("Practice DGT Spanish Driving Theory Test");
     }
 
     protected override async Task OnInitializedAsync()

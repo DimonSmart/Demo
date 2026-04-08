@@ -3,7 +3,7 @@
 @using Demo.Demos.MazeRunner
 @inject IJSRuntime JSRuntime
 
-<div class="log-viewer-container" style="display: flex; flex-direction: column; border: 1px solid #ccc; height: 100%; max-width: 100%; word-break: break-word; overflow-wrap: break-word;">
+<div class="log-viewer-container">
     <!-- Top control bar -->
     <div class="d-flex flex-wrap align-items-center p-2 border-bottom gap-2">
         @if (ShowClearButton)
@@ -16,8 +16,7 @@
         {
             <div>
                 <input type="text"
-                       class="form-control form-control-sm d-inline-block"
-                       style="width: 150px;"
+                       class="form-control form-control-sm d-inline-block log-search-input"
                        @bind="SearchQuery"
                        @bind:event="oninput"
                        placeholder="highlight..." />
@@ -48,8 +47,7 @@
 
     <div @ref="LogContainer"
          id="logContainer"
-         class="p-2"
-         style="overflow-y: scroll; min-height: 0; min-width: 0; font-family: monospace; white-space: pre-wrap; overflow-wrap: break-word; height: 100%;">
+         class="p-2 log-viewer-body">
         <div>
             @foreach (var log in LogMessages)
             {
@@ -61,23 +59,23 @@
                 switch (log.Type)
                 {
                     case LogStore.LogType.SemanticKernel:
-                        <div style="font-size: 0.8em; color: #666; margin-bottom: 4px; border-bottom: 1px solid #eee;">
+                        <div class="log-entry log-entry--semantic">
                             @RenderLogMessage(messageText)
                         </div>
                         break;
                     case LogStore.LogType.RobotMovements:
-                        <div style="font-size: 1em; color: blue; margin-bottom: 4px; border-bottom: 1px solid #eee;">
+                        <div class="log-entry log-entry--robot">
                             @RenderLogMessage(messageText)
                         </div>
                         break;
                     case LogStore.LogType.Http:
-                        <div style="font-size: 0.9em; color: #2E8B57; margin-bottom: 4px; border-bottom: 1px solid #eee;">
+                        <div class="log-entry log-entry--http">
                             @RenderLogMessage(messageText)
                         </div>
                         break;
                     case LogStore.LogType.UserInput:
                     default:
-                        <div style="font-size: 1em; color: black; margin-bottom: 4px; border-bottom: 1px solid #eee;">
+                        <div class="log-entry log-entry--user">
                             @RenderLogMessage(messageText)
                         </div>
                         break;
@@ -169,7 +167,7 @@
 
         var pattern = Regex.Escape(search);
         return Regex.Replace(text, pattern,
-            match => $"<span style=\"background-color: yellow;\">{match.Value}</span>",
+            match => $"<span class=\"log-highlight\">{match.Value}</span>",
             RegexOptions.IgnoreCase);
     }
 

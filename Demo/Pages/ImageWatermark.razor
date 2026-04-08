@@ -1,106 +1,268 @@
-﻿@page "/ImageWaterMark"
+@page "/ImageWatermark"
 @using Demo.Components
-@using Demo.Services
 @using Microsoft.AspNetCore.Components.Forms
 @using SkiaSharp
-@using SkiaSharp.Views.Blazor
-@inject PageTitleService PageTitleService
-<link rel="stylesheet" href="css/demos.css" />
+@inject IDemoPageChromeService PageChrome
 
 <PageTitle>Image Watermark</PageTitle>
-<div class="page-container">
-    <div class="watermark-dashboard-container">
-        <div class="watermark-dashboard-item watermark-dashboard-droparea">
-            <div class="dropzone @_dropClass rounded">
-                <InputFile id="fileInput" multiple="false" accept="image/*" title=""
-                           OnChange="HandleFileSelected"
-                           @ondragenter="HandleDragEnter"
-                           @ondragleave="HandleDragLeave" />
-                Drop an image here or click to upload.
-            </div>
+<div class="page-container image-watermark-page">
+    <div class="demo-workspace demo-workspace--split image-watermark-workspace">
+        <section class="demo-workspace__main">
+            <section class="demo-panel image-watermark-stage">
+                <div class="image-watermark-stage__header">
+                    <div class="image-watermark-stage__copy">
+                        <h2 class="demo-section-title">Preview workspace</h2>
+                        <p class="demo-muted-note">Upload an image, rotate it if needed, then stamp a repeated text watermark across the frame.</p>
+                    </div>
 
-            <!-- Image Preview -->
-            @if (_imageDataUrl != null)
-            {
-                <div class="image-preview">
-                    <img src="@_imageDataUrl" alt="Image preview" />
-                    <p>Image Size: @(_waterMarkedImageBytes?.Length / 1024) KB</p>
+                    @if (HasImage)
+                    {
+                        <div class="demo-summary-strip demo-summary-strip--muted image-watermark-stage__summary">
+                            <div class="demo-summary-item">
+                                <span class="demo-summary-item__label">Rotation</span>
+                                <span class="demo-summary-item__value">@RotationDegrees&deg;</span>
+                            </div>
+                            <span class="demo-summary-separator">&middot;</span>
+                            <div class="demo-summary-item">
+                                <span class="demo-summary-item__label">Resize</span>
+                                <span class="demo-summary-item__value">@SelectedResizeLabel</span>
+                            </div>
+                            <span class="demo-summary-separator">&middot;</span>
+                            <div class="demo-summary-item">
+                                <span class="demo-summary-item__label">Opacity</span>
+                                <span class="demo-summary-item__value">@WatermarkOpacity%</span>
+                            </div>
+                        </div>
+                    }
                 </div>
 
-            }
-            else
-            {
-                <p class="info-text">
-                    The uploaded image is stored only on your computer and is not uploaded anywhere else.
-                </p>
-            }
-        </div>
-        <div class="watermark-dashboard-item watermark-dashboard-textarea">
-            <div class="settings-container">
-                <label for="rotationId" class="margin-right">Rotate image:</label>
-                <RotationControl Id="rotationId" Rotation="@_imageRotation" RotationChanged="OnRotationChanged" />
-            </div>
-            <div class="settings-container">
-                <label for="watermarkText" class="margin-right">Watermark Text:</label>
-                <textarea @bind="_watermarkText" style="width: 100%" id="watermarkText" rows="2" cols="25"></textarea>
-            </div>
+                <div class="dropzone @_dropClass">
+                    <InputFile id="fileInput"
+                               multiple="false"
+                               accept="image/*"
+                               title=""
+                               OnChange="HandleFileSelected"
+                               @ondragenter="HandleDragEnter"
+                               @ondragleave="HandleDragLeave" />
+                    Drop an image here or click to upload.
+                </div>
 
-            <div class="settings-container">
-                <label for="watermarkTextColorPicker" class="margin-right">Color:</label>
-                <ColorPicker Id="watermarkTextColorPicker" @bind-SelectedColor="_watermarkTextColorPicker" AllowedColors="new SKColor[] { SKColors.Red, SKColors.Green, SKColors.Blue, SKColors.White, SKColors.Black }" />
-            </div>
+                @if (HasPreview)
+                {
+                    <div class="image-preview">
+                        <img src="@_imageDataUrl" alt="Preview of the current image output" />
+                        <div class="demo-summary-strip image-preview__summary">
+                            <div class="demo-summary-item">
+                                <span class="demo-summary-item__label">Current size</span>
+                                <span class="demo-summary-item__value">@CurrentImageSizeText</span>
+                            </div>
+                            <span class="demo-summary-separator">&middot;</span>
+                            <div class="demo-summary-item">
+                                <span class="demo-summary-item__label">Density</span>
+                                <span class="demo-summary-item__value">@WatermarkDensity</span>
+                            </div>
+                            <span class="demo-summary-separator">&middot;</span>
+                            <div class="demo-summary-item">
+                                <span class="demo-summary-item__label">Angle</span>
+                                <span class="demo-summary-item__value">@WatermarkAngle&deg;</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <p class="info-text">
+                        The uploaded image is stored only on your computer and is not uploaded anywhere else.
+                    </p>
+                }
+            </section>
+        </section>
 
-            <div class="settings-container">
-                <label for="watermarkOpacity" class="margin-right">Opacity (%):</label>
-                <input type="number" @bind="_watermarkOpacity" id="watermarkOpacity" min="1" max="100" style="width: 6em;" />
-            </div>
-            <div class="settings-container">
-                <label for="watermarkAngle" class="margin-right">Angle (°):</label>
-                <input type="number" @bind="_watermarkAngle" id="watermarkAngle" min="0" max="360" style="width: 6em;" />
-            </div>
-            <div class="settings-container">
-                <label for="watermarkDensity" class="margin-right">Density:</label>
-                <input type="number" @bind="_watermarkDensity" id="watermarkDensity" min="1" max="100" style="width: 6em;" />
-            </div>
-            <div class="settings-container">
-                <label for="resizeOptions" class="margin-right">Resize Options:</label>
-                <select @bind="_selectedResizeOption" class="spaced-element" id="resizeOptions">
-                    @foreach (var option in Enum.GetValues<ResizeOption>())
+        <aside class="demo-workspace__side image-watermark-sidebar">
+            <section class="demo-panel demo-panel--compact image-watermark-controls">
+                <div class="image-watermark-controls__heading">
+                    <h2 class="demo-section-title">Watermark settings</h2>
+                    <p class="demo-control-note">These controls now follow the same shared settings style as the maze, hash, and salesman pages.</p>
+                </div>
+
+                <div class="image-watermark-controls__grid">
+                    <section class="demo-control-card demo-control-card--compact">
+                        <div class="demo-control-card__eyebrow">Transform</div>
+                        <div class="demo-input-field">
+                            <span class="demo-field-label">Rotation</span>
+                            <RotationControl Id="rotationId" Rotation="@RotationDegrees" RotationChanged="OnRotationChanged" />
+                        </div>
+                        <p class="demo-control-note">Rotate the base image in 90-degree steps before drawing the watermark.</p>
+                    </section>
+
+                    <section class="demo-control-card demo-control-card--compact image-watermark-controls__text-card">
+                        <div class="demo-control-card__eyebrow">Content</div>
+                        <label class="demo-input-field" for="watermarkText">
+                            <span class="demo-field-label">Watermark text</span>
+                            <textarea @bind="WatermarkText"
+                                      class="demo-input image-watermark-textarea"
+                                      id="watermarkText"
+                                      rows="3"></textarea>
+                        </label>
+                        <p class="demo-control-note">The text is repeated across the image using the selected angle and spacing.</p>
+                    </section>
+
+                    <section class="demo-control-card demo-control-card--compact">
+                        <div class="demo-control-card__eyebrow">Palette</div>
+                        <div class="demo-input-field">
+                            <span class="demo-field-label">Text color</span>
+                            <ColorPicker Id="watermarkTextColorPicker"
+                                         @bind-SelectedColor="WatermarkColor"
+                                         AllowedColors="AvailableWatermarkColors" />
+                        </div>
+                        <p class="demo-control-note">Choose a swatch that remains readable after opacity is applied.</p>
+                    </section>
+
+                    <section class="demo-control-card demo-control-card--compact">
+                        <div class="demo-control-card__eyebrow">Layout</div>
+                        <div class="demo-form-grid image-watermark-controls__metrics">
+                            <label class="demo-input-field" for="watermarkOpacity">
+                                <span class="demo-field-label">Opacity (%)</span>
+                                <input type="number"
+                                       @bind="WatermarkOpacity"
+                                       class="demo-input"
+                                       id="watermarkOpacity"
+                                       min="1"
+                                       max="100" />
+                            </label>
+
+                            <label class="demo-input-field" for="watermarkAngle">
+                                <span class="demo-field-label">Angle (&deg;)</span>
+                                <input type="number"
+                                       @bind="WatermarkAngle"
+                                       class="demo-input"
+                                       id="watermarkAngle"
+                                       min="0"
+                                       max="360" />
+                            </label>
+
+                            <label class="demo-input-field" for="watermarkDensity">
+                                <span class="demo-field-label">Density</span>
+                                <input type="number"
+                                       @bind="WatermarkDensity"
+                                       class="demo-input"
+                                       id="watermarkDensity"
+                                       min="1"
+                                       max="100" />
+                            </label>
+                        </div>
+                        <p class="demo-control-note">Opacity changes visibility, angle rotates the text field, and density controls row spacing.</p>
+                    </section>
+
+                    <section class="demo-control-card demo-control-card--compact">
+                        <div class="demo-control-card__eyebrow">Output</div>
+                        <label class="demo-input-field" for="resizeOptions">
+                            <span class="demo-field-label">Resize target</span>
+                            <select @bind="SelectedResizeOption" class="demo-input" id="resizeOptions">
+                                @foreach (var option in Enum.GetValues<ResizeOption>())
+                                {
+                                    <option value="@option">@GetResizeOptionLabel(option)</option>
+                                }
+                            </select>
+                        </label>
+                        <p class="demo-control-note">The image keeps its aspect ratio and is fitted into the selected frame.</p>
+                    </section>
+                </div>
+
+                <div class="demo-action-bar image-watermark-actions">
+                    <button type="button"
+                            class="demo-pill-button demo-pill-button--primary"
+                            @onclick="ApplyWatermark"
+                            disabled="@(!HasImage)">
+                        Apply watermark
+                    </button>
+
+                    @if (HasPreview)
                     {
-                        <option value="@option">@option.ToString().TrimStart('_')</option>
+                        <a href="@_imageDataUrl" download="image-watermark-preview.png" class="demo-pill-button">
+                            Download current image
+                        </a>
                     }
-                </select>
-            </div>
-            <button class="btn" @onclick="ApplyWatermark">Apply</button>
-            @if (_imageDataUrl != null)
-            {
-                <a href="@_imageDataUrl" download="doc.png" class="btn">Download</a>
-            }
-
-
-        </div>
+                </div>
+            </section>
+        </aside>
     </div>
 </div>
 
 @code {
     private string? _imageDataUrl;
     private string _dropClass = "";
-    private byte[]? _initialImageBytes;
+    private byte[]? _originalImageBytes;
     private byte[]? _rotatedImageBytes;
-    private byte[]? _waterMarkedImageBytes;
+    private byte[]? _watermarkedImageBytes;
     private string _watermarkText = "Confidential: For [Service Name] Use Only";
     private int _watermarkOpacity = 25;
     private double _watermarkAngle = 30;
     private int _watermarkDensity = 2;
     private ResizeOption _selectedResizeOption = ResizeOption.Original;
-    private int _imageRotation = 0;
+    private int _rotationDegrees;
+    private SKColor _watermarkColor = SKColors.Red;
 
-    private SKColor _watermarkTextColorPicker = SKColors.Red;
+    private static readonly SKColor[] AvailableWatermarkColors =
+    {
+        SKColors.Red,
+        SKColors.Green,
+        SKColors.Blue,
+        SKColors.White,
+        SKColors.Black
+    };
+
+    private bool HasImage => _originalImageBytes is { Length: > 0 };
+    private bool HasPreview => !string.IsNullOrWhiteSpace(_imageDataUrl);
+    private string CurrentImageSizeText => FormatFileSize(_watermarkedImageBytes?.Length);
+    private string SelectedResizeLabel => GetResizeOptionLabel(SelectedResizeOption);
+
+    private string WatermarkText
+    {
+        get => _watermarkText;
+        set => _watermarkText = value;
+    }
+
+    private int WatermarkOpacity
+    {
+        get => _watermarkOpacity;
+        set => _watermarkOpacity = Math.Clamp(value, 1, 100);
+    }
+
+    private double WatermarkAngle
+    {
+        get => _watermarkAngle;
+        set => _watermarkAngle = Math.Clamp(value, 0, 360);
+    }
+
+    private int WatermarkDensity
+    {
+        get => _watermarkDensity;
+        set => _watermarkDensity = Math.Clamp(value, 1, 100);
+    }
+
+    private ResizeOption SelectedResizeOption
+    {
+        get => _selectedResizeOption;
+        set => _selectedResizeOption = value;
+    }
+
+    private int RotationDegrees
+    {
+        get => _rotationDegrees;
+        set => _rotationDegrees = NormalizeRotation(value);
+    }
+
+    private SKColor WatermarkColor
+    {
+        get => _watermarkColor;
+        set => _watermarkColor = value;
+    }
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        PageTitleService.SetTitle("Image Watermark");
+        PageChrome.SetPage("Image Watermark");
     }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
@@ -109,37 +271,44 @@
         using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
-        _initialImageBytes = ms.ToArray();
-        _rotatedImageBytes = _initialImageBytes;
-        _waterMarkedImageBytes = _initialImageBytes;
+        _originalImageBytes = ms.ToArray();
+        RotationDegrees = 0;
+        _rotatedImageBytes = _originalImageBytes;
+        _watermarkedImageBytes = _originalImageBytes;
         UpdateImagePreview();
     }
 
     private void UpdateImagePreview()
     {
-        if (_waterMarkedImageBytes != null)
+        if (_watermarkedImageBytes != null)
         {
-            _imageDataUrl = $"data:image/png;base64,{Convert.ToBase64String(_waterMarkedImageBytes)}";
+            _imageDataUrl = $"data:image/png;base64,{Convert.ToBase64String(_watermarkedImageBytes)}";
+            return;
         }
+
+        _imageDataUrl = null;
     }
 
     private void OnRotationChanged(int newRotation)
     {
-        _imageRotation = newRotation;
+        RotationDegrees = newRotation;
         _rotatedImageBytes = RotateImage();
-        _waterMarkedImageBytes = _rotatedImageBytes;
+        _watermarkedImageBytes = _rotatedImageBytes;
         UpdateImagePreview();
     }
 
     private byte[]? RotateImage()
     {
-        if (_initialImageBytes == null) return null;
+        if (_originalImageBytes == null)
+        {
+            return null;
+        }
 
-        using var inputStream = new MemoryStream(_initialImageBytes);
+        using var inputStream = new MemoryStream(_originalImageBytes);
         using var originalBitmap = SKBitmap.Decode(inputStream);
 
         SKBitmap rotatedBitmap;
-        int rotationDegrees = _imageRotation % 360;
+        int rotationDegrees = RotationDegrees;
 
         if (rotationDegrees == 0)
         {
@@ -147,7 +316,7 @@
         }
         else
         {
-            bool is90or270 = rotationDegrees == 90 || rotationDegrees == 270;
+            bool is90or270 = rotationDegrees is 90 or 270;
             rotatedBitmap = new SKBitmap(
                 is90or270 ? originalBitmap.Height : originalBitmap.Width,
                 is90or270 ? originalBitmap.Width : originalBitmap.Height
@@ -156,7 +325,6 @@
             using var canvas = new SKCanvas(rotatedBitmap);
             canvas.Clear(SKColors.Transparent);
 
-            // Set up transformations for the given rotation
             canvas.Translate(rotatedBitmap.Width / 2, rotatedBitmap.Height / 2);
             canvas.RotateDegrees(rotationDegrees);
             canvas.Translate(-originalBitmap.Width / 2, -originalBitmap.Height / 2);
@@ -167,7 +335,6 @@
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         return data.ToArray();
     }
-
 
     private void HandleDragEnter()
     {
@@ -181,7 +348,10 @@
 
     private void ApplyWatermark()
     {
-        if (_rotatedImageBytes == null) return;
+        if (_rotatedImageBytes == null)
+        {
+            return;
+        }
 
         using var inputStream = new MemoryStream(_rotatedImageBytes);
         using var originalBitmap = SKBitmap.Decode(inputStream);
@@ -192,44 +362,54 @@
 
         canvas.DrawBitmap(originalBitmap, new SKRect(0, 0, width, height));
 
-        var textSize = CalculateFontSize(_watermarkText, width);
+        var textSize = CalculateFontSize(WatermarkText, width);
         using var typeface = SKTypeface.Default;
         using var font = new SKFont(typeface, textSize)
-            {
-                Edging = SKFontEdging.Antialias
-            };
+        {
+            Edging = SKFontEdging.Antialias
+        };
 
         using var paint = new SKPaint
-            {
-                Color = _watermarkTextColorPicker.WithAlpha((byte)(_watermarkOpacity * 255 / 100)),
-                IsAntialias = true,
-            };
+        {
+            Color = WatermarkColor.WithAlpha((byte)(WatermarkOpacity * 255 / 100)),
+            IsAntialias = true
+        };
 
         canvas.Save();
         canvas.Translate(width / 2f, height / 2f);
-        canvas.RotateDegrees((float)_watermarkAngle);
+        canvas.RotateDegrees((float)WatermarkAngle);
         canvas.Translate(-width / 2f, -height / 2f);
 
         var maxSide = Math.Max(width, height);
-        for (float y = -maxSide; y < maxSide * 2; y += (textSize * _watermarkDensity))
+        for (float y = -maxSide; y < maxSide * 2; y += textSize * WatermarkDensity)
         {
-            canvas.DrawText(_watermarkText, new SKPoint(0, y), font, paint);
+            canvas.DrawText(WatermarkText, new SKPoint(0, y), font, paint);
         }
 
         canvas.Restore();
 
         using var image = surface.Snapshot();
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        _waterMarkedImageBytes = data.ToArray();
+        _watermarkedImageBytes = data.ToArray();
         UpdateImagePreview();
     }
 
-    float CalculateFontSize(string text, float imageWidth, float initialFontSize = 16)
+    private static float CalculateFontSize(string text, float imageWidth, float initialFontSize = 16)
     {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return initialFontSize;
+        }
+
         using var typeface = SKTypeface.FromFamilyName("Arial");
         using var font = new SKFont(typeface, initialFontSize);
 
         var textWidth = font.MeasureText(text);
+        if (textWidth <= 0)
+        {
+            return initialFontSize;
+        }
+
         var scaleFactor = imageWidth / textWidth;
         var adjustedFontSize = initialFontSize * scaleFactor;
 
@@ -238,12 +418,12 @@
 
     private (int width, int height) GetResizedDimensions(int originalWidth, int originalHeight)
     {
-        if (_selectedResizeOption == ResizeOption.Original)
+        if (SelectedResizeOption == ResizeOption.Original)
         {
             return (originalWidth, originalHeight);
         }
 
-        var dimensions = _selectedResizeOption.ToString().TrimStart('_').Split('x');
+        var dimensions = GetResizeOptionLabel(SelectedResizeOption).Split('x');
         var targetWidth = int.Parse(dimensions[0]);
         var targetHeight = int.Parse(dimensions[1]);
 
@@ -260,6 +440,26 @@
         return (targetWidth, targetHeight);
     }
 
+    private static int NormalizeRotation(int rotationDegrees)
+    {
+        return ((rotationDegrees % 360) + 360) % 360;
+    }
+
+    private static string GetResizeOptionLabel(ResizeOption option)
+    {
+        return option.ToString().TrimStart('_');
+    }
+
+    private static string FormatFileSize(int? bytes)
+    {
+        if (bytes is null or <= 0)
+        {
+            return "0 KB";
+        }
+
+        return $"{bytes.Value / 1024d:0.#} KB";
+    }
+
     private enum ResizeOption
     {
         Original,
@@ -270,100 +470,3 @@
         _800x600
     }
 }
-
-<style>
-    .watermark-dashboard-container {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: nowrap;
-        justify-content: space-between;
-        gap: var(--gap-size);
-    }
-
-    .watermark-dashboard-item {
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        box-sizing: border-box;
-        flex: 1;
-        margin: 1em;
-    }
-
-    .watermark-dashboard-droparea {
-        min-width: 150px;
-        max-width: 50%;
-    }
-
-    .watermark-dashboard-textarea {
-        min-width: 150px;
-        max-width: 50%;
-    }
-
-    .dropzone {
-        border: 3px dashed steelblue;
-        margin-bottom: 5px;
-        padding: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
-        color: black;
-        font-size: 1.0rem;
-        cursor: pointer;
-        position: relative;
-    }
-
-        .dropzone:hover {
-            background-color: #f3f3f3;
-            color: #333;
-        }
-
-        .dropzone input[type=file] {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-    .dropzone-drag {
-        background-color: palegreen;
-    }
-
-    .info-text {
-        margin-top: 5px;
-        font-style: italic;
-        color: grey;
-        font-size: 1.0rem;
-    }
-
-    .image-preview {
-        margin-top: 10px;
-        text-align: center;
-    }
-
-        .image-preview img {
-            max-width: 100%;
-            height: auto;
-            border: 2px solid #ccc;
-            border-radius: 5px;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.25);
-        }
-
-    .btn {
-        display: inline-block;
-        margin: 1em;
-        width: fit-content;
-        color: white;
-        background-color: #007bff;
-        border: none;
-        border-radius: 5px;
-        text-align: center;
-        text-decoration: none;
-        cursor: pointer;
-    }
-
-        .btn:hover {
-            background-color: #0056b3;
-        }
-</style>

@@ -1,0 +1,27 @@
+.rotation-control {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.rotation-control__button {
+    min-width: 6rem;
+}
+
+.rotation-indicator {
+    min-width: 4.5rem;
+    text-align: center;
+}
+
+@media (max-width: 480px) {
+    .rotation-control__button {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .rotation-indicator {
+        order: -1;
+        width: 100%;
+    }
+}

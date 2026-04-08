@@ -5,50 +5,72 @@
 @using Demo.Demos.TSM
 @using Demo.Services
 @using DimonSmart.MazeGenerator
-@inject PageTitleService PageTitleService
+@inject IDemoPageChromeService PageChrome
 
 @inherits MazeBaseComponent<MazeCellModel>
 
 @implements IMazePlotter
 
-<link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze Generator Demo</PageTitle>
 
-<div class="page-container">
-    <div style="margin-bottom: 20px;">
-        <div class="settings-container">
-            <label class="margin-right">
-                Width:
-                <input type="number" min="1" max="101" step="2" @bind="XSize" />
-            </label>
-            <label class="margin-right">
-                Height:
-                <input type="number" min="1" max="101" step="2" @bind="YSize" />
-            </label>
+<div class="page-container maze-generator-page">
+    <section class="demo-panel demo-panel--compact maze-generator-controls">
+        <div class="maze-generator-controls__header">
+            <div class="maze-generator-controls__copy">
+                <h2 class="demo-section-title">Build settings</h2>
+                <p class="demo-muted-note">Adjust maze size and carving behavior, then generate a fresh layout.</p>
+            </div>
+            <button type="button"
+                    class="demo-pill-button demo-pill-button--primary maze-generator-controls__action"
+                    @onclick="GenerateMazeAsync"
+                    disabled="@_generationInProgress">
+                @(_generationInProgress ? "Generating..." : "Generate maze")
+            </button>
         </div>
-        <div class="settings-container">
-            <label class="slider-label">
-                Emptiness: <span class="value-display">@Emptiness%</span>
-                <input type="range" min="0" max="100" @bind-value="Emptiness" @bind-value:event="oninput" />
-            </label>
+
+        <div class="maze-generator-controls__grid">
+            <section class="demo-control-card demo-control-card--compact maze-generator-controls__size-card">
+                <div class="maze-generator-controls__size-grid">
+                    <label class="demo-input-field">
+                        <span class="demo-field-label">Width</span>
+                        <input class="demo-input" type="number" min="1" max="101" step="2" @bind="XSize" />
+                    </label>
+                    <label class="demo-input-field">
+                        <span class="demo-field-label">Height</span>
+                        <input class="demo-input" type="number" min="1" max="101" step="2" @bind="YSize" />
+                    </label>
+                </div>
+            </section>
+
+            <section class="demo-control-card demo-control-card--compact">
+                <div class="demo-slider-header">
+                    <span class="demo-field-label">Emptiness</span>
+                    <span class="demo-value-pill">@Emptiness%</span>
+                </div>
+                <input class="demo-slider" type="range" min="0" max="100" @bind-value="Emptiness" @bind-value:event="oninput" />
+                <p class="demo-control-note">Higher values create wider open spaces and fewer solid blocks.</p>
+            </section>
+
+            <section class="demo-control-card demo-control-card--compact">
+                <div class="demo-slider-header">
+                    <span class="demo-field-label">Wall shortness</span>
+                    <span class="demo-value-pill">@WallShortness%</span>
+                </div>
+                <input class="demo-slider" type="range" min="0" max="100" @bind-value="WallShortness" @bind-value:event="oninput" />
+                <p class="demo-control-note">Higher values break long walls into shorter segments.</p>
+            </section>
+
+            <section class="demo-control-card demo-control-card--compact maze-generator-controls__toggle-card">
+                <label class="demo-pill-toggle demo-pill-toggle--compact">
+                    <input type="checkbox" @bind="IsSlowVisualization" />
+                    <span>Slow visualization</span>
+                </label>
+                <p class="demo-control-note">Animate carving step by step instead of drawing only the final maze.</p>
+            </section>
         </div>
-        <div class="settings-container">
-            <label>
-                Wall Shortness: <span class="value-display">@WallShortness%</span>
-                <input type="range" min="0" max="100" @bind-value="WallShortness" @bind-value:event="oninput" />
-            </label>
-        </div>
-        <div class="settings-container">
-            <label>
-                Slow Visualization
-                <input type="checkbox" @bind="IsSlowVisualization" />
-            </label>
-        </div>
-        <div class="settings-container">
-            <button @onclick="GenerateMazeAsync">Generate Maze</button>
-        </div>
-    </div>
-    <div id="MazeContainerId" style="height:100%">
+    </section>
+
+    <div id="MazeContainerId" class="demo-canvas-host maze-generator-canvas">
         @if (_maze != null)
         {
             <MazeDisplay TCell="MazeCellModel" Maze="_maze">
@@ -65,20 +87,26 @@
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        PageTitleService.SetTitle("Maze Generator");
+        PageChrome.SetPage("Maze Generator", PageSurfaceMode.Immersive);
     }
 
     protected override async Task GenerateMazeAsync()
     {
         if (_generationInProgress) return;
         _generationInProgress = true;
-        CancelGeneration();
-        var options = new MazeBuildOptions(WallShortness / 100, Emptiness / 100.0);
-        _maze = new Maze<MazeCellModel>(XSize, YSize);
-        var mazeBuilder = new MazeBuilder<MazeCellModel>(_maze, options);
-        await mazeBuilder.BuildAsync(this, CancellationTokenSource.Token);
-        StateHasChanged();
-        _generationInProgress = false;
+        try
+        {
+            CancelGeneration();
+            var options = new MazeBuildOptions(WallShortness / 100, Emptiness / 100.0);
+            _maze = new Maze<MazeCellModel>(XSize, YSize);
+            var mazeBuilder = new MazeBuilder<MazeCellModel>(_maze, options);
+            await mazeBuilder.BuildAsync(this, CancellationTokenSource.Token);
+            StateHasChanged();
+        }
+        finally
+        {
+            _generationInProgress = false;
+        }
     }
 
     private string GetCellColor(int x, int y) => _maze?.IsWall(x, y) ?? false ? "black" : "white";

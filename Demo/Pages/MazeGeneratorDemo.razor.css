@@ -1,0 +1,79 @@
+.maze-generator-page {
+    gap: var(--demo-gap-3);
+}
+
+.maze-generator-controls {
+    align-items: stretch;
+}
+
+.maze-generator-controls__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--demo-gap-3);
+}
+
+.maze-generator-controls__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.maze-generator-controls__copy .demo-muted-note {
+    margin: 0;
+    max-width: 44rem;
+}
+
+.maze-generator-controls__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.85rem;
+    align-items: start;
+}
+
+.maze-generator-controls__size-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+.maze-generator-controls__size-card,
+.maze-generator-controls__toggle-card {
+    justify-content: center;
+}
+
+.maze-generator-controls__grid .demo-control-note {
+    font-size: 0.88rem;
+    line-height: 1.35;
+}
+
+.maze-generator-controls__action:disabled {
+    cursor: progress;
+    opacity: 0.85;
+    transform: none;
+}
+
+.maze-generator-canvas {
+    min-height: 42rem;
+}
+
+@media (max-width: 640.98px) {
+    .maze-generator-controls__header {
+        flex-direction: column;
+    }
+
+    .maze-generator-controls__action {
+        width: 100%;
+    }
+
+    .maze-generator-controls__grid,
+    .maze-generator-controls__size-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .maze-generator-canvas {
+        min-height: 28rem;
+    }
+}

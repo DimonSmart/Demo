@@ -1,0 +1,44 @@
+.feedback-actions {
+    margin-top: 0.625rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+}
+
+.screenshot-preview {
+    margin-top: 0.625rem;
+    text-align: center;
+}
+
+.screenshot-preview img {
+    width: 100px;
+    height: auto;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.loading {
+    margin-top: 0.625rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #2563eb;
+}
+
+.spinner {
+    width: 24px;
+    height: 24px;
+    margin-right: 0.5rem;
+    border: 4px solid rgba(37, 99, 235, 0.25);
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

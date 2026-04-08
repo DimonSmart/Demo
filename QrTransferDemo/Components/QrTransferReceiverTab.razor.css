@@ -1,0 +1,54 @@
+.capture-preview {
+    position: relative;
+    background-color: var(--bs-gray-100);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    min-height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+}
+
+.capture-preview video {
+    max-width: 100%;
+    height: auto;
+    max-height: 180px;
+    display: block;
+}
+
+.capture-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--bs-secondary-color);
+    background: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.02) 10px, transparent 10px, transparent 20px);
+}
+
+.file-progress {
+    height: 0.75rem;
+}
+
+.diagnostic-log {
+    max-height: 240px;
+    overflow-y: auto;
+    background-color: var(--bs-gray-100);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+}
+
+.diagnostic-log ul {
+    margin: 0;
+}
+
+.diagnostic-log li {
+    font-family: var(--bs-font-monospace);
+    line-height: 1.4;
+}
+
+.diagnostic-timestamp {
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}

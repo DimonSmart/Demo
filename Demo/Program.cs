@@ -1,5 +1,4 @@
 using Blazored.LocalStorage;
-using BlazorImageProcessing;
 using Demo;
 using Demo.Abstractions;
 using Demo.Demos.Common;
@@ -24,11 +23,10 @@ builder.Services.AddBlazoredLocalStorageAsSingleton(options =>
     options.JsonSerializerOptions.TypeInfoResolver = null;
 });
 
-builder.Services.AddSingleton<PageTitleService>();
-builder.Services.AddSingleton<IPageTitleService>(sp => sp.GetRequiredService<PageTitleService>());
+builder.Services.AddSingleton<DemoPageChromeService>();
+builder.Services.AddSingleton<IDemoPageChromeService>(sp => sp.GetRequiredService<DemoPageChromeService>());
 builder.Services.AddSingleton<LogStore>();
 builder.Services.AddScoped<BrowserService>();
-builder.Services.AddScoped<ImageProcessingService>();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddMediaDevicesService();
 

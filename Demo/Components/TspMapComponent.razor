@@ -27,26 +27,32 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (_canvasWidth == 0 || _canvasHeight == 0)
         {
             var size = await BrowserService.GetElementSizeByIdAsync(CanvasId);
-            _canvasWidth = size.Width;
-            _canvasHeight = size.Height;
-            StateHasChanged();
+            if (size.Width > 0 && size.Height > 0)
+            {
+                _canvasWidth = size.Width;
+                _canvasHeight = size.Height;
+                StateHasChanged();
+                return;
+            }
         }
 
-        if (_canvasReference != null && ProblemData != null && BestSolution != null)
+        if (_canvasReference != null && ProblemData != null)
         {
             var context = await _canvasReference.GetContext2DAsync();
             await context.ClearRectAsync(0, 0, _canvasWidth, _canvasHeight);
 
             await DrawCitiesAsync(context, ProblemData.Cities);
-            var path = BestSolution.Chromosome.Cities;
 
-            await DrawPath(context, path);
-
-            await DrawStartSign(context, ProblemData.Cities[path[0]]);
-            await DrawFinishSign(context, ProblemData.Cities[path[^1]]);
+            var path = BestSolution?.Chromosome.Cities;
+            if (path is { Length: > 0 })
+            {
+                await DrawPath(context, path);
+                await DrawStartSign(context, ProblemData.Cities[path[0]]);
+                await DrawFinishSign(context, ProblemData.Cities[path[^1]]);
+            }
         }
     }
 

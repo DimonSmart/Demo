@@ -1,0 +1,32 @@
+.joystick {
+    display: inline-block;
+}
+
+.joystick-grid {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 0.3125rem;
+}
+
+.joystick-button {
+    width: 100%;
+    height: 100%;
+}
+
+.joystick-button--up,
+.joystick-button--down {
+    grid-column: 2;
+}
+
+.joystick-button--left {
+    grid-row: 2;
+    grid-column: 1;
+}
+
+.joystick-button--right {
+    grid-row: 2;
+    grid-column: 3;
+}

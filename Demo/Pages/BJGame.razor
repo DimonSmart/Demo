@@ -3,9 +3,7 @@
 @using Demo.Demos.BJ
 @using Demo.Services
 @using GeneticAlgorithm.GeneralGenetic
-@inject PageTitleService PageTitleService
-
-<link rel="stylesheet" href="css/demos.css" />
+@inject IDemoPageChromeService PageChrome
 
 <PageTitle>Blackjack</PageTitle>
 
@@ -41,7 +39,7 @@
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        PageTitleService.SetTitle("Blackjack");
+        PageChrome.SetPage("Blackjack", PageSurfaceMode.Immersive);
 
         var shoe = new Shoe(DeckFactory.CreateShuffledDecks(6, RandomProvider.Shared).Cards, redCardPosition: 100);
         GameInstance = new BlackjackGameWithPlayer(shoe);
@@ -60,109 +58,3 @@
     }
 }
 
-<style>
-    :root {
-        --gap-size: 10px;
-    }
-
-    /* Overall casino-style page layout */
-    .casino-style {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: space-between;
-        height: calc(100vh - 56px - var(--gap-size));
-        padding: 20px;
-        background-color: #0d521d;
-    }
-
-    /* Reusable text-shadow class */
-    .text-shadow {
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    }
-
-    /* Game info container at the top right corner */
-    .game-info-container {
-        position: absolute;
-        top: 30px;
-        right: 20px;
-    }
-
-    /* Game area in the center */
-    .game-area {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        flex-grow: 1;
-    }
-
-    /* Controls container at the bottom */
-    .controls-container {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        padding: 10px;
-        background-color: rgba(0, 0, 0, 0.5);
-    }
-
-    /* Styled header */
-    h3 {
-        font-family: 'Carter One', cursive;
-        color: #ffd700;
-        letter-spacing: 1px;
-    }
-
-    /* General text styling */
-    body {
-        font-family: 'Roboto', sans-serif;
-        color: white;
-    }
-
-    /* Add vertical space between dealer hand and player hands */
-    .dealer-hand {
-        margin-bottom: var(--gap-size);
-    }
-
-    /* Style for the start game label */
-    .start-game-label {
-        font-size: 2em;
-        color: #ffd700;
-    }
-
-    /* Background image for when the game hasn't started */
-    .background-image {
-        background-image: url('images/bj/bj-before-start.png');
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-    }
-
-    .start-game-label-container {
-        position: relative;
-        height: 100%;
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        background-image: url('images/bj/bj-before-start.png');
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-position: center;
-    }
-
-    .start-game-label {
-        position: relative;
-        top: 25%;
-        font-size: 3em;
-        color: #ffd700;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
-    }
-
-    @@media (max-width: 768px) {
-        .game-info-container {
-            position: static;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-    }
-</style>

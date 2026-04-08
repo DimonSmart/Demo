@@ -202,55 +202,6 @@ namespace Demo.Demos.MarkdownToWord
 
         private bool IsInCodeBlock(int position, List<(int start, int end)> codeBlocks) => codeBlocks.Any(block => position >= block.start && position < block.end);
 
-        public string GenerateVisualizationCSS()
-        {
-            return @"
-.inv-char {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    font-family: 'Fira Code', 'Courier New', monospace;
-    font-size: 0.85em;
-    font-weight: 600;
-    padding: 0 4px;
-    margin: 0 1px;
-    line-height: 1.4;
-    cursor: help;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.inv-char:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    z-index: 5;
-}
-
-.inv-control { background-color: #ffd6d6; color: #a91f1f; }
-.inv-linebreak { background-color: #d0f4de; color: #1f6f3d; }
-.inv-tab { background-color: #d7dcff; color: #2430a0; }
-.inv-widespace { background-color: #fff2b2; color: #856404; }
-.inv-nbsp { background-color: #ffe0c7; color: #9b4d16; }
-.inv-zerowidth { background-color: #f5d0ff; color: #7e1b8d; }
-.inv-bidi { background-color: #ffd9ec; color: #a11963; }
-.inv-softhyphen { background-color: #e4e7eb; color: #4b5563; }
-.inv-invismath { background-color: #d2f8d2; color: #2b7a0b; }
-.inv-varsel { background-color: #d0ebff; color: #216fa0; }
-.inv-emotag { background-color: #ffe6a7; color: #8a4f0f; }
-.inv-combining { background-color: #ffd5f2; color: #a60f63; }
-.inv-confusable { background-color: #ffe8cc; color: #8c4a03; }
-
-.inv-tab {
-    min-width: 2.5ch;
-    justify-content: flex-start;
-}
-
-.inv-linebreak {
-    min-width: 2ch;
-}
-";
-        }
     }
 
     public class VisualizationOptions

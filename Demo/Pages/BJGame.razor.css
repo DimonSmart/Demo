@@ -1,0 +1,90 @@
+.casino-style {
+    position: relative;
+    display: flex;
+    min-height: var(--demo-page-min-height);
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--demo-gap-3);
+    padding: clamp(1rem, 2vw, 1.5rem);
+    color: #f8fafc;
+    background:
+        radial-gradient(circle at top, rgba(250, 204, 21, 0.12), transparent 30%),
+        radial-gradient(circle at bottom, rgba(15, 118, 110, 0.2), transparent 35%),
+        linear-gradient(180deg, #115e2e 0%, #0d4d2c 38%, #0a341f 100%);
+    border-radius: 0;
+}
+
+.game-info-container {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 2;
+}
+
+.game-area {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--demo-gap-3);
+    min-width: 0;
+}
+
+.controls-container {
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--demo-radius-l);
+    background: rgba(2, 6, 23, 0.35);
+    backdrop-filter: blur(8px);
+}
+
+.dealer-hand {
+    margin-bottom: var(--demo-gap-2);
+}
+
+.start-game-label-container {
+    display: flex;
+    width: 100%;
+    min-height: 100%;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: min(18vh, 8rem);
+    background-image: linear-gradient(rgba(2, 6, 23, 0.18), rgba(2, 6, 23, 0.4)), url('images/bj/bj-before-start.png');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    border-radius: var(--demo-radius-l);
+}
+
+.start-game-label {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    color: #fde047;
+    text-shadow: 0 10px 32px rgba(2, 6, 23, 0.85);
+}
+
+::deep h3 {
+    font-family: 'Carter One', cursive;
+    color: #fde047;
+    letter-spacing: 0.04em;
+    text-shadow: 0 6px 20px rgba(2, 6, 23, 0.6);
+}
+
+@media (max-width: 768px) {
+    .casino-style {
+        padding: 1rem;
+    }
+
+    .game-info-container {
+        position: static;
+        display: flex;
+        justify-content: center;
+    }
+
+    .start-game-label-container {
+        padding-top: 4rem;
+    }
+}

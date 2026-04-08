@@ -1,60 +1,3 @@
-<style>
-    .capture-preview {
-        position: relative;
-        background-color: var(--bs-gray-100);
-        border-radius: 0.5rem;
-        overflow: hidden;
-        min-height: 160px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.5rem;
-    }
-
-    .capture-preview video {
-        max-width: 100%;
-        height: auto;
-        max-height: 180px;
-        display: block;
-    }
-
-    .capture-placeholder {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--bs-secondary-color);
-        background: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.02) 10px, transparent 10px, transparent 20px);
-    }
-
-    .file-progress {
-        height: 0.75rem;
-    }
-
-    .diagnostic-log {
-        max-height: 240px;
-        overflow-y: auto;
-        background-color: var(--bs-gray-100);
-        border-radius: 0.5rem;
-        padding: 0.75rem;
-    }
-
-    .diagnostic-log ul {
-        margin: 0;
-    }
-
-    .diagnostic-log li {
-        font-family: var(--bs-font-monospace);
-        line-height: 1.4;
-    }
-
-    .diagnostic-timestamp {
-        color: var(--bs-secondary-color);
-        white-space: nowrap;
-    }
-</style>
-
 <div class="row g-3">
     <div class="@CaptureColumnClass">
         <div class="card h-100">
@@ -92,20 +35,34 @@
                     </div>
                 </div>
                 <div class="row g-3">
-                    <div class="col-sm-6">
+                    <div class="col-sm-6 col-lg-4">
                         <label class="form-label">Capture source</label>
-                        <InputSelect @bind-Value="CaptureSource" class="form-select">
+                        <select class="form-select" value="@CaptureSource" @onchange="OnCaptureSourceChangedAsync">
                             @foreach (var option in CaptureSourceOptions)
                             {
                                 <option value="@option.Key">@option.Value</option>
                             }
-                        </InputSelect>
+                        </select>
                         @if (!_isScreenCaptureSupported)
                         {
                             <div class="form-text text-warning">Screen capture is not supported on this device.</div>
                         }
                     </div>
-                    <div class="col-sm-6">
+                    @if (IsCameraCaptureSelected)
+                    {
+                        <div class="col-sm-6 col-lg-4">
+                            <label class="form-label">Camera</label>
+                            <select class="form-select" value="@SelectedCameraId" @onchange="OnSelectedCameraChangedAsync" disabled="@(_isStarting || !_domInitialized)">
+                                <option value="">Default camera</option>
+                                @foreach (var option in CameraOptions)
+                                {
+                                    <option value="@option.DeviceId">@option.Label</option>
+                                }
+                            </select>
+                            <div class="form-text">@CameraSelectionHelpText</div>
+                        </div>
+                    }
+                    <div class="col-sm-6 col-lg-4">
                         <label class="form-label">Scan interval</label>
                         <div class="form-control-plaintext">@CurrentScanIntervalDisplay</div>
                         <div class="form-text">Observed delay between captured frames.</div>

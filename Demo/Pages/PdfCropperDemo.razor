@@ -1,4 +1,4 @@
-@page "/pdf-cropper"
+﻿@page "/pdf-cropper"
 @using System.Collections.Generic
 @using System.Globalization
 @using System.IO
@@ -8,7 +8,7 @@
 @using Demo.Services
 @using DimonSmart.PdfCropper
 @using Demo.PdfProcessing
-@inject PageTitleService PageTitleService
+@inject IDemoPageChromeService PageChrome
 
 <PageTitle>PDF Cropper</PageTitle>
 
@@ -24,7 +24,7 @@
         <div class="card-body">
             <div class="mb-3">
                 <InputFile OnChange="OnFilesSelected" multiple accept="application/pdf,.pdf" />
-                <small class="text-muted d-block mt-2">Maximum file size — @FormatFileSize(MaxUploadFileSizeInBytes).</small>
+                <small class="text-muted d-block mt-2">Maximum file size вЂ” @FormatFileSize(MaxUploadFileSizeInBytes).</small>
             </div>
 
             @if (_uploadErrors.Count > 0)
@@ -408,7 +408,7 @@
 
     protected override void OnInitialized()
     {
-        PageTitleService.SetTitle("PDF Cropper");
+        PageChrome.SetPage("PDF Cropper");
     }
 
     private void ClearAllData()
@@ -697,7 +697,7 @@
         // Phase 1: Merge original documents first
         await UpdateProcessingState(fileName: "Merging documents", message: "Combining documents...");
         ClearProgressLog();
-        await Task.Delay(50); // Даем UI время показать начало процесса
+        await Task.Delay(50); // Р”Р°РµРј UI РІСЂРµРјСЏ РїРѕРєР°Р·Р°С‚СЊ РЅР°С‡Р°Р»Рѕ РїСЂРѕС†РµСЃСЃР°
 
         var logger = new InMemoryLogger();
         logger.MessageLogged += async (message) => await OnLoggerMessageAsync(message);
@@ -713,7 +713,7 @@
 
             // Phase 2: Crop the merged document
             await UpdateProcessingState(message: "Cropping merged document...");
-            await Task.Delay(50); // Даем UI время обновиться
+            await Task.Delay(50); // Р”Р°РµРј UI РІСЂРµРјСЏ РѕР±РЅРѕРІРёС‚СЊСЃСЏ
 
             var cropper = new PdfCropper();
             var croppedMerged = await cropper.CropAsync(mergedOriginal, cropSettings, optimizationSettings, logger, CancellationToken.None);

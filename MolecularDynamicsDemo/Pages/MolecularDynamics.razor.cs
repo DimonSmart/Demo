@@ -1,3 +1,4 @@
+using Demo.Abstractions;
 using MolecularDynamicsDemo.Simulation;
 
 namespace MolecularDynamicsDemo.Pages;
@@ -28,7 +29,7 @@ public partial class MolecularDynamics
 
     protected override void OnInitialized()
     {
-        TitleService.SetTitle("Molecular dynamics");
+        PageChrome.SetPage("Molecular dynamics", PageSurfaceMode.Immersive);
     }
 
     private void StartSimulation()
@@ -54,7 +55,7 @@ public partial class MolecularDynamics
     {
         IsCannonFiring = false;
         CurrentSession = null;
-        TitleService.SetTitle("Molecular dynamics");
+        PageChrome.SetPage("Molecular dynamics", PageSurfaceMode.Immersive);
     }
 
     private void TogglePause()

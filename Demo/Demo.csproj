@@ -32,9 +32,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="wwwroot\js\imageProcessing.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Update="wwwroot\js\textFunctiones.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -47,6 +44,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Demo.Abstractions\Demo.Abstractions.csproj" />
+    <ProjectReference Include="..\Demo.Core\Demo.Core.csproj" />
     <ProjectReference Include="..\GeneticAlgorithm\GeneticAlgorithm.csproj" />
     <ProjectReference Include="..\MarkdownToWordDemo\MarkdownToWordDemo.csproj" />
     <ProjectReference Include="..\QrTransferDemo\QrTransferDemo.csproj" />

@@ -1,60 +1,70 @@
-﻿@using Demo.Components
-@using Demo.Services
+@using Demo.Abstractions
+@using Demo.Components
 @inherits LayoutComponentBase
+@implements IDisposable
 
-@inject PageTitleService PageTitleService
+@inject IDemoPageChromeService PageChrome
 
 <CascadingValue Value="this">
-    <div class="page">
-        <div class="sidebar">
+    <div class="page layout-shell @(IsImmersive ? "layout-shell--immersive" : "layout-shell--utility")">
+        <aside class="sidebar">
             <NavMenu />
-        </div>
+        </aside>
 
-        <main>
-            <!-- Top row -->
-            <div class="top-row px-4 d-flex flex-nowrap justify-content-between align-items-center">
-                <!-- Page heading -->
-                <div class="heading-text">@PageHeading</div>
+        <main class="layout-main">
+            <div class="top-row @(IsImmersive ? "top-row--immersive" : "top-row--utility")">
+                <div class="top-row__title">
+                    @if (!string.IsNullOrWhiteSpace(PageEyebrow))
+                    {
+                        <div class="top-row__eyebrow">@PageEyebrow</div>
+                    }
+                    <div class="heading-text">@PageHeading</div>
+                </div>
 
-                <!-- Buttons -->
-                <div class="d-flex align-items-center">
-                    <a href="https://www.buymeacoffee.com/DimonSmart" target="_blank" class="me-3">
-                        <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee"
-                             style="height: 31px !important; width: auto !important;">
+                <div class="top-row__actions">
+                    <a href="https://www.buymeacoffee.com/DimonSmart" target="_blank" class="support-link" rel="noreferrer">
+                        <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+                             alt="Buy Me A Coffee"
+                             class="support-link__image">
                     </a>
-                    <a href="https://www.linkedin.com/in/dimonsmart/" target="_blank"
-                       class="btn btn-secondary btn-sm rounded ms-3">
-                        <i class="fab fa-linkedin"></i> My LinkedIn
+                    <a href="https://www.linkedin.com/in/dimonsmart/"
+                       target="_blank"
+                       rel="noreferrer"
+                       class="btn btn-outline-secondary btn-sm rounded-pill">
+                        <i class="fab fa-linkedin"></i> LinkedIn
                     </a>
-                    <button class="btn btn-secondary btn-sm rounded ms-3"@onclick="ShowFeedback">Feedback</button>
+                    <button class="btn btn-primary btn-sm rounded-pill" @onclick="ShowFeedback">Feedback</button>
                 </div>
             </div>
 
-            <article class="content">
+            <article class="content @(IsImmersive ? "content--immersive" : "content--utility")">
                 @Body
             </article>
 
             <Feedback @ref="feedbackComponent" />
-
         </main>
     </div>
 </CascadingValue>
 
 @code {
-    private string PageHeading { get; set; } = string.Empty;
+    private DemoPageDescriptor CurrentPage { get; set; } = new("Demo", PageSurfaceMode.Utility);
+    private bool IsImmersive => CurrentPage.Mode == PageSurfaceMode.Immersive;
+    private string PageHeading => string.IsNullOrWhiteSpace(CurrentPage.Title) ? "Demo" : CurrentPage.Title;
+    private string? PageEyebrow => string.IsNullOrWhiteSpace(CurrentPage.EyebrowText) ? null : CurrentPage.EyebrowText;
+
+    private Feedback feedbackComponent = null!;
 
     protected override void OnInitialized()
     {
-        PageTitleService.TitleChanged += OnTitleChanged;
+        CurrentPage = PageChrome.Current;
+        PageChrome.CurrentChanged += OnCurrentPageChanged;
     }
 
-    private async Task OnTitleChanged(string newTitle)
+    private async Task OnCurrentPageChanged(DemoPageDescriptor descriptor)
     {
-        PageHeading = newTitle;
+        CurrentPage = descriptor;
         await InvokeAsync(StateHasChanged);
     }
-
-    private Feedback feedbackComponent = null!;
 
     private async Task ShowFeedback()
     {
@@ -66,20 +76,6 @@
 
     public void Dispose()
     {
-        PageTitleService.TitleChanged -= OnTitleChanged;
+        PageChrome.CurrentChanged -= OnCurrentPageChanged;
     }
 }
-<style>
-    .heading-text {
-        font-size: 1.25rem;
-        font-weight: normal;
-        color: darkblue;
-        margin: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        flex: 1 1 auto;
-        min-width: 0;
-    }
-</style>
-

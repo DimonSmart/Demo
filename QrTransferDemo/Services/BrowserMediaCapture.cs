@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Versioning;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -50,6 +52,44 @@ public sealed class BrowserMediaCapture : IAsyncDisposable
     {
         var module = await _moduleTask.Value.ConfigureAwait(false);
         return await module.InvokeAsync<bool>("isScreenCaptureSupported", cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<VideoInputDevice>> GetVideoInputDevicesAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _mediaDevices ??= await _mediaDevicesService.GetMediaDevicesAsync().ConfigureAwait(false);
+
+        var devices = await _mediaDevices.EnumerateDevicesAsync().ConfigureAwait(false);
+        var results = new List<VideoInputDevice>();
+
+        foreach (var device in devices)
+        {
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (await device.GetKindAsync().ConfigureAwait(false) != MediaDeviceKind.VideoInput)
+                {
+                    continue;
+                }
+
+                var deviceId = await device.GetDeviceIdAsync().ConfigureAwait(false);
+                var label = await device.GetLabelAsync().ConfigureAwait(false);
+                results.Add(new VideoInputDevice(deviceId, label));
+            }
+            finally
+            {
+                if (device is IAsyncDisposable asyncDisposable)
+                {
+                    await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+        }
+
+        return results
+            .Where(device => !string.IsNullOrWhiteSpace(device.DeviceId))
+            .DistinctBy(device => device.DeviceId, StringComparer.Ordinal)
+            .ToArray();
     }
 
     public async Task StartCaptureAsync(CaptureSource source, CaptureOptions options, CancellationToken cancellationToken)
@@ -181,7 +221,9 @@ public sealed class BrowserMediaCapture : IAsyncDisposable
         }
     }
 
-    public readonly record struct CaptureOptions(double? FrameRateHint, int? Width, int? Height, string? FacingMode);
+    public readonly record struct CaptureOptions(double? FrameRateHint, int? Width, int? Height, string? FacingMode, string? DeviceId);
+
+    public readonly record struct VideoInputDevice(string DeviceId, string Label);
 
     public enum CaptureSource
     {
@@ -243,7 +285,11 @@ public sealed class BrowserMediaCapture : IAsyncDisposable
             videoConstraints.Height = new ConstrainULongRange { Ideal = (ulong)height };
         }
 
-        if (!string.IsNullOrWhiteSpace(options.FacingMode) && TryParseFacingMode(options.FacingMode!, out var facingMode))
+        if (!string.IsNullOrWhiteSpace(options.DeviceId))
+        {
+            videoConstraints.DeviceId = new ConstrainDOMStringParameters { Exact = options.DeviceId };
+        }
+        else if (!string.IsNullOrWhiteSpace(options.FacingMode) && TryParseFacingMode(options.FacingMode!, out var facingMode))
         {
             videoConstraints.FacingMode = new ConstrainVideoFacingModeParameters { Ideal = facingMode };
         }

@@ -6,51 +6,98 @@
 @using Demo.Services
 @using DimonSmart.MazeGenerator
 
-@inject PageTitleService PageTitleService
+@inject IDemoPageChromeService PageChrome
 
 @inherits MazeBaseComponent<MazeCellModel>
 
 @implements IWavePlotter
 @implements IPathPlotter
 
-<link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze path finder</PageTitle>
-<div class="page-container">
-    <div >
-        <div class="settings-container">
-            <label class="margin-right">
-                Width:
-                <input type="number" min="1" max="101" step="2" @bind="XSize" />
-            </label>
-            <label class="margin-right">
-                Height:
-                <input type="number" min="1" max="101" step="2" @bind="YSize" />
-            </label>
+<div class="page-container maze-pathfinder-page">
+    <section class="demo-panel maze-pathfinder-controls">
+        <div class="maze-pathfinder-controls__header">
+            <div class="maze-pathfinder-controls__copy">
+                <h2 class="demo-section-title">Pathfinding setup</h2>
+                <p class="demo-muted-note">Generate a maze, choose the start and target cells, then let the solver trace the route.</p>
+            </div>
+
+            <div class="demo-action-bar maze-pathfinder-controls__actions">
+                <button type="button"
+                        class="demo-pill-button demo-pill-button--primary maze-pathfinder-controls__action"
+                        @onclick="GenerateMazeAsync"
+                        disabled="@_generationInProgress">
+                    @(_generationInProgress ? "Generating..." : "Generate maze")
+                </button>
+                <button type="button"
+                        class="demo-pill-button maze-pathfinder-controls__action"
+                        @onclick="FindPathAsync"
+                        disabled="@(!CanFindPath)">
+                    @(_pathSearchInProgress ? "Finding path..." : "Find path")
+                </button>
+            </div>
         </div>
-        <div class="settings-container">
-            <label class="slider-label">
-                Emptiness: <span class="value-display">@Emptiness%</span>
-                <input type="range" min="0" max="100" @bind-value="Emptiness" @bind-value:event="oninput" />
-            </label>
+
+        <div class="maze-pathfinder-controls__grid">
+            <section class="demo-control-card">
+                <div class="demo-control-card__eyebrow">Size</div>
+                <div class="maze-pathfinder-controls__size-grid">
+                    <label class="demo-input-field">
+                        <span class="demo-field-label">Width</span>
+                        <input class="demo-input" type="number" min="1" max="101" step="2" @bind="XSize" />
+                    </label>
+                    <label class="demo-input-field">
+                        <span class="demo-field-label">Height</span>
+                        <input class="demo-input" type="number" min="1" max="101" step="2" @bind="YSize" />
+                    </label>
+                </div>
+            </section>
+
+            <section class="demo-control-card">
+                <div class="demo-slider-header">
+                    <span class="demo-field-label">Emptiness</span>
+                    <span class="demo-value-pill">@Emptiness%</span>
+                </div>
+                <input class="demo-slider" type="range" min="0" max="100" @bind-value="Emptiness" @bind-value:event="oninput" />
+                <p class="demo-control-note">Open up the layout to create broader rooms and alternative corridors.</p>
+            </section>
+
+            <section class="demo-control-card">
+                <div class="demo-slider-header">
+                    <span class="demo-field-label">Wall shortness</span>
+                    <span class="demo-value-pill">@WallShortness%</span>
+                </div>
+                <input class="demo-slider" type="range" min="0" max="100" @bind-value="WallShortness" @bind-value:event="oninput" />
+                <p class="demo-control-note">Shorter wall segments create more turns and a denser route graph.</p>
+            </section>
+
+            <section class="demo-control-card">
+                <div class="demo-control-card__eyebrow">Rendering</div>
+                <label class="demo-pill-toggle">
+                    <input type="checkbox" @bind="IsSlowVisualization" />
+                    <span>Slow visualization</span>
+                </label>
+                <p class="demo-control-note">Animate wave expansion and final path reconstruction step by step.</p>
+            </section>
+
+            <section class="demo-control-card maze-pathfinder-selection">
+                <div class="demo-control-card__eyebrow">Selection</div>
+                <div class="maze-pathfinder-selection__grid">
+                    <div class="maze-pathfinder-selection__item">
+                        <span class="demo-field-label">Start</span>
+                        <span class="@GetSelectionPillClass(_startPoint)">@GetPointText(_startPoint)</span>
+                    </div>
+                    <div class="maze-pathfinder-selection__item">
+                        <span class="demo-field-label">Target</span>
+                        <span class="@GetSelectionPillClass(_endPoint)">@GetPointText(_endPoint)</span>
+                    </div>
+                </div>
+                <p class="demo-control-note">Click one open cell for the start point, then another for the target. The next click starts a new pair.</p>
+            </section>
         </div>
-        <div class="settings-container">
-            <label>
-                Wall Shortness: <span class="value-display">@WallShortness%</span>
-                <input type="range" min="0" max="100" @bind-value="WallShortness" @bind-value:event="oninput" />
-            </label>
-        </div>
-        <div class="settings-container">
-            <label>
-                Slow Visualization
-                <input type="checkbox" @bind="IsSlowVisualization" />
-            </label>
-        </div>
-        <div class="settings-container">
-            <button @onclick="FindPathAsync">Find path</button>
-        </div>
-        <p>Click once to set the start point, click again to set the target point.</p>
-    </div>
-    <div id="MazeContainerId" style="height:100%">
+    </section>
+
+    <div id="MazeContainerId" class="demo-canvas-host maze-pathfinder-canvas">
         @if (_maze != null)
         {
             <MazeDisplay TCell="MazeCellModel" Maze="_maze" OnMazeCellClick="HandleCellClick">
@@ -64,27 +111,35 @@
 
 @code {
     private bool _generationInProgress = false;
+    private bool _pathSearchInProgress = false;
+    private bool CanFindPath => _maze != null && _startPoint.HasValue && _endPoint.HasValue && !_generationInProgress && !_pathSearchInProgress;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        PageTitleService.SetTitle("Maze path finder");
+        PageChrome.SetPage("Maze path finder", PageSurfaceMode.Immersive);
     }
 
     protected override async Task GenerateMazeAsync()
     {
         if (_generationInProgress) return;
         _generationInProgress = true;
-        _startPoint = null;
-        _endPoint = null;
-        ClearWave();
-        CancelGeneration();
-        var options = new DimonSmart.MazeGenerator.MazeBuildOptions(WallShortness / 100, Emptiness / 100.0);
-        _maze = new Maze<MazeCellModel>(XSize, YSize);
-        var mazeBuilder = new MazeBuilder<MazeCellModel>(_maze, options);
-        await mazeBuilder.BuildAsync(null, CancellationTokenSource.Token);
-        StateHasChanged();
-        _generationInProgress = false;
+        try
+        {
+            _startPoint = null;
+            _endPoint = null;
+            ClearWave();
+            CancelGeneration();
+            var options = new DimonSmart.MazeGenerator.MazeBuildOptions(WallShortness / 100, Emptiness / 100.0);
+            _maze = new Maze<MazeCellModel>(XSize, YSize);
+            var mazeBuilder = new MazeBuilder<MazeCellModel>(_maze, options);
+            await mazeBuilder.BuildAsync(null, CancellationTokenSource.Token);
+            StateHasChanged();
+        }
+        finally
+        {
+            _generationInProgress = false;
+        }
     }
 
     private (int X, int Y)? _startPoint;
@@ -137,19 +192,27 @@
 
     private async Task FindPathAsync()
     {
-        if (_maze == null) return;
-        if (_startPoint == null || _endPoint == null) return;
-        CancelGeneration();
-        ClearWave();
-        var waveGenerator = new MazeWaveGenerator<MazeCellModel>(_maze, this);
-        var wave = await waveGenerator
-            .GenerateWaveAsync(_startPoint.Value.X, _startPoint.Value.Y, _endPoint.Value.X, _endPoint.Value.Y, CancellationTokenSource.Token);
-        if (wave.EndPoint != null)
+        if (!CanFindPath) return;
+        _pathSearchInProgress = true;
+
+        try
         {
-            var pathBuilder = new MazePathBuilder(wave, this);
-            await pathBuilder.BuildPathAsync();
+            CancelGeneration();
+            ClearWave();
+            var waveGenerator = new MazeWaveGenerator<MazeCellModel>(_maze!, this);
+            var wave = await waveGenerator
+                .GenerateWaveAsync(_startPoint!.Value.X, _startPoint.Value.Y, _endPoint!.Value.X, _endPoint.Value.Y, CancellationTokenSource.Token);
+            if (wave.EndPoint != null)
+            {
+                var pathBuilder = new MazePathBuilder(wave, this);
+                await pathBuilder.BuildPathAsync();
+            }
+            StateHasChanged();
         }
-        StateHasChanged();
+        finally
+        {
+            _pathSearchInProgress = false;
+        }
     }
 
     async Task IWavePlotter.PlotWaveAsync(int x, int y, int waveNumber, CancellationToken cancellationToken)
@@ -185,4 +248,12 @@
             }
         }
     }
+
+    private static string GetPointText((int X, int Y)? point)
+        => point.HasValue ? $"{point.Value.X}, {point.Value.Y}" : "Not selected";
+
+    private static string GetSelectionPillClass((int X, int Y)? point)
+        => point.HasValue
+            ? "demo-value-pill maze-pathfinder-selection__pill maze-pathfinder-selection__pill--active"
+            : "demo-value-pill maze-pathfinder-selection__pill";
 }

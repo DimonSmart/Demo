@@ -1,0 +1,24 @@
+.color-picker-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.color-square {
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.55rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.color-square:hover {
+    transform: scale(1.08);
+}
+
+.color-square.selected {
+    border: 2px solid #0f172a;
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.14);
+    transform: scale(1.12);
+}

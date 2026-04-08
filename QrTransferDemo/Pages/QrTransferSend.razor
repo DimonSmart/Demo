@@ -15,11 +15,11 @@
 
 <QrTransferSenderTab />
 
-@inject IPageTitleService PageTitleService
+@inject IDemoPageChromeService PageChrome
 
 @code {
     protected override void OnInitialized()
     {
-        PageTitleService.SetTitle("QR transfer - send");
+        PageChrome.SetPage("QR transfer - send");
     }
 }

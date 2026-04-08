@@ -6,61 +6,6 @@
 
 <PageTitle>QR transfer - protocol</PageTitle>
 
-<style>
-    .markdown-body {
-        max-width: 960px;
-        margin: 0 auto;
-        padding: 1.5rem 1rem 3rem 1rem;
-        font-size: 0.95rem;
-        line-height: 1.6;
-    }
-
-    .markdown-body h1,
-    .markdown-body h2,
-    .markdown-body h3,
-    .markdown-body h4,
-    .markdown-body h5,
-    .markdown-body h6 {
-        margin-top: 1.8rem;
-        margin-bottom: 0.8rem;
-        font-weight: 600;
-    }
-
-    .markdown-body p {
-        margin-bottom: 1rem;
-    }
-
-    .markdown-body ul,
-    .markdown-body ol {
-        padding-left: 1.5rem;
-        margin-bottom: 1rem;
-    }
-
-    .markdown-body table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 1.5rem;
-    }
-
-    .markdown-body th,
-    .markdown-body td {
-        border: 1px solid var(--bs-border-color);
-        padding: 0.5rem 0.75rem;
-    }
-
-    .markdown-body code {
-        background-color: rgba(0, 0, 0, 0.05);
-        border-radius: 0.25rem;
-        padding: 0.2rem 0.4rem;
-        font-size: 85%;
-    }
-
-    .markdown-body pre code {
-        display: block;
-        padding: 1rem;
-    }
-</style>
-
 <div class="container">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
         <h1 class="h3 mb-0">How QR-based data transfer works</h1>
@@ -86,11 +31,11 @@
     private string? _protocolHtml;
     private string? _errorMessage;
 
-    [Inject] private IPageTitleService PageTitleService { get; set; } = default!;
+    [Inject] private IDemoPageChromeService PageChrome { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
-        PageTitleService.SetTitle("QR transfer - protocol");
+        PageChrome.SetPage("QR transfer - protocol");
 
         try
         {

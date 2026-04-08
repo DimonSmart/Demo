@@ -4,114 +4,12 @@
 @using Markdig
 @using System.Text
 
-@inject IPageTitleService? TitleService
+@inject IDemoPageChromeService? PageChrome
 @inject IJSRuntime JSRuntime
-<link rel="stylesheet" href="css/demos.css" />
-<style>
-@((MarkupString)CharacterVisualizer.GenerateVisualizationCSS())
-
-.invisible-char-controls {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 15px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-}
-
-.control-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.control-group select {
-    flex: 1;
-}
-
-.btn-clean {
-    white-space: normal;
-    line-height: 1.2;
-}
-
-.view-mode-toggle {
-    background: #ffffff;
-    border: 2px solid #e0e6ed;
-    border-radius: 12px;
-    padding: 4px;
-    display: inline-flex;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.view-mode-toggle .btn {
-    border: none;
-    border-radius: 8px;
-    padding: 8px 16px;
-    transition: all 0.2s ease;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
-
-.view-mode-toggle .btn-check:checked + .btn {
-    background: linear-gradient(135deg, #007bff, #0056b3);
-    color: white;
-    box-shadow: 0 2px 8px rgba(0,123,255,0.3);
-}
-
-.categories-compact .form-check {
-    margin-bottom: 0.25rem;
-}
-
-.categories-compact .form-check-label {
-    font-size: 0.9rem;
-    line-height: 1.3;
-}
-
-.categories-compact .card-body {
-    padding: 0.75rem;
-}
-
-#preview ul,
-#preview ol {
-    white-space: normal;
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-    padding-left: 1.5rem;
-}
-
-#preview li {
-    margin-bottom: 0.25rem;
-    line-height: 1.25;
-}
-
-#preview li:last-child {
-    margin-bottom: 0;
-}
-
-#preview h2 {
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-    font-size: 1.4rem;
-}
-
-#preview p {
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-}
-
-#preview p:last-child {
-    margin-bottom: 0;
-}
-</style>
+<link rel="stylesheet" href="_content/MarkdownToWordDemo/markdown-to-word.css" />
 
 <PageTitle>Markdown to Word</PageTitle>
-<div class="page-container">
+<div class="page-container markdown-tool-page">
     <!-- View Mode Selection -->
     <div class="invisible-char-controls">
         <div class="row mb-3">
@@ -204,25 +102,25 @@
 
     <!-- Existing Controls -->
     <div>
-        <div class="mb-2">
-            <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("**")' style="font-weight: bold;">B</button>
-            <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("_")' style="font-style: italic;">I</button>
-            <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("~~")' style="text-decoration: line-through;">S</button>
+        <div class="mb-2 markdown-toolbar">
+            <button class="btn btn-secondary markdown-toolbar__button markdown-toolbar__button--bold" @onclick='() => ToggleMarkdownAction("**")'>B</button>
+            <button class="btn btn-secondary markdown-toolbar__button markdown-toolbar__button--italic" @onclick='() => ToggleMarkdownAction("_")'>I</button>
+            <button class="btn btn-secondary markdown-toolbar__button markdown-toolbar__button--strike" @onclick='() => ToggleMarkdownAction("~~")'>S</button>
             <button class="btn btn-secondary" @onclick="ApplyDiacriticStrikeAction" title="Layer combining marks for an intense strikeout">M̴a̷n̶g̵l̷e̴</button>
-            <button class="btn btn-secondary" @onclick='() => ToggleMarkdownAction("`")' style="font-family: monospace;">`code`</button>
+            <button class="btn btn-secondary markdown-toolbar__button markdown-toolbar__button--code" @onclick='() => ToggleMarkdownAction("`")'>`code`</button>
             <button class="btn btn-info ms-3" @onclick="LoadExample" title="Load compact text with invisible characters for testing">Show Example</button>
         </div>
     </div>
 
-    <div class="d-flex" style="height: calc(100vh - 200px);">
-        <div class="form-group" style="width: 50%; margin-right: 1rem; display: flex; flex-direction: column;">
+    <div class="markdown-tool-layout">
+        <div class="form-group markdown-tool-column">
             <label for="markdownInput" class="form-label">Markdown Content</label>
-            <textarea id="markdownInput" class="form-control" style="flex-grow: 1; resize: none;" @ref="MarkdownTextArea" @oninput="OnInput">@MarkdownContent</textarea>
+            <textarea id="markdownInput" class="form-control markdown-tool-surface markdown-tool-editor" @ref="MarkdownTextArea" @oninput="OnInput">@MarkdownContent</textarea>
         </div>
 
-        <div class="form-group" style="width: 50%; display: flex; flex-direction: column;">
+        <div class="form-group markdown-tool-column">
             <label class="form-label">@(CurrentViewMode == ViewMode.Preview ? "Preview" : "Text with Invisible Characters")</label>
-            <div id="preview" class="form-control" style="flex-grow: 1; overflow-y: auto; white-space: pre-wrap;">
+            <div class="form-control markdown-tool-surface markdown-tool-preview">
                 @if (CurrentViewMode == ViewMode.InvisibleCharacters)
                 {
                     @((MarkupString)VisualizedPreview)
@@ -237,7 +135,7 @@
 
     <div class="d-flex align-items-center mt-2">
         <a class="btn btn-primary" href="@DownloadUrl" download="ExportedDocument.doc">Download as Word</a>
-        <p class="text-primary ms-3" style="font-style: italic;">All processing is done entirely in your browser, and no data is transmitted to any server.</p>
+        <p class="text-primary ms-3 markdown-tool-note">All processing is done entirely in your browser, and no data is transmitted to any server.</p>
     </div>
 </div>
 
@@ -405,7 +303,7 @@
     protected override async Task OnInitializedAsync()
     {
         base.OnInitialized();
-        TitleService?.SetTitle("Markdown to Word");
+        PageChrome?.SetPage("Markdown to Word");
 
         // Initialize with Safe preset by default
         ApplyPresetCategories(CleaningPreset.Safe);

@@ -1,0 +1,54 @@
+.log-viewer-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 100%;
+    border: 1px solid var(--demo-border-color);
+    border-radius: var(--demo-radius-m);
+    background: rgba(255, 255, 255, 0.9);
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.log-search-input {
+    width: 150px;
+}
+
+.log-viewer-body {
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow-y: scroll;
+    font-family: Consolas, monospace;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
+.log-entry {
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid #eee;
+}
+
+.log-entry--semantic {
+    color: #666;
+    font-size: 0.8em;
+}
+
+.log-entry--robot {
+    color: #2563eb;
+    font-size: 1em;
+}
+
+.log-entry--http {
+    color: #2e8b57;
+    font-size: 0.9em;
+}
+
+.log-entry--user {
+    color: #111827;
+    font-size: 1em;
+}
+
+.log-highlight {
+    background-color: #fde047;
+}

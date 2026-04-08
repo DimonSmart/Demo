@@ -13,7 +13,7 @@
 @using Microsoft.SemanticKernel.ChatCompletion
 @using Microsoft.SemanticKernel.Agents
 @using Microsoft.Extensions.DependencyInjection
-@inject PageTitleService PageTitleService
+@inject IDemoPageChromeService PageChrome
 @inject LogStore LogStore
 @inject IOllamaModelService OllamaModelService
 @inject IOllamaConfigurationProvider OllamaConfigurationProvider
@@ -21,13 +21,12 @@
 
 @implements IMazePlotter
 
-<link rel="stylesheet" href="css/demos.css" />
 <PageTitle>Maze Generator Demo</PageTitle>
 
-<div class="page-container maze-runner-container" style="display: flex;">
-    <section style="flex: 1; overflow-y: auto; padding: 20px;">
-        <div style="text-align: center; border: 1px solid #ccc; padding: 10px;">
-            <div style="margin-bottom: 10px;">
+<div class="page-container maze-runner-container demo-workspace demo-workspace--split">
+    <section class="maze-runner-main demo-workspace__main">
+        <div class="demo-panel maze-runner-config-panel">
+            <div class="maze-runner-seed-row">
                 <label for="mazeSeed">Maze seed:</label>
                 <input id="mazeSeed"
                        type="number"
@@ -36,7 +35,7 @@
                        @onchange="OnMazeSeedChanged" />
                 <button type="button" @onclick="RegenerateMazeWithCurrentSeed">Regenerate</button>
             </div>
-            <div>
+            <div class="maze-runner-field-row">
                 <label for="connectionType">Connection Type:</label>
                 <select id="connectionType" @onchange="OnConnectionTypeChanged" value="@_connectionType">
                     <option value="ollama">Ollama</option>
@@ -46,7 +45,7 @@
 
             @if (_connectionType == "ollama")
             {
-                <div style="margin-top: 10px;">
+                <div class="maze-runner-field-row">
                     <label for="ollamaServerUrl">Ollama Server URL:</label>
                     <input id="ollamaServerUrl"
                            type="text"
@@ -55,7 +54,7 @@
                            @onblur="OnOllamaConfigChanged"
                            placeholder="http://localhost:11434" />
                 </div>
-                <div style="margin-top: 10px;">
+                <div class="maze-runner-field-row">
                     <label for="ollamaPassword">Ollama Password (optional):</label>
                     <input id="ollamaPassword"
                            type="password"
@@ -64,7 +63,7 @@
                            @onblur="OnOllamaConfigChanged"
                            placeholder="Enter password if required" />
                 </div>
-                <div style="margin-top: 10px;">
+                <div class="maze-runner-field-row maze-runner-field-row--inline">
                     <input id="ignoreSslErrors"
                            type="checkbox"
                            @bind="_ignoreSslErrors"
@@ -74,7 +73,7 @@
 
                 @if (AvailableModels != null && AvailableModels.Count > 0)
                 {
-                    <div style="margin-top:10px;">
+                    <div class="maze-runner-field-row">
                         <label for="modelSelect">Select Ollama Model:</label>
                         <select id="modelSelect" @onchange="OnModelChanged" value="@SelectedModelId">
                             @foreach (var model in AvailableModels)
@@ -88,10 +87,10 @@
                 }
                 else
                 {
-                    <div style="margin-top:10px;">
+                    <div class="maze-runner-field-row">
                         <h4>Installing and Configuring ollama</h4>
                         <p>No models were found. To get started with ollama, please follow these steps:</p>
-                        <ol style="text-align: left; display: inline-block;">
+                        <ol class="maze-runner-installation-list">
                             <li>
                                 Download and install ollama from the official website:
                                 <a href="https://ollama.com" target="_blank">https://ollama.com</a>.
@@ -114,7 +113,7 @@
             }
             else if (_connectionType == "openai")
             {
-                <div style="margin-top: 10px;">
+                <div class="maze-runner-field-row">
                     <label for="openaiKey">OpenAI API Key (will be masked):</label>
                     <input id="openaiKey"
                            type="password"
@@ -123,7 +122,7 @@
                            @onblur="SaveSettings"
                            placeholder="Enter OpenAI API key" />
                 </div>
-                <div style="margin-top: 10px;">
+                <div class="maze-runner-field-row">
                     <label for="openaiModel">OpenAI Model (e.g., gpt-3.5-turbo):</label>
                     <input id="openaiModel"
                            type="text"
@@ -132,7 +131,7 @@
                            @onblur="SaveSettings"
                            placeholder="Enter OpenAI Model" />
                 </div>
-                <div style="margin-top: 10px;">
+                <div class="maze-runner-field-row maze-runner-field-row--inline">
                     <input id="ignoreSslErrorsOpenAI"
                            type="checkbox"
                            @bind="_ignoreSslErrors"
@@ -144,9 +143,10 @@
 
         @if (_maze != null)
         {
-            <div style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-items: flex-start;">
-                <div style="flex: 1 1 300px;">
-                    <div style="display: flex; justify-content: center;">
+            <div class="demo-panel maze-runner-stage-panel">
+                <div class="maze-runner-stage">
+                    <div class="maze-runner-board">
+                        <div class="maze-runner-board-frame">
                         <CascadingValue Value="_maze.Robot">
                             <MazeDisplay TCell="MazeRunnerCellModel" Maze="_maze" ShowCoordinates="true">
                                 <CellTemplate Context="cell">
@@ -154,15 +154,16 @@
                                 </CellTemplate>
                             </MazeDisplay>
                         </CascadingValue>
+                        </div>
                     </div>
-                </div>
 
-                <div style="flex: 0 0 auto;">
+                    <div class="maze-runner-joystick">
                     <Joystick Width="150px" Height="150px"
                               OnUpClicked="OnUpClicked"
                               OnDownClicked="OnDownClicked"
                               OnLeftClicked="OnLeftClicked"
                               OnRightClicked="OnRightClicked" />
+                    </div>
                 </div>
             </div>
 
@@ -196,33 +197,33 @@
                 }
             </div>
 
-            <div style="margin-top: 20px; text-align: center; border: 1px solid #ccc; padding: 10px;">
-                <input type="text" @bind="UserCommand" placeholder="Enter command (e.g., 'move right')" style="width:300px;" />
+            <div class="demo-panel maze-runner-command-panel">
+                <input type="text" @bind="UserCommand" class="maze-runner-command-input" placeholder="Enter command (e.g., 'move right')" />
                 <button @onclick="ProcessUserCommand" disabled="@(_isPlaybackInProgress || IsProcessingCommand)">Send Command</button>
                 @if (IsProcessingCommand)
                 {
-                    <button style="margin-left:10px;" @onclick="CancelProcessing" disabled="@_isPlaybackInProgress">Cancel</button>
+                    <button class="maze-runner-cancel-button" @onclick="CancelProcessing" disabled="@_isPlaybackInProgress">Cancel</button>
                     <Spinner />
                 }
-                <div style="margin-top:10px;">
+                <div class="maze-runner-response">
                     <strong>Assistant's response:</strong> @ResponseMessage
                 </div>
             </div>
 
-            <div style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;">
-                <p style="font-size: 0.9em; color: #666;">Edit the system prompt that controls the robot's behavior:</p>
+            <div class="demo-panel maze-runner-prompt-panel">
+                <p class="maze-runner-prompt-note">Edit the system prompt that controls the robot's behavior:</p>
                 <textarea @bind="_systemPrompt"
                           @bind:event="oninput"
-                          style="width: 100%; min-height: 200px; font-family: monospace; font-size: 0.9em; padding: 8px;"
+                          class="maze-runner-prompt-textarea"
                           placeholder="Enter system prompt..."></textarea>
-                <div style="margin-top: 10px;">
+                <div class="maze-runner-field-row">
                     <button @onclick="ResetSystemPrompt">Reset to Default</button>
                 </div>
             </div>
         }
     </section>
 
-    <section style="min-width: 200px; width: 33%; border-left: 1px solid #ccc; height: 100%; overflow-y: auto;">
+    <section class="maze-runner-side demo-workspace__side">
         <LogView LogMessages="@LogStore.Messages" />
     </section>
 </div>
@@ -267,7 +268,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        PageTitleService.SetTitle("Maze runner");
+        PageChrome.SetPage("Maze runner", PageSurfaceMode.Immersive);
         var preferences = await UserPreferencesStorageService.LoadPreferencesAsync();
         if (preferences != null)
         {

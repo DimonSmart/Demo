@@ -1,29 +1,20 @@
-﻿<div id="@Id" class="rotation-control">
-    <button @onclick="RotateLeft">&#x21BA; Left</button>
-    <span class="rotation-indicator">@Rotation°</span>
-    <button @onclick="RotateRight">Right &#x21BB;</button>
+<div id="@Id" class="rotation-control">
+    <button type="button" class="demo-pill-button rotation-control__button" @onclick="RotateLeft">
+        &#x21BA; Left
+    </button>
+    <span class="demo-value-pill rotation-indicator">@Rotation&deg;</span>
+    <button type="button" class="demo-pill-button rotation-control__button" @onclick="RotateRight">
+        Right &#x21BB;
+    </button>
 </div>
-
-<style>
-    .rotation-control {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .rotation-indicator {
-        display: inline-block;
-        width: 3ch; /* Fixed width enough for 3 digits plus degree sign */
-        text-align: center;
-    }
-</style>
 
 @code {
     [Parameter]
     [EditorRequired]
     public required string Id { get; set; }
+
     [Parameter]
-    public int Rotation { get; set; } = 0;
+    public int Rotation { get; set; }
 
     [Parameter]
     public EventCallback<int> RotationChanged { get; set; }
@@ -40,4 +31,3 @@
         RotationChanged.InvokeAsync(Rotation);
     }
 }
-

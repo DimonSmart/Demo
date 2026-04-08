@@ -1,0 +1,120 @@
+.maze-pathfinder-page {
+    gap: var(--demo-gap-3);
+}
+
+.maze-pathfinder-controls {
+    align-items: stretch;
+}
+
+.maze-pathfinder-controls__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--demo-gap-3);
+}
+
+.maze-pathfinder-controls__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.maze-pathfinder-controls__copy .demo-muted-note {
+    margin: 0;
+    max-width: 44rem;
+}
+
+.maze-pathfinder-controls__actions {
+    justify-content: flex-end;
+}
+
+.maze-pathfinder-controls__grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--demo-gap-3);
+}
+
+.maze-pathfinder-controls__size-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--demo-gap-2);
+}
+
+.maze-pathfinder-controls__action:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+}
+
+.maze-pathfinder-selection {
+    grid-column: span 2;
+}
+
+.maze-pathfinder-selection__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--demo-gap-2);
+}
+
+.maze-pathfinder-selection__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.maze-pathfinder-selection__pill {
+    justify-content: flex-start;
+    min-width: 0;
+    background: rgba(100, 116, 139, 0.12);
+    color: var(--demo-text-subtle);
+}
+
+.maze-pathfinder-selection__pill--active {
+    background: rgba(37, 99, 235, 0.12);
+    color: var(--demo-accent-strong);
+}
+
+.maze-pathfinder-canvas {
+    min-height: 42rem;
+}
+
+@media (max-width: 1100px) {
+    .maze-pathfinder-controls__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .maze-pathfinder-selection {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 640.98px) {
+    .maze-pathfinder-controls__header {
+        flex-direction: column;
+    }
+
+    .maze-pathfinder-controls__actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .maze-pathfinder-controls__actions .maze-pathfinder-controls__action {
+        flex: 1 1 100%;
+    }
+
+    .maze-pathfinder-controls__grid,
+    .maze-pathfinder-controls__size-grid,
+    .maze-pathfinder-selection__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .maze-pathfinder-selection {
+        grid-column: auto;
+    }
+
+    .maze-pathfinder-canvas {
+        min-height: 28rem;
+    }
+}

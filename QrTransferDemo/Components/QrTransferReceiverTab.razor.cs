@@ -36,6 +36,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
     private readonly List<ReceivedFileViewModel> _files = new();
     private readonly Dictionary<Guid, ReceivedFileViewModel> _fileIndex = new();
+    private readonly List<CameraOption> _cameraOptions = new();
 
     private bool _domInitialized;
     private bool _isScreenCaptureSupported = true;
@@ -44,6 +45,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     private string? _statusMessage;
     private string? _errorMessage;
     private string _captureSource = CaptureSourceScreen;
+    private string _selectedCameraId = string.Empty;
     private string? _lastPayloadHex;
     private CancellationTokenSource? _captureCts;
     private Task? _captureTask;
@@ -79,6 +81,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     }
 
     private IEnumerable<KeyValuePair<string, string>> CaptureSourceOptions => _isScreenCaptureSupported ? CaptureSourceOptionList : CameraOnlyCaptureSourceOptionList;
+    private IReadOnlyList<CameraOption> CameraOptions => _cameraOptions;
 
     private string CaptureStatusLabel => _isCapturing ? "Active" : "Idle";
 
@@ -95,6 +98,8 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
     private string CaptureColumnClass => HasFiles ? "col-12 col-xl-5 order-2 order-xl-2" : "col-12 col-xl-5 order-1 order-xl-1";
 
     private string ReceivedColumnClass => HasFiles ? "col-12 order-1 order-xl-1" : "col-12 col-xl-7 order-2 order-xl-2";
+    private bool IsCameraCaptureSelected => string.Equals(_captureSource, CaptureSourceCamera, StringComparison.OrdinalIgnoreCase);
+    private string SelectedCameraId => _selectedCameraId;
 
     private string CaptureSource
     {
@@ -111,6 +116,24 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             }
 
             _captureSource = normalized;
+        }
+    }
+
+    private string CameraSelectionHelpText
+    {
+        get
+        {
+            if (_cameraOptions.Count == 0)
+            {
+                return "Camera names appear after the browser grants camera access.";
+            }
+
+            if (string.IsNullOrWhiteSpace(_selectedCameraId))
+            {
+                return "Default camera lets the browser pick the preferred device.";
+            }
+
+            return $"Selected: {ResolveSelectedCameraLabel()}.";
         }
     }
 
@@ -154,6 +177,7 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             _mediaCapture ??= new BrowserMediaCapture(JSRuntime, MediaDevicesService);
             await _mediaCapture.InitializeAsync(VideoElementId, CanvasElementId);
             _isScreenCaptureSupported = await _mediaCapture.IsScreenCaptureSupportedAsync();
+            await RefreshAvailableCamerasAsync();
 
             if (!_isScreenCaptureSupported && string.Equals(_captureSource, CaptureSourceScreen, StringComparison.OrdinalIgnoreCase))
             {
@@ -199,21 +223,33 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             _captureCts?.Cancel();
             _captureCts?.Dispose();
             _captureCts = new CancellationTokenSource();
+            var selectedCameraId = IsCameraCaptureSelected && !string.IsNullOrWhiteSpace(_selectedCameraId)
+                ? _selectedCameraId
+                : null;
 
             var options = new BrowserMediaCapture.CaptureOptions(
                 FrameRateHint: null,
                 Width: null,
                 Height: null,
-                FacingMode: string.Equals(_captureSource, CaptureSourceCamera, StringComparison.OrdinalIgnoreCase) ? "environment" : null);
+                FacingMode: IsCameraCaptureSelected && string.IsNullOrWhiteSpace(selectedCameraId) ? "environment" : null,
+                DeviceId: selectedCameraId);
 
             var source = string.Equals(_captureSource, CaptureSourceCamera, StringComparison.OrdinalIgnoreCase)
                 ? BrowserMediaCapture.CaptureSource.Camera
                 : BrowserMediaCapture.CaptureSource.Screen;
 
             await mediaCapture.StartCaptureAsync(source, options, _captureCts.Token);
+            if (source == BrowserMediaCapture.CaptureSource.Camera)
+            {
+                await RefreshAvailableCamerasAsync();
+            }
 
             _isCapturing = true;
-            _statusMessage = "Capture started.";
+            _statusMessage = source == BrowserMediaCapture.CaptureSource.Camera
+                ? (string.IsNullOrWhiteSpace(selectedCameraId)
+                    ? "Camera capture started."
+                    : $"Camera capture started: {ResolveSelectedCameraLabel()}.")
+                : "Capture started.";
             _lastFrameTimestamp = 0;
             _observedIntervalMs = null;
             _capturedFrames = 0;
@@ -223,7 +259,9 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
             _consecutiveDecodeFailures = 0;
             _lastPayloadHex = null;
             _captureTask = RunCaptureLoopAsync(_captureCts.Token);
-            LogDiagnostic($"Capture started using {_captureSource} source.");
+            LogDiagnostic(source == BrowserMediaCapture.CaptureSource.Camera
+                ? $"Capture started using camera source ({ResolveSelectedCameraLabel()})."
+                : $"Capture started using {_captureSource} source.");
         }
         catch (OperationCanceledException)
         {
@@ -307,6 +345,53 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         }
 
         await StartCaptureAsync();
+    }
+
+    private async Task OnCaptureSourceChangedAsync(ChangeEventArgs args)
+    {
+        var previousSource = _captureSource;
+        CaptureSource = args.Value?.ToString() ?? CaptureSourceScreen;
+
+        if (IsCameraCaptureSelected)
+        {
+            await RefreshAvailableCamerasAsync();
+        }
+
+        LogDiagnostic($"Capture source changed to {_captureSource}.");
+
+        if (_isCapturing && !string.Equals(previousSource, _captureSource, StringComparison.Ordinal))
+        {
+            await StartCaptureAsync();
+            return;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnSelectedCameraChangedAsync(ChangeEventArgs args)
+    {
+        var selectedValue = args.Value?.ToString() ?? string.Empty;
+        if (string.Equals(_selectedCameraId, selectedValue, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _selectedCameraId = selectedValue;
+        LogDiagnostic(string.IsNullOrWhiteSpace(_selectedCameraId)
+            ? "Camera selection reset to browser default."
+            : $"Camera selected: {ResolveSelectedCameraLabel()}.");
+
+        if (_isCapturing && IsCameraCaptureSelected)
+        {
+            await StartCaptureAsync();
+            return;
+        }
+
+        _statusMessage = string.IsNullOrWhiteSpace(_selectedCameraId)
+            ? "Default camera selected."
+            : $"Selected camera: {ResolveSelectedCameraLabel()}.";
+        _errorMessage = null;
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task RunCaptureLoopAsync(CancellationToken cancellationToken)
@@ -712,6 +797,56 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
         return InvokeAsync(StateHasChanged);
     }
 
+    private async Task RefreshAvailableCamerasAsync()
+    {
+        var mediaCapture = _mediaCapture;
+        if (mediaCapture is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var devices = await mediaCapture.GetVideoInputDevicesAsync();
+            var options = devices
+                .Select((device, index) => new CameraOption(
+                    device.DeviceId,
+                    string.IsNullOrWhiteSpace(device.Label) ? $"Camera {index + 1}" : device.Label))
+                .ToList();
+
+            var previousSelection = _selectedCameraId;
+            _cameraOptions.Clear();
+            _cameraOptions.AddRange(options);
+
+            if (!string.IsNullOrWhiteSpace(previousSelection)
+                && _cameraOptions.Any(option => string.Equals(option.DeviceId, previousSelection, StringComparison.Ordinal)))
+            {
+                _selectedCameraId = previousSelection;
+            }
+            else
+            {
+                _selectedCameraId = string.Empty;
+            }
+
+            LogDiagnostic($"Detected {_cameraOptions.Count} camera device(s).");
+        }
+        catch (Exception ex)
+        {
+            LogDiagnostic($"Unable to enumerate cameras: {ex.Message}");
+        }
+    }
+
+    private string ResolveSelectedCameraLabel()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedCameraId))
+        {
+            return "Default camera";
+        }
+
+        var selected = _cameraOptions.FirstOrDefault(option => string.Equals(option.DeviceId, _selectedCameraId, StringComparison.Ordinal));
+        return string.IsNullOrWhiteSpace(selected?.Label) ? "Selected camera" : selected.Label;
+    }
+
     private sealed class DiagnosticEntry
     {
         public DiagnosticEntry(DateTimeOffset timestamp, string message)
@@ -724,6 +859,8 @@ public partial class QrTransferReceiverTab : ComponentBase, IAsyncDisposable
 
         public string Message { get; }
     }
+
+    private sealed record CameraOption(string DeviceId, string Label);
 
     private sealed class ReceivedFileViewModel
     {

@@ -26,6 +26,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
     private const int DefaultFrameDuration = 250;
     private const int MaxPayloadLength = byte.MaxValue;
     private const int MaxFileSize = ushort.MaxValue;
+    private const int QrQuietZoneModules = 6;
 
     private static readonly IReadOnlyList<CorrectionLevelOption> CorrectionLevels = new List<CorrectionLevelOption>
     {
@@ -470,7 +471,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
 
         var segments = new List<QrSegment> { QrSegment.MakeBytes(payload) };
         var qr = QrCode.EncodeSegments(segments, ecc, _selectedQrVersion, _selectedQrVersion, -1, false);
-        var svg = qr.ToSvgString(0);
+        var svg = qr.ToSvgString(QrQuietZoneModules);
 
         const string svgTag = "<svg ";
         if (svg.StartsWith(svgTag, StringComparison.Ordinal))
@@ -478,7 +479,7 @@ public partial class QrTransferSenderTab : ComponentBase, IAsyncDisposable
             svg = svgTag + "width=\"100%\" height=\"100%\" " + svg.Substring(svgTag.Length);
         }
 
-        return $"<div class=\"qr-frame\">{svg}</div>";
+        return svg;
     }
 
     private static byte[] SerializePacket(QrChunkPacket packet)
