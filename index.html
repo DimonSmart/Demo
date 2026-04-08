@@ -42,7 +42,6 @@
     <link rel="stylesheet" href="css/demos.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carter+One&display=swap">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap">
     <link rel="stylesheet" href="Demo.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
 </head>
@@ -53,7 +52,7 @@
             <div class="app-loader__panel">
                 <div class="app-loader__badge">
                     <span class="app-loader__badge-dot"></span>
-                    Demo Suite
+                    Loading
                 </div>
                 <div class="app-loader__header">
                     <h1 class="app-loader__title">Preparing the playground</h1>
@@ -125,7 +124,6 @@
             }, null, 2);
         };
     </script>
-    <script src="js/imageProcessing.js"></script>
     <script src="js/textFunctiones.js"></script>
     <script src="js/feedback.js"></script>
     <script src="_framework/blazor.webassembly.js" autostart="false"></script>
@@ -145,22 +143,57 @@
                 loaded: 0,
                 runtimeTotal: 0,
                 runtimeLoaded: 0,
-                assemblyLoaded: 0,
-                assetLoaded: 0
+                assemblyLoaded: 0
             };
 
             var maxItems = 6;
-            var runtimeTypes = new Set(["dotnetjs", "dotnetwasm"]);
-            var assemblyTypes = new Set(["assembly"]);
-            var assetTypes = new Set(["asset", "satellite"]);
             var typeLabels = {
                 dotnetjs: "Runtime JS",
                 dotnetwasm: "Runtime WASM",
+                dotnetnative: "Native runtime",
+                dotnettimezones: "Time zones",
                 assembly: "Assembly",
                 pdb: "Symbols",
+                globalization: "Globalization",
+                configuration: "Configuration",
+                manifest: "Manifest",
+                "js-module-native": "Native JS",
+                "js-module-runtime": "Runtime JS",
+                jsmodule: "JS module",
+                data: "Data",
                 satellite: "Satellite",
                 asset: "Asset"
             };
+
+            function isRuntimeType(type) {
+                return typeof type === "string"
+                    && (type === "dotnetjs" || type === "dotnetwasm" || type.indexOf("dotnet") === 0);
+            }
+
+            function isAssemblyType(type) {
+                return type === "assembly";
+            }
+
+            function getAssetLoadedCount() {
+                return Math.max(0, state.loaded - state.runtimeLoaded - state.assemblyLoaded);
+            }
+
+            function formatTypeLabel(type) {
+                if (!type) {
+                    return "Resource";
+                }
+
+                if (typeLabels[type]) {
+                    return typeLabels[type];
+                }
+
+                return type
+                    .replace(/[-_]+/g, " ")
+                    .replace(/([a-z])([A-Z])/g, "$1 $2")
+                    .replace(/\b\w/g, function (letter) {
+                        return letter.toUpperCase();
+                    });
+            }
 
             function updateProgress() {
                 var total = Math.max(state.total, 1);
@@ -187,7 +220,7 @@
                     assemblies.textContent = "Assemblies: " + state.assemblyLoaded;
                 }
                 if (assets) {
-                    assets.textContent = "Assets: " + state.assetLoaded;
+                    assets.textContent = "Assets: " + getAssetLoadedCount();
                 }
             }
 
@@ -200,7 +233,7 @@
 
                 var typeSpan = document.createElement("span");
                 typeSpan.className = "type";
-                typeSpan.textContent = typeLabels[type] || type;
+                typeSpan.textContent = formatTypeLabel(type);
 
                 var nameSpan = document.createElement("span");
                 nameSpan.className = "name";
@@ -223,14 +256,11 @@
 
             function markLoaded(type, item) {
                 state.loaded += 1;
-                if (runtimeTypes.has(type)) {
+                if (isRuntimeType(type)) {
                     state.runtimeLoaded += 1;
                 }
-                if (assemblyTypes.has(type)) {
+                if (isAssemblyType(type)) {
                     state.assemblyLoaded += 1;
-                }
-                if (assetTypes.has(type)) {
-                    state.assetLoaded += 1;
                 }
                 if (item) {
                     item.classList.add("is-loaded");
@@ -242,11 +272,17 @@
             Blazor.start({
                 loadBootResource: function (type, name, defaultUri, integrity) {
                     state.total += 1;
-                    if (runtimeTypes.has(type)) {
+                    if (isRuntimeType(type)) {
                         state.runtimeTotal += 1;
                         if (status) {
                             status.textContent = "Loading runtime and core libraries.";
                         }
+                    } else if (isAssemblyType(type)) {
+                        if (status) {
+                            status.textContent = "Loading application assemblies.";
+                        }
+                    } else if (status) {
+                        status.textContent = "Loading supporting assets and resources.";
                     }
 
                     var item = addItem(type, name);

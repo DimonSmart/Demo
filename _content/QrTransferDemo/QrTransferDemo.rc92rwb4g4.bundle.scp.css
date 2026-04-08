@@ -1,0 +1,267 @@
+/* _content/QrTransferDemo/Components/QrTransferReceiverTab.razor.rz.scp.css */
+.capture-preview[b-l1zdewnabu] {
+    position: relative;
+    background-color: var(--bs-gray-100);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    min-height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+}
+
+.capture-preview video[b-l1zdewnabu] {
+    max-width: 100%;
+    height: auto;
+    max-height: 180px;
+    display: block;
+}
+
+.capture-placeholder[b-l1zdewnabu] {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--bs-secondary-color);
+    background: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.02) 10px, transparent 10px, transparent 20px);
+}
+
+.file-progress[b-l1zdewnabu] {
+    height: 0.75rem;
+}
+
+.diagnostic-log[b-l1zdewnabu] {
+    max-height: 240px;
+    overflow-y: auto;
+    background-color: var(--bs-gray-100);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+}
+
+.diagnostic-log ul[b-l1zdewnabu] {
+    margin: 0;
+}
+
+.diagnostic-log li[b-l1zdewnabu] {
+    font-family: var(--bs-font-monospace);
+    line-height: 1.4;
+}
+
+.diagnostic-timestamp[b-l1zdewnabu] {
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}
+/* _content/QrTransferDemo/Components/QrTransferSenderTab.razor.rz.scp.css */
+.drop-zone[b-1szcbr5pnh] {
+    position: relative;
+    border: 2px dashed var(--bs-primary);
+    border-radius: 0.5rem;
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.drop-zone.dragging[b-1szcbr5pnh] {
+    background-color: rgba(13, 110, 253, 0.15);
+}
+
+.drop-zone .file-input[b-1szcbr5pnh] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.drop-zone-content[b-1szcbr5pnh] {
+    pointer-events: none;
+}
+
+.qr-preview[b-1szcbr5pnh] {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.94)),
+        radial-gradient(circle at top, rgba(59, 130, 246, 0.08), transparent 52%);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    border-radius: var(--demo-radius-l, 1.35rem);
+    box-shadow: var(--demo-shadow-s, 0 10px 28px rgba(15, 23, 42, 0.08));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: clamp(0.75rem, 2vw, 1rem);
+    width: 100%;
+}
+
+.qr-preview.clickable[b-1szcbr5pnh] {
+    cursor: pointer;
+}
+
+.qr-frame[b-1szcbr5pnh] {
+    width: min(90vmin, 100%);
+    aspect-ratio: 1;
+    max-width: min(100%, 34rem);
+    max-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(0.9rem, 2.6vmin, 1.4rem);
+    background-color: #fff;
+    border-radius: var(--demo-radius-m, 1rem);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
+}
+
+.transmission-card.fullscreen[b-1szcbr5pnh] {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    border-radius: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bs-body-bg);
+    border: 0;
+    box-shadow: none;
+    overflow: hidden;
+}
+
+.transmission-card.fullscreen .card-body[b-1szcbr5pnh] {
+    flex: 1;
+    display: flex;
+    padding: 0;
+    position: relative;
+    align-items: center;
+    justify-content: center;
+}
+
+.transmission-card.fullscreen .transmission-layout[b-1szcbr5pnh] {
+    flex: 1;
+    margin: 0;
+    --bs-gutter-x: 0;
+    --bs-gutter-y: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.transmission-card.fullscreen .transmission-layout .col-lg-6[b-1szcbr5pnh] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 auto;
+    max-width: 100%;
+}
+
+.transmission-card.fullscreen .transmission-details[b-1szcbr5pnh] {
+    display: none;
+}
+
+.transmission-card.fullscreen .qr-preview[b-1szcbr5pnh] {
+    flex: 1;
+    padding:
+        max(1rem, env(safe-area-inset-top))
+        max(1rem, env(safe-area-inset-right))
+        max(1rem, env(safe-area-inset-bottom))
+        max(1rem, env(safe-area-inset-left));
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
+    background:
+        radial-gradient(circle at top, rgba(59, 130, 246, 0.08), transparent 34%),
+        linear-gradient(180deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.transmission-card.fullscreen .qr-frame[b-1szcbr5pnh] {
+    width: min(86vmin, 100%);
+    height: min(86vmin, 100%);
+    max-width: 100%;
+    max-height: 100%;
+    padding: clamp(1rem, 4vmin, 2rem);
+    box-shadow: 0 22px 48px rgba(15, 23, 42, 0.12);
+}
+
+.transmission-card.fullscreen .qr-payload[b-1szcbr5pnh] {
+    display: none;
+}
+
+.qr-payload[b-1szcbr5pnh] {
+    align-self: stretch;
+    text-align: center;
+}
+
+.transmission-status-overlay[b-1szcbr5pnh] {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    pointer-events: none;
+}
+
+.transmission-details[b-1szcbr5pnh] {
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+.transmission-layout[b-1szcbr5pnh] {
+    margin-left: 0;
+    margin-right: 0;
+}
+/* _content/QrTransferDemo/Pages/QrTransferProtocol.razor.rz.scp.css */
+.markdown-body[b-8bblex4w6o] {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.markdown-body h1[b-8bblex4w6o],
+.markdown-body h2[b-8bblex4w6o],
+.markdown-body h3[b-8bblex4w6o],
+.markdown-body h4[b-8bblex4w6o],
+.markdown-body h5[b-8bblex4w6o],
+.markdown-body h6[b-8bblex4w6o] {
+    margin-top: 1.8rem;
+    margin-bottom: 0.8rem;
+    font-weight: 600;
+}
+
+.markdown-body p[b-8bblex4w6o] {
+    margin-bottom: 1rem;
+}
+
+.markdown-body ul[b-8bblex4w6o],
+.markdown-body ol[b-8bblex4w6o] {
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.markdown-body table[b-8bblex4w6o] {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+}
+
+.markdown-body th[b-8bblex4w6o],
+.markdown-body td[b-8bblex4w6o] {
+    border: 1px solid var(--bs-border-color);
+    padding: 0.5rem 0.75rem;
+}
+
+.markdown-body code[b-8bblex4w6o] {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 0.25rem;
+    padding: 0.2rem 0.4rem;
+    font-size: 85%;
+}
+
+.markdown-body pre code[b-8bblex4w6o] {
+    display: block;
+    padding: 1rem;
+}

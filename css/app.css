@@ -71,10 +71,9 @@ code {
 
 body.app-loading {
     background:
-        radial-gradient(circle at 12% 20%, rgba(252, 211, 165, 0.7), transparent 55%),
-        radial-gradient(circle at 78% 12%, rgba(94, 234, 212, 0.3), transparent 45%),
-        linear-gradient(135deg, #f8fafc 0%, #fef6e4 50%, #f1f5f9 100%);
-    color: #0f172a;
+        radial-gradient(circle at top, rgba(59, 130, 246, 0.12), transparent 28%),
+        linear-gradient(180deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%);
+    color: var(--demo-text, #0f172a);
 }
 
 body.app-loading #app {
@@ -88,42 +87,16 @@ body.app-loading #app {
 .app-loader {
     position: relative;
     width: min(980px, 94vw);
-    font-family: "Space Grotesk", "Segoe UI", sans-serif;
-    color: #0f172a;
+    color: var(--demo-text, #0f172a);
 }
-
-    .app-loader::before,
-    .app-loader::after {
-        content: "";
-        position: absolute;
-        border-radius: 999px;
-        pointer-events: none;
-    }
-
-    .app-loader::before {
-        width: 240px;
-        height: 240px;
-        background: radial-gradient(circle, rgba(14, 116, 144, 0.25), transparent 70%);
-        top: -90px;
-        right: -50px;
-    }
-
-    .app-loader::after {
-        width: 320px;
-        height: 320px;
-        background: radial-gradient(circle, rgba(245, 158, 11, 0.25), transparent 70%);
-        bottom: -140px;
-        left: -130px;
-    }
 
 .app-loader__panel {
     position: relative;
     padding: clamp(1.6rem, 3vw, 2.6rem);
-    border-radius: 28px;
-    background: rgba(255, 255, 255, 0.78);
-    border: 1px solid rgba(15, 23, 42, 0.1);
-    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
-    backdrop-filter: blur(18px);
+    border-radius: var(--demo-radius-l, 1.35rem);
+    background: var(--demo-surface, rgba(255, 255, 255, 0.9));
+    border: 1px solid var(--demo-border-color, rgba(15, 23, 42, 0.1));
+    box-shadow: var(--demo-shadow-m, 0 18px 46px rgba(15, 23, 42, 0.12));
 }
 
 .app-loader__badge {
@@ -131,20 +104,22 @@ body.app-loading #app {
     align-items: center;
     gap: 0.55rem;
     padding: 0.35rem 0.75rem;
-    border-radius: 999px;
+    border-radius: var(--demo-radius-pill, 999px);
     font-size: 0.7rem;
-    letter-spacing: 0.18em;
+    font-weight: 700;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #0f766e;
-    background: rgba(15, 118, 110, 0.12);
+    color: var(--demo-accent-strong, #1d4ed8);
+    background: rgba(37, 99, 235, 0.12);
+    border: 1px solid rgba(37, 99, 235, 0.16);
 }
 
 .app-loader__badge-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #0f766e;
-    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.15);
+    background: var(--demo-accent, #2563eb);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.16);
     animation: loaderPulse 2.6s ease infinite;
 }
 
@@ -155,14 +130,14 @@ body.app-loading #app {
 .app-loader__title {
     margin: 0 0 0.35rem;
     font-size: clamp(1.8rem, 3vw, 2.6rem);
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: -0.02em;
 }
 
 .app-loader__subtitle {
     margin: 0;
     font-size: 1rem;
-    color: #475569;
+    color: var(--demo-text-muted, #475569);
 }
 
 .app-loader__stats {
@@ -174,24 +149,24 @@ body.app-loading #app {
 
 .app-loader__stat {
     padding: 0.35rem 0.8rem;
-    border-radius: 999px;
+    border-radius: var(--demo-radius-pill, 999px);
     font-size: 0.85rem;
-    color: #0f172a;
-    background: rgba(15, 23, 42, 0.06);
-    border: 1px solid rgba(15, 23, 42, 0.08);
+    color: var(--demo-text, #0f172a);
+    background: var(--demo-surface-soft, rgba(248, 250, 252, 0.92));
+    border: 1px solid var(--demo-border-color, rgba(15, 23, 42, 0.1));
 }
 
 .app-loader__progress-track {
     height: 10px;
-    background: rgba(15, 23, 42, 0.1);
-    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.08);
+    border-radius: var(--demo-radius-pill, 999px);
     overflow: hidden;
 }
 
 .app-loader__progress-bar {
     height: 100%;
     width: 0%;
-    background: linear-gradient(90deg, #0f766e, #f59e0b, #0f766e);
+    background: linear-gradient(90deg, var(--demo-accent, #2563eb), var(--demo-accent-strong, #1d4ed8));
     background-size: 180% 100%;
     animation: loaderGradient 2.6s ease infinite;
     transition: width 0.18s ease;
@@ -203,7 +178,7 @@ body.app-loading #app {
     justify-content: space-between;
     margin-top: 0.6rem;
     font-size: 0.85rem;
-    color: #475569;
+    color: var(--demo-text-muted, #475569);
 }
 
 .app-loader__list {
@@ -213,9 +188,10 @@ body.app-loading #app {
 .app-loader__list-title {
     margin-bottom: 0.6rem;
     font-size: 0.72rem;
-    letter-spacing: 0.16em;
+    font-weight: 700;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #64748b;
+    color: var(--demo-text-subtle, #64748b);
 }
 
 .app-loader__list-items {
@@ -232,9 +208,9 @@ body.app-loading #app {
     gap: 0.7rem;
     align-items: center;
     padding: 0.45rem 0.7rem;
-    border-radius: 14px;
-    background: rgba(15, 23, 42, 0.05);
-    border: 1px solid rgba(15, 23, 42, 0.06);
+    border-radius: var(--demo-radius-m, 1rem);
+    background: var(--demo-surface-soft, rgba(248, 250, 252, 0.92));
+    border: 1px solid var(--demo-border-color, rgba(15, 23, 42, 0.1));
     font-size: 0.85rem;
 }
 
@@ -242,23 +218,23 @@ body.app-loading #app {
         font-size: 0.65rem;
         letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: #0f766e;
+        color: var(--demo-accent-strong, #1d4ed8);
     }
 
     .app-loader__list-item .name {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        color: #0f172a;
+        color: var(--demo-text, #0f172a);
     }
 
     .app-loader__list-item .status {
         font-size: 0.7rem;
-        color: #64748b;
+        color: var(--demo-text-subtle, #64748b);
     }
 
     .app-loader__list-item.is-loaded .status {
-        color: #0f766e;
+        color: var(--demo-accent-strong, #1d4ed8);
     }
 
     .app-loader__list-item.is-failed .status {
