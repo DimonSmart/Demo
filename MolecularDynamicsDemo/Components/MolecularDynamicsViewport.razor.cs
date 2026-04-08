@@ -23,6 +23,8 @@ public partial class MolecularDynamicsViewport : ComponentBase, IDisposable
     private int activeSessionId = -1;
     private int? draggedParticleIndex;
     private float cannonFlashIntensity;
+    private int viewportWidth;
+    private int viewportHeight;
     private SKPoint pointerPosition;
     private SKPoint pointerVelocity;
 
@@ -61,6 +63,8 @@ public partial class MolecularDynamicsViewport : ComponentBase, IDisposable
             framesSinceLastStatisticsPublish = 0;
             draggedParticleIndex = null;
             cannonFlashIntensity = 0f;
+            viewportWidth = 0;
+            viewportHeight = 0;
             pointerPosition = default;
             pointerVelocity = default;
             PublishStatistics(0f);
@@ -82,7 +86,12 @@ public partial class MolecularDynamicsViewport : ComponentBase, IDisposable
             return;
         }
 
-        simulation.Resize(args.Info.Width, args.Info.Height);
+        if (viewportWidth != args.Info.Width || viewportHeight != args.Info.Height)
+        {
+            viewportWidth = args.Info.Width;
+            viewportHeight = args.Info.Height;
+            simulation.Resize(args.Info.Width, args.Info.Height);
+        }
 
         var elapsed = stopwatch.Elapsed;
         var deltaSeconds = previousFrameTime == TimeSpan.Zero

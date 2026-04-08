@@ -5,6 +5,7 @@ namespace MolecularDynamicsDemo.Simulation;
 public sealed class MolecularSimulationRenderer : IDisposable
 {
     private readonly SKPaint backgroundPaint = new();
+    private readonly SKPath overlayPath = new();
     private readonly SKPaint chamberBorderPaint = new()
     {
         Color = new SKColor(148, 163, 184, 210),
@@ -53,16 +54,14 @@ public sealed class MolecularSimulationRenderer : IDisposable
         StrokeWidth = 1f,
         Style = SKPaintStyle.Stroke
     };
+    private SKShader? backgroundShader;
+    private int backgroundShaderHeight;
+    private int overlayWidth;
+    private int overlayHeight;
 
     public void Render(SKCanvas canvas, SKImageInfo info, MolecularSimulation simulation, float elapsedSeconds, float cannonFlashIntensity)
     {
-        backgroundPaint.Shader?.Dispose();
-        backgroundPaint.Shader = SKShader.CreateLinearGradient(
-            new SKPoint(0f, 0f),
-            new SKPoint(0f, info.Height),
-            [new SKColor(8, 16, 33), new SKColor(9, 23, 44), new SKColor(3, 8, 19)],
-            [0f, 0.55f, 1f],
-            SKShaderTileMode.Clamp);
+        UpdateBackgroundResources(info);
 
         canvas.Clear();
         canvas.DrawRect(SKRect.Create(info.Width, info.Height), backgroundPaint);
@@ -85,17 +84,7 @@ public sealed class MolecularSimulationRenderer : IDisposable
         canvas.DrawRect(
             SKRect.Create(info.Width - MolecularSimulationConstants.WallThickness, 0f, MolecularSimulationConstants.WallThickness, info.Height),
             wallPaint);
-
-        const float guideStep = 36f;
-        for (var x = guideStep; x < info.Width; x += guideStep)
-        {
-            canvas.DrawLine(x, 0f, x, info.Height, overlayPaint);
-        }
-
-        for (var y = guideStep; y < info.Height; y += guideStep)
-        {
-            canvas.DrawLine(0f, y, info.Width, y, overlayPaint);
-        }
+        canvas.DrawPath(overlayPath, overlayPaint);
     }
 
     private void DrawBonds(SKCanvas canvas, MolecularSimulation simulation)
@@ -178,9 +167,49 @@ public sealed class MolecularSimulationRenderer : IDisposable
         return new SKColor(red, 110, blue);
     }
 
+    private void UpdateBackgroundResources(SKImageInfo info)
+    {
+        if (backgroundShaderHeight != info.Height)
+        {
+            backgroundShader?.Dispose();
+            backgroundShader = SKShader.CreateLinearGradient(
+                new SKPoint(0f, 0f),
+                new SKPoint(0f, info.Height),
+                [new SKColor(8, 16, 33), new SKColor(9, 23, 44), new SKColor(3, 8, 19)],
+                [0f, 0.55f, 1f],
+                SKShaderTileMode.Clamp);
+
+            backgroundPaint.Shader = backgroundShader;
+            backgroundShaderHeight = info.Height;
+        }
+
+        if (overlayWidth == info.Width && overlayHeight == info.Height)
+        {
+            return;
+        }
+
+        overlayWidth = info.Width;
+        overlayHeight = info.Height;
+        overlayPath.Reset();
+
+        const float guideStep = 36f;
+        for (var x = guideStep; x < info.Width; x += guideStep)
+        {
+            overlayPath.MoveTo(x, 0f);
+            overlayPath.LineTo(x, info.Height);
+        }
+
+        for (var y = guideStep; y < info.Height; y += guideStep)
+        {
+            overlayPath.MoveTo(0f, y);
+            overlayPath.LineTo(info.Width, y);
+        }
+    }
+
     public void Dispose()
     {
-        backgroundPaint.Shader?.Dispose();
+        backgroundShader?.Dispose();
+        overlayPath.Dispose();
         backgroundPaint.Dispose();
         chamberBorderPaint.Dispose();
         wallPaint.Dispose();
