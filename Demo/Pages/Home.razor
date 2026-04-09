@@ -1,104 +1,152 @@
-﻿@inject IDemoPageChromeService PageChrome
-
+@inject IDemoPageChromeService PageChrome
+@inject NavigationManager Navigation
 
 @page "/"
-@using Demo.Services
 
 <PageTitle>DimonSmart home</PageTitle>
-<div class="page-container">
-    <section>
-        <p>
+<div class="page-container home-page">
+    <section class="demo-panel demo-panel--compact home-intro">
+        <p class="demo-section-text home-intro__text">
             Hi, I'm DimonSmart, a professional C# developer, speaker, and YouTuber with a programming-related channel.
             I enjoy sharing my knowledge and creating useful projects for the developer community.
-            <br />
         </p>
     </section>
 
-    <section>
-        <div class="card-container">
-            <div class="card">
-                <img src="images/stringdiff-small.png" alt="StringDiff Project Image">
-                <div class="card-content">
-                    <h3>String Diff</h3>
-                    <p>A tool for comparing differences between strings with exact diff or forced diff by words</p>
-                    <a href="stringdiffdemo" class="btn btn-secondary btn-sm rounded">Demo</a>
-                    <a href="https://github.com/DimonSmart/StringDiff" class="btn btn-secondary btn-sm rounded">
-                        <i class="fab fa-github"></i> GitHub
-                    </a>
-                </div>
-            </div>
-            <div class="card">
-                <img src="images/mazegenerator-small.png" alt="Maze Generator Project Image">
-                <div class="card-content">
-                    <h3>Maze Generator</h3>
-                    <p>Maze generation algorithm visualization mazes with customizable parameters</p>
-                    <a href="mazegeneratordemo" class="btn btn-secondary btn-sm rounded">Demo</a>
-                    <a href="https://github.com/DimonSmart/MazeGenerator" class="btn btn-secondary btn-sm rounded">
-                        <i class="fab fa-github"></i> GitHub
-                    </a>
-                </div>
-            </div>
-            <div class="card">
-                <img src="images/pathfindingwave_small.png" alt="Path Finding Wave Algorithm Project Image">
-                <div class="card-content">
-                    <h3>Path Finding Wave Algorithm</h3>
-                    <p>Maze path finding wave algorithm visualization</p>
-                    <a href="mazepathfinderdemo" class="btn btn-secondary btn-sm rounded">Demo</a>
-                    <a href="https://github.com/DimonSmart/MazeGenerator" class="btn btn-secondary btn-sm rounded">
-                        <i class="fab fa-github"></i> GitHub
-                    </a>
-                </div>
-            </div>
-            <div class="card">
-                <img src="images/hashx-small.png" alt="Low collision custom length hashing algorithm image">
-                <div class="card-content">
-                    <h3>HashX hashing algorithm</h3>
-                    <p>Low collision custom length hashing algorithm (HashX) demo</p>
-                    <a href="hashxdemo" class="btn btn-secondary btn-sm rounded">Demo</a>
-                    <a href="https://github.com/DimonSmart/HashX" class="btn btn-secondary btn-sm rounded">
-                        <i class="fab fa-github"></i> GitHub
-                    </a>
-                </div>
-            </div>
-            <div class="card">
-                <img src="images/tsm-small.png" alt="Traveling Salesman image">
-                <div class="card-content">
-                    <h3>Traveling Salesman</h3>
-                    <p>Genetic algorithm application for the traveling salesman problem</p>
-                    <a href="tsm" class="btn btn-secondary btn-sm rounded">Demo</a>
-                    <a href="https://github.com/DimonSmart/StringArtX" class="btn btn-secondary btn-sm rounded">
-                        <i class="fab fa-github"></i> GitHub
-                    </a>
-                </div>
-            </div>
-            <div class="card">
-                <img src="images/bjgame-small.png" alt="Black jack game image">
-                <div class="card-content">
-                    <h3>Black Jack game</h3>
-                    <p>Black Jack game simulator.</p>
-                    <a href="bjgame" class="btn btn-secondary btn-sm rounded">Demo</a>
-                </div>
-            </div>
-            <div class="card">
-                <img src="images/molecular-dynamics-card.svg" alt="Molecular dynamics simulation image">
-                <div class="card-content">
-                    <h3>Molecular Dynamics</h3>
-                    <p>C# molecular dynamics demo with a GPU-backed canvas, phase transitions, and a physics guide.</p>
-                    <a href="molecular-dynamics" class="btn btn-secondary btn-sm rounded">Demo</a>
-                    <a href="molecular-dynamics/how-it-works" class="btn btn-secondary btn-sm rounded">How it works</a>
-                </div>
-            </div>
+    <section class="home-projects">
+        <div class="demo-card-grid home-project-grid">
+            @foreach (var project in ProjectCards)
+            {
+                <article class="home-project-card"
+                         tabindex="0"
+                         role="link"
+                         aria-label="@($"{project.Title}. {project.PrimaryLabel}.")"
+                         @onclick="@(() => OpenProject(project))"
+                         @onkeydown="@((KeyboardEventArgs args) => HandleProjectKeyDown(args, project))">
+                    <img class="home-project-card__image" src="@project.ImageSrc" alt="@project.ImageAlt" />
 
-            <!-- Additional cards can be added here -->
+                    <div class="home-project-card__body">
+                        <h3 class="home-project-card__title">@project.Title</h3>
+                        <p class="home-project-card__description">@project.Description</p>
+
+                        <div class="home-project-card__actions" aria-label="@($"{project.Title} links")">
+                            <span class="home-project-card__primary-action">@project.PrimaryLabel</span>
+
+                            @foreach (var link in project.SecondaryLinks)
+                            {
+                                <span class="home-project-card__separator" aria-hidden="true">&middot;</span>
+                                <a href="@link.Href"
+                                   class="home-project-card__link"
+                                   target="@link.Target"
+                                   rel="@link.Rel"
+                                   @onclick:stopPropagation="true">
+                                    @if (!string.IsNullOrWhiteSpace(link.IconCssClass))
+                                    {
+                                        <i class="@link.IconCssClass" aria-hidden="true"></i>
+                                    }
+                                    <span>@link.Label</span>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </article>
+            }
         </div>
     </section>
 </div>
 
 @code {
+    private static readonly IReadOnlyList<ProjectCardDescriptor> ProjectCards =
+    [
+        new(
+            "String Diff",
+            "Compare two strings with exact or word-based diff.",
+            "images/stringdiff-small.png",
+            "String Diff project preview",
+            "stringdiffdemo",
+            "Open demo",
+            [new ProjectSecondaryLink("GitHub", "https://github.com/DimonSmart/StringDiff", "fab fa-github", "_blank", "noreferrer")]),
+        new(
+            "Maze Generator",
+            "Visualize maze generation with adjustable parameters.",
+            "images/mazegenerator-small.png",
+            "Maze Generator project preview",
+            "mazegeneratordemo",
+            "Open demo",
+            [new ProjectSecondaryLink("GitHub", "https://github.com/DimonSmart/MazeGenerator", "fab fa-github", "_blank", "noreferrer")]),
+        new(
+            "Path Finding Wave Algorithm",
+            "Explore wave-based maze pathfinding step by step.",
+            "images/pathfindingwave_small.png",
+            "Path Finding Wave Algorithm project preview",
+            "mazepathfinderdemo",
+            "Open demo",
+            [new ProjectSecondaryLink("GitHub", "https://github.com/DimonSmart/MazeGenerator", "fab fa-github", "_blank", "noreferrer")]),
+        new(
+            "HashX",
+            "Try a custom-length hashing demo built around collision resistance.",
+            "images/hashx-small.png",
+            "HashX project preview",
+            "hashxdemo",
+            "Open demo",
+            [new ProjectSecondaryLink("GitHub", "https://github.com/DimonSmart/HashX", "fab fa-github", "_blank", "noreferrer")]),
+        new(
+            "Traveling Salesman",
+            "Watch a genetic algorithm search for short traveling routes.",
+            "images/tsm-small.png",
+            "Traveling Salesman project preview",
+            "tsm",
+            "Open demo",
+            [new ProjectSecondaryLink("GitHub", "https://github.com/DimonSmart/StringArtX", "fab fa-github", "_blank", "noreferrer")]),
+        new(
+            "Blackjack",
+            "Play a lightweight blackjack simulator in the browser.",
+            "images/bjgame-small.png",
+            "Blackjack project preview",
+            "bjgame",
+            "Open demo",
+            []),
+        new(
+            "Molecular Dynamics",
+            "Run a C# molecular dynamics simulation with a GPU-backed canvas.",
+            "images/molecular-dynamics-card.svg",
+            "Molecular Dynamics project preview",
+            "molecular-dynamics",
+            "Open demo",
+            [new ProjectSecondaryLink("How it works", "molecular-dynamics/how-it-works")])
+    ];
+
     protected override void OnInitialized()
     {
         base.OnInitialized();
         PageChrome.SetPage("My projects");
     }
-}
 
+    private void OpenProject(ProjectCardDescriptor project)
+    {
+        Navigation.NavigateTo(project.PrimaryHref);
+    }
+
+    private void HandleProjectKeyDown(KeyboardEventArgs args, ProjectCardDescriptor project)
+    {
+        if (args.Key is "Enter" or " " or "Space" or "Spacebar")
+        {
+            OpenProject(project);
+        }
+    }
+
+    private sealed record ProjectCardDescriptor(
+        string Title,
+        string Description,
+        string ImageSrc,
+        string ImageAlt,
+        string PrimaryHref,
+        string PrimaryLabel,
+        IReadOnlyList<ProjectSecondaryLink> SecondaryLinks);
+
+    private sealed record ProjectSecondaryLink(
+        string Label,
+        string Href,
+        string? IconCssClass = null,
+        string? Target = null,
+        string? Rel = null);
+}
