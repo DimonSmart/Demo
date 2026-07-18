@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Universal quiz format v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "title", "languages", "topics", "questions"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "title": { "$ref": "#/$defs/localizedText" },
+    "languages": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Z][a-z]{3}|-[A-Z]{2}|-[0-9]{3})*$" } },
+    "imagesBaseUrl": { "type": "string", "format": "uri", "pattern": "^https?://" },
+    "topics": { "type": "array", "items": { "$ref": "#/$defs/topic" } },
+    "questions": { "type": "array", "items": { "$ref": "#/$defs/question" } }
+  },
+  "$defs": {
+    "localizedText": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } },
+    "topic": { "type": "object", "additionalProperties": false, "required": ["id", "title"], "properties": { "id": { "type": "string", "minLength": 1 }, "slug": { "type": "string" }, "title": { "$ref": "#/$defs/localizedText" } } },
+    "answer": { "type": "object", "additionalProperties": false, "required": ["id", "text", "isCorrect"], "properties": { "id": { "type": "string", "minLength": 1 }, "text": { "$ref": "#/$defs/localizedText" }, "isCorrect": { "type": "boolean" } } },
+    "question": { "type": "object", "additionalProperties": false, "required": ["id", "type", "topicId", "text", "answers"], "properties": { "id": { "type": "string", "minLength": 1 }, "type": { "const": "singleChoice" }, "topicId": { "type": "string", "minLength": 1 }, "text": { "$ref": "#/$defs/localizedText" }, "answers": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/answer" } }, "explanation": { "$ref": "#/$defs/localizedText" }, "image": { "type": "string", "pattern": "^(?![a-zA-Z][a-zA-Z0-9+.-]*:)(?!/)(?!.*(^|/)\\.\\.(/|$)).+$" }, "terms": { "type": "array", "items": { "$ref": "#/$defs/localizedText" } }, "sourceReferences": { "type": "array" } } }
+  }
+}
