@@ -1,12 +1,14 @@
-using System.Text.Json.Serialization;
-
 namespace Demo.Demos.Pdd;
 
-public class PddDatabase
+public sealed class PddDatabase
 {
-    [JsonPropertyName("Topics")]
-    public List<Topic> Topics { get; set; } = new List<Topic>();
+    public const string SupportedSchemaVersion = "1.0";
 
-    [JsonPropertyName("Questions")]
-    public List<QuestionItem> Questions { get; set; } = new List<QuestionItem>();
+    public string SchemaVersion { get; init; } = string.Empty;
+    public string Id { get; init; } = string.Empty;
+    public LocalizedText Title { get; init; } = new();
+    public List<string> Languages { get; init; } = [];
+    public string? ImagesBaseUrl { get; init; }
+    public List<Topic> Topics { get; init; } = [];
+    public List<QuestionItem> Questions { get; init; } = [];
 }

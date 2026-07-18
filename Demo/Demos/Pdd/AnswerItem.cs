@@ -1,12 +1,8 @@
-﻿using System.Text.Json.Serialization;
+namespace Demo.Demos.Pdd;
 
-namespace Demo.Demos.Pdd
+public sealed class AnswerItem
 {
-    public class AnswerItem
-    {
-        [JsonPropertyName("Y")]
-        public bool IsCorrect { get; set; }
-        [JsonPropertyName("T")]
-        public LocalizedText LocalizedAnswerText { get; set; } = new LocalizedText();
-    }
+    public string Id { get; init; } = string.Empty;
+    public LocalizedText Text { get; init; } = new();
+    public bool IsCorrect { get; init; }
 }

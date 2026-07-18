@@ -1,13 +1,12 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Demo.Demos.Pdd;
 
-public class LocalizedText
+[JsonConverter(typeof(LocalizedTextJsonConverter))]
+public sealed class LocalizedText
 {
-    [JsonPropertyName("R")]
-    public string Russian { get; set; } = string.Empty;
-    [JsonPropertyName("S")]
-    public string Spanish { get; set; } = string.Empty;
-    [JsonPropertyName("E")]
-    public string English { get; set; } = string.Empty;
+    public Dictionary<string, string> Values { get; init; } = [];
+
+    public string Get(string language) => Values.TryGetValue(language, out var value) ? value : string.Empty;
+    public bool IsEmpty => Values.Values.All(string.IsNullOrWhiteSpace);
 }

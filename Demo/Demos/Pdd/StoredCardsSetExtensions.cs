@@ -9,7 +9,7 @@ public static class StoredCardsSetExtensions
     {
         // Convert each card to [id, consecutiveCorrectCount]
         var list = domain.Cards
-            .Select(c => new int[] { c.Id, c.ConsecutiveCorrectCount })
+            .Select(c => new[] { c.Id, c.ConsecutiveCorrectCount.ToString(System.Globalization.CultureInfo.InvariantCulture) })
             .ToList();
 
         return new StoredCardsSetCompact(domain.Version, list);
@@ -31,7 +31,7 @@ public static class StoredCardsSetExtensions
             .Select(arr => new QuestionStudyCard
             {
                 Id = arr[0],
-                ConsecutiveCorrectCount = arr[1]
+                ConsecutiveCorrectCount = int.Parse(arr[1], System.Globalization.CultureInfo.InvariantCulture)
             })
             .ToArray();
 

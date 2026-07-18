@@ -8,7 +8,7 @@ public class QuestionQueueTests
     {
         var cards = new List<QuestionStudyCard>
             {
-                new() { Id = 1 }
+                new() { Id = "1" }
             };
         var queue = new QuestionQueue(cards);
 
@@ -27,7 +27,7 @@ public class QuestionQueueTests
     {
         var cards = new List<QuestionStudyCard>
             {
-                new() { Id = 1 }
+                new() { Id = "1" }
             };
         var queue = new QuestionQueue(cards);
 
@@ -45,9 +45,9 @@ public class QuestionQueueTests
     {
         var cards = new List<QuestionStudyCard>
             {
-                new() { Id = 1 },
-                new() { Id = 2 },
-                new() { Id = 3 }
+                new() { Id = "1" },
+                new() { Id = "2" },
+                new() { Id = "3" }
             };
         var queue = new QuestionQueue(cards);
 
@@ -73,9 +73,9 @@ public class QuestionQueueTests
     {
         var cards = new List<QuestionStudyCard>
             {
-                new() { Id = 1 },
-                new() { Id = 2 },
-                new() { Id = 3 }
+                new() { Id = "1" },
+                new() { Id = "2" },
+                new() { Id = "3" }
             };
         var queue = new QuestionQueue(cards);
 
@@ -94,11 +94,11 @@ public class QuestionQueueTests
     {
         var cards = new List<QuestionStudyCard>
         {
-            new() { Id = 1 },
-            new() { Id = 2 },
-            new() { Id = 3 },
-            new() { Id = 4 },
-            new() { Id = 5 }
+            new() { Id = "1" },
+            new() { Id = "2" },
+            new() { Id = "3" },
+            new() { Id = "4" },
+            new() { Id = "5" }
         };
         var queue = new QuestionQueue(cards);
 

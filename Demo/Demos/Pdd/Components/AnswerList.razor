@@ -1,67 +1,24 @@
-@using Demo.Demos.Pdd
-@using Microsoft.AspNetCore.Components
 @using Demo.Services
 @namespace Demo.Demos.Pdd.Components
 
 <div class="pdd-answers">
-    @foreach (var (answer, index) in QuestionWrapper.Question.Answers.Select((a, i) => (a, i)))
+    @foreach (var (answer, index) in QuestionWrapper.Question.Answers.Select((answer, index) => (answer, index)))
     {
-        var isDisabled = QuestionWrapper.HasAnswered;
-        <button class="pdd-answer-button @(GetAnswerCssClass(answer))"
-                @onclick="() => OnAnswerClicked(answer)"
-                disabled="@isDisabled">
-            <div class="pdd-answer-number">@((index + 1))</div>
-            <div class="pdd-answer-text">
-                <MultiLanguageText Text="@answer.LocalizedAnswerText"
-                                   PrimaryLanguage="@PrimaryLanguage"
-                                   SecondaryLanguage1="@SecondaryLanguage1"
-                                   SecondaryLanguage2="@SecondaryLanguage2"
-                                   PrimaryLanguageContent="@TranslationService.GetLocalizedContent(answer.LocalizedAnswerText, PrimaryLanguage, QuestionWrapper.Question.MainTerms, HighlightTerms)"
-                                   SecondaryLanguage1Content="@TranslationService.GetLocalizedContent(answer.LocalizedAnswerText, SecondaryLanguage1, QuestionWrapper.Question.MainTerms, HighlightTerms)"
-                                   SecondaryLanguage2Content="@TranslationService.GetLocalizedContent(answer.LocalizedAnswerText, SecondaryLanguage2, QuestionWrapper.Question.MainTerms, HighlightTerms)"
-                                   Terms="@QuestionWrapper.Question.MainTerms"
-                                   HighlightTerms="@HighlightTerms" />
-            </div>
+        <button class="pdd-answer-button @(GetAnswerCssClass(answer))" @onclick="() => OnAnswerClicked(answer)" disabled="@QuestionWrapper.HasAnswered">
+            <div class="pdd-answer-number">@(index + 1)</div><div class="pdd-answer-text"><MultiLanguageText PrimaryLanguageContent="@Content(answer.Text)" SecondaryLanguageContents="@SecondaryContents(answer.Text)" /></div>
         </button>
     }
 </div>
 
 @code {
-    [Parameter]
-    public QuestionWrapper QuestionWrapper { get; set; } = null!;
-
-    [Parameter]
-    public EventCallback<(QuestionWrapper, AnswerItem)> OnAnswerSelected { get; set; }
-
-    [Parameter]
-    public string PrimaryLanguage { get; set; } = "es";
-
-    [Parameter]
-    public string SecondaryLanguage1 { get; set; } = "en";
-
-    [Parameter]
-    public string SecondaryLanguage2 { get; set; } = "ru";
-
-    [Parameter]
-    public bool HighlightTerms { get; set; } = false;
-
-    [Inject]
-    public TextTranslationService TranslationService { get; set; } = null!;
-
-    private string GetAnswerCssClass(AnswerItem answer)
-    {
-        if (!QuestionWrapper.HasAnswered)
-            return string.Empty;
-        if (QuestionWrapper.SelectedAnswer == answer)
-            return answer.IsCorrect ? "pdd-correct-answer" : "pdd-incorrect-answer";
-        if (!QuestionWrapper.SelectedAnswer!.IsCorrect && answer.IsCorrect)
-            return "pdd-correct-answer";
-        return string.Empty;
-    }
-
-    private async Task OnAnswerClicked(AnswerItem answer)
-    {
-        if (QuestionWrapper.HasAnswered) return;
-        await OnAnswerSelected.InvokeAsync((QuestionWrapper, answer));
-    }
+    [Parameter] public required QuestionWrapper QuestionWrapper { get; set; }
+    [Parameter] public EventCallback<(QuestionWrapper, AnswerItem)> OnAnswerSelected { get; set; }
+    [Parameter] public required IReadOnlyList<string> Languages { get; set; }
+    [Parameter] public string PrimaryLanguage { get; set; } = string.Empty;
+    [Parameter] public bool HighlightTerms { get; set; }
+    [Inject] public TextTranslationService TranslationService { get; set; } = null!;
+    private string Content(LocalizedText text) => TranslationService.GetLocalizedContent(text, PrimaryLanguage, QuestionWrapper.Question.Terms, HighlightTerms);
+    private IReadOnlyDictionary<string, string> SecondaryContents(LocalizedText text) => Languages.Where(language => language != PrimaryLanguage).ToDictionary(language => language, language => TranslationService.GetLocalizedContent(text, language, QuestionWrapper.Question.Terms, HighlightTerms));
+    private string GetAnswerCssClass(AnswerItem answer) => !QuestionWrapper.HasAnswered ? string.Empty : QuestionWrapper.SelectedAnswer == answer ? answer.IsCorrect ? "pdd-correct-answer" : "pdd-incorrect-answer" : !QuestionWrapper.SelectedAnswer!.IsCorrect && answer.IsCorrect ? "pdd-correct-answer" : string.Empty;
+    private Task OnAnswerClicked(AnswerItem answer) => QuestionWrapper.HasAnswered ? Task.CompletedTask : OnAnswerSelected.InvokeAsync((QuestionWrapper, answer));
 }

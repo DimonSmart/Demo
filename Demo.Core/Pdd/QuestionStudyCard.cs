@@ -6,7 +6,7 @@
     /// </summary>
     public class QuestionStudyCard
     {
-        public int Id { get; set; }
+        public string Id { get; set; } = string.Empty;
         public bool IsLearned => ConsecutiveCorrectCount >= 3;
         public int ConsecutiveCorrectCount { get; set; }
         

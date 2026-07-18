@@ -254,6 +254,6 @@
 
     private string GetLocalizedQuestionText(QuestionItem question)
     {
-        return languageService.GetLocalizedContent(question.LocalizedQuestionText, primaryLanguage, "Question text not available");
+        return languageService.GetLocalizedContent(question.Text, primaryLanguage, "Question text not available");
     }
 }

@@ -3,5 +3,5 @@
 public class PddUserPreferences
 {
     public bool HighlightTerms { get; set; }
-    public string PrimaryLanguage { get; set; } = "es"; // Default to Spanish
+    public string PrimaryLanguage { get; set; } = string.Empty;
 }

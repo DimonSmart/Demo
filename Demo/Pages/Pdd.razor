@@ -39,8 +39,7 @@
                 </label>
             </div>
             <div class="pdd-language-selector">
-                <LanguagePicker PrimaryLanguage="@primaryLanguage"
-                                OnLanguageChanged="@OnLanguageChanged" />
+                <LanguagePicker Languages="@languages" PrimaryLanguage="@primaryLanguage" OnLanguageChanged="@OnLanguageChanged" />
             </div>
         </div>
     </div>
@@ -59,8 +58,8 @@
                 <QuestionDisplay QuestionWrapper="@questionWrapper"
                                  OnAnswerSelected="@AnswerQuestion"
                                  PrimaryLanguage="@primaryLanguage"
-                                 SecondaryLanguage1="@secondaryLanguage1"
-                                 SecondaryLanguage2="@secondaryLanguage2"
+                                 Languages="@languages"
+                                 ImagesBaseUrl="@database?.ImagesBaseUrl"
                                  HighlightTerms="@highlightTerms" />
             }
 
@@ -80,14 +79,14 @@
     private bool AllQuestionsInBatchAnswered => currentBatch.All(q => q.HasAnswered);
 
     private IReadOnlyCollection<QuestionItem> allQuestions = new List<QuestionItem>();
+    private PddDatabase? database;
+    private IReadOnlyList<string> languages = [];
     
     private bool IsLoading = true;
     private bool highlightTerms = false;
 
     // Language selection model
-    private string primaryLanguage = "es";
-    private string secondaryLanguage1 = "en";
-    private string secondaryLanguage2 = "ru";
+    private string primaryLanguage = string.Empty;
 
     private QuestionQueue questionQueue = new QuestionQueue(new List<QuestionStudyCard>());
     private double pointerDownX;
@@ -108,10 +107,11 @@
         {
             highlightTerms = savedPreferences.HighlightTerms;
             primaryLanguage = savedPreferences.PrimaryLanguage;
-            UpdateSecondaryLanguages();
         }
 
-        var database = await PddDataService.LoadDatabaseAsync();
+        database = await PddDataService.LoadDatabaseAsync();
+        languages = database.Languages;
+        primaryLanguage = SelectLanguage(primaryLanguage);
         allQuestions = database.Questions;
         questionQueue = await LoadQuestionsQueue(allQuestions);
         LoadNextBatch();
@@ -138,7 +138,7 @@
 
     private void HandleKeyDown(KeyboardEventArgs e)
     {
-        if (int.TryParse(e.Key, out int answerIndex) && answerIndex >= 1 && answerIndex <= 4)
+        if (int.TryParse(e.Key, out int answerIndex) && answerIndex >= 1)
         {
             var targetQuestion = currentBatch.FirstOrDefault(q => !q.HasAnswered);
             if (targetQuestion != null && answerIndex <= targetQuestion.Question.Answers.Count)
@@ -219,7 +219,7 @@
     private async Task ResetProgress()
     {
         await CardStorage.ResetProgressAsync();
-        var database = await PddDataService.LoadDatabaseAsync();
+        database = await PddDataService.LoadDatabaseAsync();
         allQuestions = database.Questions;
         questionQueue = await LoadQuestionsQueue(allQuestions);
         LoadNextBatch();
@@ -236,24 +236,19 @@
         await PreferencesStorage.SavePreferencesAsync(preferences);
     }
 
-    private void UpdateSecondaryLanguages()
+    private async Task OnLanguageChanged(string language)
     {
-        // Get the two languages not selected as the primary language
-        var secondaryLanguages = new[] { "en", "es", "ru" }
-            .Where(lang => lang != primaryLanguage)
-            .ToArray();
-        
-        secondaryLanguage1 = secondaryLanguages[0];
-        secondaryLanguage2 = secondaryLanguages[1];
-    }
-
-    private async Task OnLanguageChanged((string Primary, string Secondary1, string Secondary2) languages)
-    {
-        primaryLanguage = languages.Primary;
-        secondaryLanguage1 = languages.Secondary1;
-        secondaryLanguage2 = languages.Secondary2;
-
+        primaryLanguage = language;
         StateHasChanged();
         await SaveUserPreferencesAsync();
+    }
+
+    private string SelectLanguage(string savedLanguage)
+    {
+        if (languages.Contains(savedLanguage, StringComparer.Ordinal)) return savedLanguage;
+        var culture = System.Globalization.CultureInfo.CurrentUICulture.Name;
+        if (languages.Contains(culture, StringComparer.Ordinal)) return culture;
+        var baseLanguage = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        return languages.FirstOrDefault(language => language == baseLanguage) ?? languages[0];
     }
 }

@@ -14,7 +14,7 @@ public class PddLanguageService(UserPreferencesStorageService<PddUserPreferences
     public async Task<string> GetPrimaryLanguageAsync()
     {
         var preferences = await preferencesStorage.LoadPreferencesAsync();
-        return preferences?.PrimaryLanguage ?? "en";
+        return preferences?.PrimaryLanguage ?? string.Empty;
     }
 
         /// <summary>
@@ -26,36 +26,6 @@ public class PddLanguageService(UserPreferencesStorageService<PddUserPreferences
         /// <returns>Localized text string</returns>
         public string GetLocalizedContent(LocalizedText localizedText, string primaryLanguage, string fallbackText = "")
         {
-            if (localizedText == null) return fallbackText;
-
-            // Try primary language first
-            switch (primaryLanguage?.ToLower())
-            {
-                case "ru":
-                case "russian":
-                    if (!string.IsNullOrEmpty(localizedText.Russian))
-                        return localizedText.Russian;
-                    break;
-                case "es":
-                case "spanish":
-                    if (!string.IsNullOrEmpty(localizedText.Spanish))
-                        return localizedText.Spanish;
-                    break;
-                case "en":
-                case "english":
-                    if (!string.IsNullOrEmpty(localizedText.English))
-                        return localizedText.English;
-                    break;
-            }
-
-            // Fallback sequence: Russian -> Spanish -> English
-            if (!string.IsNullOrEmpty(localizedText.Russian))
-                return localizedText.Russian;
-            if (!string.IsNullOrEmpty(localizedText.Spanish))
-                return localizedText.Spanish;
-            if (!string.IsNullOrEmpty(localizedText.English))
-                return localizedText.English;
-
-            return fallbackText;
+            return localizedText.Get(primaryLanguage) is { Length: > 0 } content ? content : fallbackText;
         }
     }

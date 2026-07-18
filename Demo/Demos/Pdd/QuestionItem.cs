@@ -1,30 +1,20 @@
-﻿using System.Text.Json.Serialization;
+namespace Demo.Demos.Pdd;
 
-namespace Demo.Demos.Pdd
+public sealed class QuestionItem
 {
-    public class QuestionItem
-    {
-        public int Id { get; set; }
-        
-        [JsonPropertyName("Q")]
-        public LocalizedText LocalizedQuestionText { get; set; } = new LocalizedText();
-        
-        public string InitialQuestionText { get; set; } = string.Empty;
-        public string? QuestionCheckDescription { get; set; }
-        public bool Img { get; set; }
-        
-        [JsonPropertyName("Rule")]
-        public LocalizedText RuleDescription { get; set; } = new LocalizedText();
-        
-        [JsonPropertyName("A")]
-        public List<AnswerItem> Answers { get; set; } = new List<AnswerItem>();
-        
-        [JsonPropertyName("Terms")]
-        public List<LocalizedText> MainTerms { get; set; } = [];
-        
-        /// <summary>
-        /// ID of the topic this question belongs to
-        /// </summary>
-        public int TopicId { get; set; }
-    }
+    public string Id { get; init; } = string.Empty;
+    public string Type { get; init; } = string.Empty;
+    public string TopicId { get; init; } = string.Empty;
+    public LocalizedText Text { get; init; } = new();
+    public List<AnswerItem> Answers { get; init; } = [];
+    public LocalizedText? Explanation { get; init; }
+    public string? Image { get; init; }
+    public List<LocalizedText>? Terms { get; init; }
+    public List<SourceReference>? SourceReferences { get; init; }
+}
+
+public sealed class SourceReference
+{
+    public string Pointer { get; init; } = string.Empty;
+    public LocalizedText? Quote { get; init; }
 }

@@ -36,7 +36,7 @@ public class PddStatisticsService : IPddStatisticsService
         };
     }
 
-    private LearningMetrics GenerateOverallMetrics(List<QuestionItem> allQuestions, Dictionary<int, QuestionStudyCard> studyCards)
+    private LearningMetrics GenerateOverallMetrics(List<QuestionItem> allQuestions, Dictionary<string, QuestionStudyCard> studyCards)
     {
         var totalQuestions = allQuestions.Count;
         var learnedQuestions = 0;
@@ -72,7 +72,7 @@ public class PddStatisticsService : IPddStatisticsService
     }
 
     private List<TopicStatistics> GenerateTopicStatistics(List<QuestionItem> allQuestions, 
-        List<Topic> allTopics, Dictionary<int, QuestionStudyCard> studyCards)
+        List<Topic> allTopics, Dictionary<string, QuestionStudyCard> studyCards)
     {
         var topicStats = new List<TopicStatistics>();
         var weekAgo = DateTime.Now.AddDays(-7);
@@ -131,7 +131,7 @@ public class PddStatisticsService : IPddStatisticsService
     }
 
     private List<DifficultQuestion> GenerateDifficultQuestions(List<QuestionItem> allQuestions,
-        List<Topic> allTopics, Dictionary<int, QuestionStudyCard> studyCards)
+        List<Topic> allTopics, Dictionary<string, QuestionStudyCard> studyCards)
     {
         var difficultQuestions = new List<DifficultQuestion>();
         var topicDict = allTopics.ToDictionary(t => t.Id, t => t);

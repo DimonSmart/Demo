@@ -26,13 +26,7 @@ namespace Demo.Services
 
         public string GetLocalizedContent(LocalizedText text, string languageCode, List<LocalizedText>? terms = null, bool highlightTerms = false)
         {
-            var content = languageCode switch
-            {
-                "en" when !string.IsNullOrWhiteSpace(text.English) => text.English!,
-                "es" when !string.IsNullOrWhiteSpace(text.Spanish) => text.Spanish!,
-                "ru" when !string.IsNullOrWhiteSpace(text.Russian) => text.Russian!,
-                _ => string.Empty
-            };
+            var content = text.Get(languageCode);
 
             if (string.IsNullOrEmpty(content))
             {
@@ -41,13 +35,7 @@ namespace Demo.Services
 
             if (highlightTerms && terms is { Count: > 0 })
             {
-                content = languageCode switch
-                {
-                    "ru" => HighlightAllTerms(content, terms, term => term.Russian),
-                    "es" => HighlightAllTerms(content, terms, term => term.Spanish),
-                    "en" => HighlightAllTerms(content, terms, term => term.English),
-                    _ => content
-                };
+                content = HighlightAllTerms(content, terms, term => term.Get(languageCode));
             }
 
             return Markdown.ToHtml(content, _markdownPipeline);

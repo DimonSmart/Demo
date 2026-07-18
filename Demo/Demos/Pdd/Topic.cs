@@ -1,12 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace Demo.Demos.Pdd;
 
-public class Topic
+public sealed class Topic
 {
-    public int Id { get; set; }
-    public string Slug { get; set; } = string.Empty;
-
-    [JsonPropertyName("Title")]
-    public LocalizedText Title { get; set; } = new LocalizedText();
+    public string Id { get; init; } = string.Empty;
+    public string? Slug { get; init; }
+    public LocalizedText Title { get; init; } = new();
 }

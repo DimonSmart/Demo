@@ -1,35 +1,30 @@
-using System.Text;
 using System.Text.Json;
 
 namespace Demo.Demos.Pdd;
 
-public class PddDataService(HttpClient httpClient, ILogger<PddDataService> logger) : IPddDataService
+public sealed class PddDataService(HttpClient httpClient, IConfiguration configuration, ILogger<PddDataService> logger) : IPddDataService
 {
     private PddDatabase? _cachedDatabase;
 
     public async Task<PddDatabase> LoadDatabaseAsync()
     {
-        if (_cachedDatabase != null)
-        {
-            return _cachedDatabase;
-        }
-
+        if (_cachedDatabase is not null) return _cachedDatabase;
+        var documentUrl = configuration["Quiz:DocumentUrl"];
+        if (string.IsNullOrWhiteSpace(documentUrl)) throw new InvalidOperationException("Quiz:DocumentUrl is not configured.");
         try
         {
-            logger.LogInformation("Loading PDD database from remote URL");
-            var response = await httpClient.GetAsync("https://DimonSmart.github.io/DGT/pdd-v2.json");
+            logger.LogInformation("Loading quiz document from {DocumentUrl}", documentUrl);
+            using var response = await httpClient.GetAsync(documentUrl);
             response.EnsureSuccessStatusCode();
-            await using var jsonStream = await response.Content.ReadAsStreamAsync();
-            using var reader = new StreamReader(jsonStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            var json = await reader.ReadToEndAsync();
-            var database = JsonSerializer.Deserialize<PddDatabase>(json) ?? new PddDatabase();
-            _cachedDatabase = database;
-            return database;
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            var document = await JsonSerializer.DeserializeAsync<PddDatabase>(stream) ?? throw new InvalidDataException("Quiz document is empty.");
+            QuizDocumentValidator.Validate(document);
+            return _cachedDatabase = document;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error loading PDD database");
-            return new PddDatabase();
+            logger.LogError(ex, "Unable to load quiz document");
+            throw;
         }
     }
 }

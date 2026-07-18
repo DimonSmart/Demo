@@ -8,7 +8,7 @@ public class DifficultQuestion
     /// <summary>
     /// Question ID
     /// </summary>
-    public int QuestionId { get; set; }
+    public string QuestionId { get; set; } = string.Empty;
 
     /// <summary>
     /// Question
@@ -34,7 +34,7 @@ public class DifficultQuestion
     /// <summary>
     /// ID of the topic this question belongs to
     /// </summary>
-    public int TopicId { get; set; }
+    public string TopicId { get; set; } = string.Empty;
 
     /// <summary>
     /// Topic this question belongs to
