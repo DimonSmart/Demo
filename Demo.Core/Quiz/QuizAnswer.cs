@@ -1,6 +1,6 @@
-namespace Demo.Demos.Pdd;
+namespace Demo.Core.Quiz;
 
-public sealed class AnswerItem
+public sealed class QuizAnswer
 {
     public string Id { get; init; } = string.Empty;
     public LocalizedText Text { get; init; } = new();

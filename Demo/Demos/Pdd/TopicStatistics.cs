@@ -1,3 +1,5 @@
+using Demo.Core.Quiz;
+
 namespace Demo.Demos.Pdd;
 
 /// <summary>
@@ -8,7 +10,7 @@ public class TopicStatistics
     /// <summary>
     /// Topic information
     /// </summary>
-    public Topic Topic { get; set; } = new();
+    public QuizTopic Topic { get; set; } = new();
 
     /// <summary>
     /// Total number of questions in the topic

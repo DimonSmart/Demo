@@ -1,3 +1,5 @@
+using Demo.Core.Quiz;
+
 namespace Demo.Demos.Pdd;
 
 /// <summary>
@@ -13,7 +15,7 @@ public class DifficultQuestion
     /// <summary>
     /// Question
     /// </summary>
-    public QuestionItem Question { get; set; } = new();
+    public QuizQuestion Question { get; set; } = new();
 
     /// <summary>
     /// Number of study attempts (based on ConsecutiveCorrectCount and learning status)
@@ -39,7 +41,7 @@ public class DifficultQuestion
     /// <summary>
     /// Topic this question belongs to
     /// </summary>
-    public Topic Topic { get; set; } = new();
+    public QuizTopic Topic { get; set; } = new();
 
     /// <summary>
     /// Date of last answer (can be null)

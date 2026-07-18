@@ -2,6 +2,7 @@
 @using Demo.Demos.Common
 @using Demo.Demos.Pdd
 @using Demo.Demos.Pdd.Components
+@using Demo.Core.Quiz
 @using Demo.Services
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.Extensions.Configuration
@@ -59,7 +60,7 @@
                                  OnAnswerSelected="@AnswerQuestion"
                                  PrimaryLanguage="@primaryLanguage"
                                  Languages="@languages"
-                                 ImagesBaseUrl="@database?.ImagesBaseUrl"
+                                 Document="@database"
                                  HighlightTerms="@highlightTerms" />
             }
 
@@ -78,8 +79,8 @@
     private List<QuestionWrapper> currentBatch = new();
     private bool AllQuestionsInBatchAnswered => currentBatch.All(q => q.HasAnswered);
 
-    private IReadOnlyCollection<QuestionItem> allQuestions = new List<QuestionItem>();
-    private PddDatabase? database;
+    private IReadOnlyCollection<QuizQuestion> allQuestions = new List<QuizQuestion>();
+    private QuizDocument? database;
     private IReadOnlyList<string> languages = [];
     
     private bool IsLoading = true;
@@ -168,9 +169,10 @@
 
 
 
-    internal async Task<QuestionQueue> LoadQuestionsQueue(IReadOnlyCollection<QuestionItem> questions)
+    internal async Task<QuestionQueue> LoadQuestionsQueue(IReadOnlyCollection<QuizQuestion> questions)
     {
-        var cardSet = await CardStorage.LoadCardsAsync();
+        if (database is null) return new QuestionQueue([]);
+        var cardSet = await CardStorage.LoadCardsAsync(database.Id, questions.Select(question => question.Id).ToHashSet(StringComparer.Ordinal));
         if (cardSet != null)
             return new QuestionQueue(cardSet.Cards);
         return new QuestionQueue(questions.Select(q => new QuestionStudyCard { Id = q.Id }));
@@ -197,7 +199,7 @@
         }
     }
 
-    private async Task AnswerQuestion((QuestionWrapper wrapper, AnswerItem selectedAnswer) answer)
+    private async Task AnswerQuestion((QuestionWrapper wrapper, QuizAnswer selectedAnswer) answer)
     {
         var (wrapper, selectedAnswer) = answer;
         if (wrapper.HasAnswered) return;
@@ -205,7 +207,10 @@
         wrapper.SelectedAnswer = selectedAnswer;
         wrapper.HasAnswered = true;
         questionQueue.ProcessAnswer(wrapper.StudyCard, wrapper.SelectedAnswer.IsCorrect);
-        await CardStorage.SaveCardsAsync(new StoredCardsSet() { Cards = questionQueue.Cards, Version = "1.0" });
+        if (database is not null)
+        {
+            await CardStorage.SaveCardsAsync(new StoredCardsSet { QuizDocumentId = database.Id, Cards = questionQueue.Cards, FormatVersion = "2.0" });
+        }
 
         StateHasChanged();
     }
@@ -218,7 +223,7 @@
 
     private async Task ResetProgress()
     {
-        await CardStorage.ResetProgressAsync();
+        if (database is not null) await CardStorage.ResetProgressAsync(database.Id);
         database = await PddDataService.LoadDatabaseAsync();
         allQuestions = database.Questions;
         questionQueue = await LoadQuestionsQueue(allQuestions);
@@ -245,10 +250,14 @@
 
     private string SelectLanguage(string savedLanguage)
     {
-        if (languages.Contains(savedLanguage, StringComparer.Ordinal)) return savedLanguage;
         var culture = System.Globalization.CultureInfo.CurrentUICulture.Name;
-        if (languages.Contains(culture, StringComparer.Ordinal)) return culture;
+        var exactCulture = languages.FirstOrDefault(language => string.Equals(language, culture, StringComparison.OrdinalIgnoreCase));
+        if (exactCulture is not null) return exactCulture;
         var baseLanguage = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-        return languages.FirstOrDefault(language => language == baseLanguage) ?? languages[0];
+        var baseCulture = languages.FirstOrDefault(language => string.Equals(language.Split('-')[0], baseLanguage, StringComparison.OrdinalIgnoreCase));
+        if (baseCulture is not null) return baseCulture;
+        var saved = languages.FirstOrDefault(language => string.Equals(language, savedLanguage, StringComparison.OrdinalIgnoreCase));
+        if (saved is not null) return saved;
+        return languages[0];
     }
 }

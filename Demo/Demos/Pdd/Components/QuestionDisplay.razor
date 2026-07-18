@@ -1,4 +1,5 @@
 @using Demo.Services
+@using Demo.Core.Quiz
 @namespace Demo.Demos.Pdd.Components
 
 <div class="pdd-question-block @(QuestionWrapper.HasAnswered ? "answered" : "")">
@@ -21,14 +22,14 @@
 
 @code {
     [Parameter] public required QuestionWrapper QuestionWrapper { get; init; }
-    [Parameter] public EventCallback<(QuestionWrapper, AnswerItem)> OnAnswerSelected { get; set; }
+    [Parameter] public EventCallback<(QuestionWrapper, QuizAnswer)> OnAnswerSelected { get; set; }
     [Parameter] public required IReadOnlyList<string> Languages { get; set; }
     [Parameter] public string PrimaryLanguage { get; set; } = string.Empty;
-    [Parameter] public string? ImagesBaseUrl { get; set; }
+    [Parameter] public required QuizDocument Document { get; set; }
     [Parameter] public bool HighlightTerms { get; set; }
     [Inject] public TextTranslationService TranslationService { get; set; } = null!;
-    private QuestionItem CurrentQuestion => QuestionWrapper.Question;
-    private string? ImageUrl => CurrentQuestion.Image is null ? null : new Uri(new Uri(ImagesBaseUrl!, UriKind.Absolute), CurrentQuestion.Image).ToString();
+    private QuizQuestion CurrentQuestion => QuestionWrapper.Question;
+    private string? ImageUrl => QuestionImageResolver.ResolveQuestionImageUri(Document, CurrentQuestion)?.ToString();
     private string Content(LocalizedText text) => TranslationService.GetLocalizedContent(text, PrimaryLanguage, CurrentQuestion.Terms, HighlightTerms);
     private IReadOnlyDictionary<string, string> SecondaryContents(LocalizedText text) => Languages.Where(language => language != PrimaryLanguage).ToDictionary(language => language, language => TranslationService.GetLocalizedContent(text, language, CurrentQuestion.Terms, HighlightTerms));
     private void ToggleExplanation() => QuestionWrapper.ShowExplanation = !QuestionWrapper.ShowExplanation;

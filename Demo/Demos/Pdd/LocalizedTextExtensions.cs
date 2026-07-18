@@ -1,3 +1,5 @@
+using Demo.Core.Quiz;
+
 namespace Demo.Demos.Pdd;
 
 public static class LocalizedTextExtensions

@@ -1,6 +1,7 @@
 ﻿@page "/pdd/statistics"
 @using Demo.Demos.Common
 @using Demo.Demos.Pdd
+@using Demo.Core.Quiz
 @using Demo.Services
 @using Microsoft.AspNetCore.Components.Web
 
@@ -8,6 +9,7 @@
 @inject UserPreferencesStorageService<PddUserPreferences> PreferencesStorage
 @inject CardStorageService CardStorage
 @inject IDemoPageChromeService PageChrome
+@inject IPddDataService PddDataService
 @inject IPddStatisticsService statisticsService
 @inject IPddLanguageService languageService
 
@@ -227,8 +229,9 @@
             // Load user's primary language preference
             primaryLanguage = await languageService.GetPrimaryLanguageAsync();
 
-            // Load user study cards
-            var storedCards = await CardStorage.LoadCardsAsync();
+            var database = await PddDataService.LoadDatabaseAsync();
+            var currentQuestionIds = database.Questions.Select(question => question.Id).ToHashSet(StringComparer.Ordinal);
+            var storedCards = await CardStorage.LoadCardsAsync(database.Id, currentQuestionIds);
             var studyCards = storedCards?.Cards?.ToList() ?? new List<QuestionStudyCard>();
 
             // Generate statistics
@@ -247,12 +250,12 @@
         }
     }
 
-    private string GetLocalizedTopicTitle(Topic topic)
+    private string GetLocalizedTopicTitle(QuizTopic topic)
     {
         return languageService.GetLocalizedContent(topic.Title, primaryLanguage, "Unknown Topic");
     }
 
-    private string GetLocalizedQuestionText(QuestionItem question)
+    private string GetLocalizedQuestionText(QuizQuestion question)
     {
         return languageService.GetLocalizedContent(question.Text, primaryLanguage, "Question text not available");
     }

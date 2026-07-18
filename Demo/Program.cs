@@ -6,6 +6,7 @@ using Demo.Demos.HashX;
 using Demo.Demos.MazeRunner;
 using Demo.Demos.Pdd;
 using Demo.Services;
+using Demo.Core.Quiz;
 using DimonSmart.Hash.Interfaces;
 using KristofferStrube.Blazor.MediaCaptureStreams;
 using Microsoft.AspNetCore.Components.Web;
@@ -46,6 +47,7 @@ static void RegisterPddDemoServices(IServiceCollection services)
     services.AddScoped<CardStorageService>();
     services.AddScoped<UserPreferencesStorageService<PddUserPreferences>>();
     services.AddScoped<TextTranslationService>();
+    services.AddScoped<IQuizDocumentLoader, QuizDocumentLoader>();
     services.AddScoped<IPddDataService, PddDataService>();
     services.AddScoped<IPddStatisticsService, PddStatisticsService>();
     services.AddScoped<IPddLanguageService, PddLanguageService>();

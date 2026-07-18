@@ -1,4 +1,4 @@
-using Demo.Demos.Pdd;
+using Demo.Core.Quiz;
 using Markdig;
 using System.Text.RegularExpressions;
 
@@ -24,7 +24,7 @@ namespace Demo.Services
                 .Build();
         }
 
-        public string GetLocalizedContent(LocalizedText text, string languageCode, List<LocalizedText>? terms = null, bool highlightTerms = false)
+        public string GetLocalizedContent(LocalizedText text, string languageCode, IReadOnlyList<LocalizedText>? terms = null, bool highlightTerms = false)
         {
             var content = text.Get(languageCode);
 
@@ -43,7 +43,7 @@ namespace Demo.Services
 
         private string HighlightAllTerms(
             string originalText,
-            List<LocalizedText> terms,
+            IReadOnlyList<LocalizedText> terms,
             Func<LocalizedText, string> selectTermText)
         {
             var result = originalText;

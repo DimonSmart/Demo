@@ -1,12 +1,16 @@
-using System.Text.Json;
+using Demo.Core.Quiz;
 
 namespace Demo.Demos.Pdd;
 
-public sealed class PddDataService(HttpClient httpClient, IConfiguration configuration, ILogger<PddDataService> logger) : IPddDataService
+public sealed class PddDataService(
+    HttpClient httpClient,
+    IConfiguration configuration,
+    IQuizDocumentLoader quizDocumentLoader,
+    ILogger<PddDataService> logger) : IPddDataService
 {
-    private PddDatabase? _cachedDatabase;
+    private QuizDocument? _cachedDatabase;
 
-    public async Task<PddDatabase> LoadDatabaseAsync()
+    public async Task<QuizDocument> LoadDatabaseAsync()
     {
         if (_cachedDatabase is not null) return _cachedDatabase;
         var documentUrl = configuration["Quiz:DocumentUrl"];
@@ -17,8 +21,7 @@ public sealed class PddDataService(HttpClient httpClient, IConfiguration configu
             using var response = await httpClient.GetAsync(documentUrl);
             response.EnsureSuccessStatusCode();
             await using var stream = await response.Content.ReadAsStreamAsync();
-            var document = await JsonSerializer.DeserializeAsync<PddDatabase>(stream) ?? throw new InvalidDataException("Quiz document is empty.");
-            QuizDocumentValidator.Validate(document);
+            var document = await quizDocumentLoader.LoadAsync(stream, CreateLegacyOptions());
             return _cachedDatabase = document;
         }
         catch (Exception ex)
@@ -26,5 +29,17 @@ public sealed class PddDataService(HttpClient httpClient, IConfiguration configu
             logger.LogError(ex, "Unable to load quiz document");
             throw;
         }
+    }
+
+    private QuizLegacyLoadOptions CreateLegacyOptions()
+    {
+        var legacyTitle = configuration.GetSection("Quiz:LegacyTitle").Get<Dictionary<string, string>>()
+            ?? throw new InvalidOperationException("Quiz:LegacyTitle is not configured.");
+        return new QuizLegacyLoadOptions
+        {
+            DocumentId = configuration["Quiz:LegacyDocumentId"] ?? throw new InvalidOperationException("Quiz:LegacyDocumentId is not configured."),
+            ImagesBaseUrl = configuration["Quiz:LegacyImagesBaseUrl"],
+            Title = new LocalizedText { Values = legacyTitle }
+        };
     }
 }

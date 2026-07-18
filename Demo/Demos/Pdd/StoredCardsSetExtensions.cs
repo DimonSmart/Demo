@@ -1,44 +1,43 @@
-﻿namespace Demo.Demos.Pdd;
+using System.Globalization;
+
+namespace Demo.Demos.Pdd;
 
 public static class StoredCardsSetExtensions
 {
-    private const string CURRENT_VERSION = "1.0";
-
-    // Domain -> Compact
     public static StoredCardsSetCompact ToCompact(this StoredCardsSet domain)
     {
-        // Convert each card to [id, consecutiveCorrectCount]
-        var list = domain.Cards
-            .Select(c => new[] { c.Id, c.ConsecutiveCorrectCount.ToString(System.Globalization.CultureInfo.InvariantCulture) })
+        var cards = domain.Cards
+            .Select(card => new[]
+            {
+                card.Id,
+                card.ConsecutiveCorrectCount.ToString(CultureInfo.InvariantCulture)
+            })
             .ToList();
 
-        return new StoredCardsSetCompact(domain.Version, list);
+        return new StoredCardsSetCompact(domain.FormatVersion, domain.QuizDocumentId, cards);
     }
 
-    // Compact -> Domain (with version check)
     public static StoredCardsSet ToDomain(this StoredCardsSetCompact compact)
     {
-        if (!string.Equals(compact.V, CURRENT_VERSION, StringComparison.Ordinal))
+        if (!string.Equals(compact.FormatVersion, "2.0", StringComparison.Ordinal))
         {
-            return new StoredCardsSet
-            {
-                Version = CURRENT_VERSION,
-                Cards = Array.Empty<QuestionStudyCard>()
-            };
+            return new StoredCardsSet { QuizDocumentId = compact.QuizDocumentId };
         }
 
-        var domainCards = compact.C
-            .Select(arr => new QuestionStudyCard
+        var cards = compact.Cards
+            .Where(card => card.Length > 0)
+            .Select(card => new QuestionStudyCard
             {
-                Id = arr[0],
-                ConsecutiveCorrectCount = int.Parse(arr[1], System.Globalization.CultureInfo.InvariantCulture)
+                Id = card[0],
+                ConsecutiveCorrectCount = card.Length > 1 && int.TryParse(card[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var count) ? count : 0
             })
             .ToArray();
 
         return new StoredCardsSet
         {
-            Version = compact.V,
-            Cards = domainCards
+            FormatVersion = compact.FormatVersion,
+            QuizDocumentId = compact.QuizDocumentId,
+            Cards = cards
         };
     }
 }

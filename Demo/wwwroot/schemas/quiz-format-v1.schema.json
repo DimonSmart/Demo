@@ -1,22 +1,126 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Universal quiz format v1",
+  "$id": "https://dimonsmart.github.io/schemas/quiz-format-v1.schema.json",
+  "title": "Universal Quiz Format v1",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "id", "title", "languages", "topics", "questions"],
   "properties": {
     "schemaVersion": { "const": "1.0" },
-    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "id": { "$ref": "#/$defs/id" },
     "title": { "$ref": "#/$defs/localizedText" },
-    "languages": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Z][a-z]{3}|-[A-Z]{2}|-[0-9]{3})*$" } },
-    "imagesBaseUrl": { "type": "string", "format": "uri", "pattern": "^https?://" },
-    "topics": { "type": "array", "items": { "$ref": "#/$defs/topic" } },
-    "questions": { "type": "array", "items": { "$ref": "#/$defs/question" } }
+    "languages": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/languageTag" }
+    },
+    "imagesBaseUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https?://.+/$"
+    },
+    "topics": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/topic" }
+    },
+    "questions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/question" }
+    }
   },
   "$defs": {
-    "localizedText": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } },
-    "topic": { "type": "object", "additionalProperties": false, "required": ["id", "title"], "properties": { "id": { "type": "string", "minLength": 1 }, "slug": { "type": "string" }, "title": { "$ref": "#/$defs/localizedText" } } },
-    "answer": { "type": "object", "additionalProperties": false, "required": ["id", "text", "isCorrect"], "properties": { "id": { "type": "string", "minLength": 1 }, "text": { "$ref": "#/$defs/localizedText" }, "isCorrect": { "type": "boolean" } } },
-    "question": { "type": "object", "additionalProperties": false, "required": ["id", "type", "topicId", "text", "answers"], "properties": { "id": { "type": "string", "minLength": 1 }, "type": { "const": "singleChoice" }, "topicId": { "type": "string", "minLength": 1 }, "text": { "$ref": "#/$defs/localizedText" }, "answers": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/answer" } }, "explanation": { "$ref": "#/$defs/localizedText" }, "image": { "type": "string", "pattern": "^(?![a-zA-Z][a-zA-Z0-9+.-]*:)(?!/)(?!.*(^|/)\\.\\.(/|$)).+$" }, "terms": { "type": "array", "items": { "$ref": "#/$defs/localizedText" } }, "sourceReferences": { "type": "array" } } }
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "languageTag": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?:[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-[a-z0-9]{5,8}|-[0-9][a-z0-9]{3})*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?|x(?:-[a-z0-9]{1,8})+)$"
+    },
+    "localizedText": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(?:[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-[a-z0-9]{5,8}|-[0-9][a-z0-9]{3})*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?|x(?:-[a-z0-9]{1,8})+)$": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "topic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "slug": { "$ref": "#/$defs/id" },
+        "title": { "$ref": "#/$defs/localizedText" }
+      }
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "topicId", "text", "answers"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "type": { "const": "singleChoice" },
+        "topicId": { "$ref": "#/$defs/id" },
+        "text": { "$ref": "#/$defs/localizedText" },
+        "answers": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/answer" }
+        },
+        "explanation": { "$ref": "#/$defs/localizedText" },
+        "image": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "anyOf": [
+              { "pattern": "^[a-zA-Z][a-zA-Z0-9+.-]*:" },
+              { "pattern": "^/" },
+              { "pattern": "\\\\" },
+              { "pattern": "(^|/)\\.\\.(/|$)" }
+            ]
+          }
+        },
+        "terms": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/localizedText" }
+        },
+        "sourceReferences": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sourceReference" }
+        }
+      }
+    },
+    "answer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "text", "isCorrect"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "text": { "$ref": "#/$defs/localizedText" },
+        "isCorrect": { "type": "boolean" }
+      }
+    },
+    "sourceReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pointer"],
+      "properties": {
+        "pointer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quote": {
+          "$ref": "#/$defs/localizedText"
+        }
+      }
+    }
   }
 }

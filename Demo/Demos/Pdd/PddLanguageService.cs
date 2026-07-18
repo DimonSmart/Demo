@@ -1,5 +1,7 @@
 using Demo.Demos.Common;
 
+using Demo.Core.Quiz;
+
 namespace Demo.Demos.Pdd;
 
 /// <summary>

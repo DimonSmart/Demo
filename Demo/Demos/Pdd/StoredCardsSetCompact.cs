@@ -1,3 +1,3 @@
-﻿namespace Demo.Demos.Pdd;
+namespace Demo.Demos.Pdd;
 
-public record StoredCardsSetCompact(string V, List<string[]> C);
+public sealed record StoredCardsSetCompact(string FormatVersion, string QuizDocumentId, List<string[]> Cards);
