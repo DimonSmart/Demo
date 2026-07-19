@@ -92,6 +92,33 @@
     gap: 8px;
 }
 
+.pdd-language-buttons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pdd-language-button {
+    padding: 4px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: #fff;
+    color: #333;
+    font-size: 0.9rem;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.pdd-language-button:hover {
+    background-color: #f8f9fa;
+}
+
+.pdd-language-button.active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: #fff;
+}
+
 /* Highlight toggle container */
 .pdd-highlight-toggle {
     display: flex;
