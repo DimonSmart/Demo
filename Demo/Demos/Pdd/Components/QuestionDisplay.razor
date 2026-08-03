@@ -31,6 +31,6 @@
     private QuizQuestion CurrentQuestion => QuestionWrapper.Question;
     private string? ImageUrl => QuestionImageResolver.ResolveQuestionImageUri(Document, CurrentQuestion)?.ToString();
     private string Content(LocalizedText text) => TranslationService.GetLocalizedContent(text, PrimaryLanguage, CurrentQuestion.Terms, HighlightTerms);
-    private IReadOnlyDictionary<string, string> SecondaryContents(LocalizedText text) => Languages.Where(language => language != PrimaryLanguage).ToDictionary(language => language, language => TranslationService.GetLocalizedContent(text, language, CurrentQuestion.Terms, HighlightTerms));
+    private IReadOnlyDictionary<string, string> SecondaryContents(LocalizedText text) => Languages.Where(language => !string.Equals(language, PrimaryLanguage, StringComparison.OrdinalIgnoreCase)).ToDictionary(language => language, language => TranslationService.GetLocalizedContent(text, language, CurrentQuestion.Terms, HighlightTerms));
     private void ToggleExplanation() => QuestionWrapper.ShowExplanation = !QuestionWrapper.ShowExplanation;
 }

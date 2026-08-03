@@ -19,7 +19,7 @@
     [Parameter] public bool HighlightTerms { get; set; }
     [Inject] public TextTranslationService TranslationService { get; set; } = null!;
     private string Content(LocalizedText text) => TranslationService.GetLocalizedContent(text, PrimaryLanguage, QuestionWrapper.Question.Terms, HighlightTerms);
-    private IReadOnlyDictionary<string, string> SecondaryContents(LocalizedText text) => Languages.Where(language => language != PrimaryLanguage).ToDictionary(language => language, language => TranslationService.GetLocalizedContent(text, language, QuestionWrapper.Question.Terms, HighlightTerms));
+    private IReadOnlyDictionary<string, string> SecondaryContents(LocalizedText text) => Languages.Where(language => !string.Equals(language, PrimaryLanguage, StringComparison.OrdinalIgnoreCase)).ToDictionary(language => language, language => TranslationService.GetLocalizedContent(text, language, QuestionWrapper.Question.Terms, HighlightTerms));
     private string GetAnswerCssClass(QuizAnswer answer) => !QuestionWrapper.HasAnswered ? string.Empty : QuestionWrapper.SelectedAnswer == answer ? answer.IsCorrect ? "pdd-correct-answer" : "pdd-incorrect-answer" : !QuestionWrapper.SelectedAnswer!.IsCorrect && answer.IsCorrect ? "pdd-correct-answer" : string.Empty;
     private Task OnAnswerClicked(QuizAnswer answer) => QuestionWrapper.HasAnswered ? Task.CompletedTask : OnAnswerSelected.InvokeAsync((QuestionWrapper, answer));
 }
