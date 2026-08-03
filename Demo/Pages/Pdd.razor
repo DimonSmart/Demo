@@ -10,34 +10,69 @@
 @inject UserPreferencesStorageService<PddUserPreferences> PreferencesStorage
 @inject IDemoPageChromeService PageChrome
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <link rel="stylesheet" href="css/pdd.css" />
 <link rel="stylesheet" href="css/multilanguage.css" />
-<div class="pdd-page-container">
-@if (loading) { <p>Loading quiz…</p> }
-else if (error is not null) { <p class="pdd-error">@error</p><button @onclick="Retry">Retry</button><button @onclick="ShowCatalog">Choose a quiz</button> }
-else if (choosing) {
-    <h2>Choose a quiz</h2>
-    @foreach (var source in sources) { <div class="pdd-stats-section"><b>@(source.LastKnownTitle ?? (source.IsBuiltIn ? "Built-in PDD quiz" : "Quiz"))</b><div>@(source.IsBuiltIn ? "Built-in quiz" : source.Url)</div><div>@(source.LastKnownQuestionCount?.ToString() ?? "?") questions · last opened @(source.LastOpenedAtUtc?.ToLocalTime().ToString("g") ?? "never")</div><button @onclick="() => Start(source)">Start</button><a href="@($"/pdd/statistics?source={Uri.EscapeDataString(source.SourceId)}")">Statistics</a><button @onclick="() => Reset(source)">Reset progress</button>@if (!source.IsBuiltIn) { <button @onclick="() => Remove(source, false)">Remove source</button><button @onclick="() => Remove(source, true)">Remove source and progress</button> }</div> }
+@if (loading)
+{
+    <div class="demo-page demo-page--centered quiz-catalog"><section class="demo-panel demo-panel--center" aria-live="polite">Loading quiz…</section></div>
 }
-else if (Session.Current is not null) {
- <div class="pdd-top-nav-bar fixed-top-bar"><StatisticsDisplay QuestionQueue="queue" OnResetProgress="ResetCurrent" /><div class="pdd-options"><LanguagePicker Languages="@languages" PrimaryLanguage="@primaryLanguage" OnLanguageChanged="SetLanguage" /></div></div>
- <div class="pdd-content"><h2>@Title(Session.Current.Document)</h2>@if (notice is not null) { <p>@notice</p> } @if (batch.Any()) { @foreach(var item in batch) { <QuestionDisplay QuestionWrapper="@item" OnAnswerSelected="Answer" PrimaryLanguage="@primaryLanguage" Languages="@languages" Document="@Session.Current.Document" /> } <BatchNavigation AllQuestionsAnswered="@batch.All(x => x.HasAnswered)" OnNextBatchClicked="Next" /> } else { <p>All questions have been learned!</p> }</div>
+else if (error is not null)
+{
+    <div class="demo-page demo-page--centered quiz-catalog">
+        <section class="demo-panel demo-panel--center" role="alert">
+            <p>@error</p>
+            <div class="demo-action-bar">
+                <button type="button" class="demo-pill-button demo-pill-button--primary" @onclick="Retry">Retry</button>
+                @if (sources.Count > 1)
+                {
+                    <button type="button" class="demo-pill-button" @onclick="ShowCatalog">Choose a quiz</button>
+                }
+            </div>
+        </section>
+    </div>
 }
-</div>
+else if (choosing)
+{
+    <div class="demo-page demo-page--centered quiz-catalog">
+        <header class="quiz-catalog__intro">
+            <p class="quiz-catalog__description">Select a quiz to continue learning or review your progress.</p>
+            <p class="quiz-catalog__count">@QuizCountText</p>
+        </header>
+        <div class="demo-card-grid quiz-catalog__grid">
+            @foreach (var source in sources)
+            {
+                <QuizCatalogCard Source="source" IsLastOpened="@(source.SourceId == LastOpenedSourceId)" OnStart="Start" OnResetProgress="Reset" OnRemoveSource="source => Remove(source, false)" OnRemoveSourceAndProgress="source => Remove(source, true)" />
+            }
+        </div>
+    </div>
+}
+else if (Session.Current is not null)
+{
+    <div class="pdd-page-container">
+        <div class="pdd-top-nav-bar fixed-top-bar"><StatisticsDisplay QuestionQueue="queue" OnResetProgress="ResetCurrent" /><div class="pdd-options"><LanguagePicker Languages="@languages" PrimaryLanguage="@primaryLanguage" OnLanguageChanged="SetLanguage" /></div></div>
+        <div class="pdd-content"><h2>@Title(Session.Current.Document)</h2>@if (notice is not null) { <p>@notice</p> } @if (batch.Any()) { @foreach(var item in batch) { <QuestionDisplay QuestionWrapper="@item" OnAnswerSelected="Answer" PrimaryLanguage="@primaryLanguage" Languages="@languages" Document="@Session.Current.Document" /> } <BatchNavigation AllQuestionsAnswered="@batch.All(x => x.HasAnswered)" OnNextBatchClicked="Next" /> } else { <p>All questions have been learned!</p> }</div>
+    </div>
+}
 
 @code {
  private IReadOnlyList<QuizCatalogEntry> sources=[]; private bool loading=true, choosing; private string? error, notice; private QuestionQueue queue=new([]); private List<QuestionWrapper> batch=[]; private IReadOnlyList<string> languages=[]; private string primaryLanguage="";
  protected override async Task OnInitializedAsync() { PageChrome.SetPage("Quiz practice"); await Initialize(); }
- private async Task Initialize() { try { loading=true; error=null; sources=await Catalog.GetAllAsync(); var uri=new Uri(Navigation.Uri); var url=System.Web.HttpUtility.ParseQueryString(uri.Query)["quizUrl"]; if (!string.IsNullOrWhiteSpace(url)) { var existing=await Catalog.FindByUrlAsync(url); await Start(existing ?? new QuizCatalogEntry { Url=url, AddedAtUtc=DateTime.UtcNow }); } else if (sources.Count == 1) await Start(sources[0]); else choosing=true; } catch(Exception ex) { error=ToMessage(ex); choosing=false; } finally { loading=false; } }
+ private async Task Initialize() { try { loading=true; error=null; sources=await Catalog.GetAllAsync(); var uri=new Uri(Navigation.Uri); var url=System.Web.HttpUtility.ParseQueryString(uri.Query)["quizUrl"]; if (!string.IsNullOrWhiteSpace(url)) { var existing=await Catalog.FindByUrlAsync(url); await Start(existing ?? new QuizCatalogEntry { Url=url, AddedAtUtc=DateTime.UtcNow }); } else if (sources.Count == 1) await Start(sources[0]); else ShowCatalog(); } catch(Exception ex) { error=ToMessage(ex); choosing=false; } finally { loading=false; } }
  private async Task Start(QuizCatalogEntry source) { try { loading=true; error=null; choosing=false; var result=await Session.StartAsync(source); if (result.HasChanges) notice=$"Quiz updated: preserved {result.PreservedQuestions}, changed {result.ResetQuestions}, added {result.AddedQuestions}, removed {result.RemovedQuestions}."; var progress=await Progress.LoadAsync(Session.CurrentSource!.SourceId) ?? throw new InvalidOperationException("Progress was not initialized."); queue=new QuestionQueue(QuizProgressService.ActiveCards(Session.Current!, progress)); languages=LanguageCodes.Normalize(Session.Current!.Document.Languages); var saved=await PreferencesStorage.LoadPreferencesAsync(); primaryLanguage=LanguageCodes.SelectPrimary(languages, saved?.PrimaryLanguage); PageChrome.SetPage(Title(Session.Current.Document)); Next(); } catch(Exception ex) { error=ToMessage(ex); choosing=false; } finally { loading=false; } }
  private void Next() { batch=[]; foreach(var card in queue.PeekNextQuestionsForStudy(10)) { var question=Session.Current!.Document.Questions.First(q=>q.Id==card.Id); batch.Add(new QuestionWrapper { Question=question, StudyCard=card }); } }
  private async Task Answer((QuestionWrapper wrapper, QuizAnswer selectedAnswer) value) { if(value.wrapper.HasAnswered) return; value.wrapper.SelectedAnswer=value.selectedAnswer; value.wrapper.HasAnswered=true; queue.ProcessAnswer(value.wrapper.StudyCard,value.selectedAnswer.IsCorrect); await Progress.SaveCardsAsync(Session.Current!, queue.Cards.Append(value.wrapper.StudyCard).DistinctBy(card => card.Id)); StateHasChanged(); }
  private async Task ResetCurrent() { if(Session.CurrentSource is not null) { await Progress.ResetAsync(Session.CurrentSource.SourceId); await Start(Session.CurrentSource); } }
  private Task SetLanguage(string language) { primaryLanguage=language; return PreferencesStorage.SavePreferencesAsync(new PddUserPreferences { PrimaryLanguage=language }); }
- private async Task Reset(QuizCatalogEntry source) { await Progress.ResetAsync(source.SourceId); }
- private async Task Remove(QuizCatalogEntry source,bool removeProgress) { await Catalog.RemoveAsync(source.SourceId); if(removeProgress) await Progress.ResetAsync(source.SourceId); sources=await Catalog.GetAllAsync(); }
- private void ShowCatalog() { error=null; choosing=true; } private Task Retry() => Initialize();
+ private async Task Reset(QuizCatalogEntry source) { if (await ConfirmAsync($"Reset all progress for \u201c{QuizTitle(source)}\u201d?")) await Progress.ResetAsync(source.SourceId); }
+ private async Task Remove(QuizCatalogEntry source,bool removeProgress) { var message = removeProgress ? $"Remove \u201c{QuizTitle(source)}\u201d and all saved progress?\n\nThis action cannot be undone." : $"Remove \u201c{QuizTitle(source)}\u201d from the quiz list?\n\nSaved progress will be kept."; if (!await ConfirmAsync(message)) return; await Catalog.RemoveAsync(source.SourceId); if(removeProgress) await Progress.ResetAsync(source.SourceId); sources=await Catalog.GetAllAsync(); }
+ private void ShowCatalog() { error=null; choosing=true; PageChrome.SetPage("Choose a quiz"); }
+ private Task Retry() => Initialize();
+ private string QuizCountText => sources.Count == 1 ? "1 quiz available" : $"{sources.Count} quizzes available";
+ private string? LastOpenedSourceId => sources.Where(source => source.LastOpenedAtUtc is not null).MaxBy(source => source.LastOpenedAtUtc)?.SourceId;
+ private static string QuizTitle(QuizCatalogEntry source) => source.LastKnownTitle ?? (source.IsBuiltIn ? "Built-in quiz" : "Quiz");
+ private ValueTask<bool> ConfirmAsync(string message) => JS.InvokeAsync<bool>("confirm", message);
  private static string Title(QuizDocument d) => d.Title.Values.Values.FirstOrDefault() ?? d.Id;
  private static string ToMessage(Exception ex) => ex switch { ArgumentException => ex.Message, HttpRequestException => "Quiz resource is unavailable or blocked by CORS.", TaskCanceledException => "Quiz loading timed out.", InvalidDataException => ex.Message, _ => "Unable to load the quiz." };
 }

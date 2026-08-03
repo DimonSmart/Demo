@@ -92,6 +92,29 @@
     gap: 8px;
 }
 
+/* Quiz catalog */
+.quiz-catalog { padding: var(--demo-gap-4) 0; }
+.quiz-catalog__intro { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--demo-gap-2); }
+.quiz-catalog__description, .quiz-catalog__count, .quiz-card__meta, .quiz-card__source { margin: 0; color: var(--demo-text-muted); }
+.quiz-catalog__count, .quiz-card__meta { font-size: 0.9rem; }
+.quiz-catalog__grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); }
+.quiz-card { min-width: 0; }
+.quiz-card--last-opened { border-color: color-mix(in srgb, var(--demo-accent) 45%, var(--demo-border-color)); background: var(--demo-surface-tint); }
+.quiz-card__header { display: flex; flex-direction: column; gap: var(--demo-gap-2); min-width: 0; }
+.quiz-card__badges { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.quiz-card__badge { padding: 0.2rem 0.55rem; border-radius: var(--demo-radius-pill); background: var(--demo-surface-soft); color: var(--demo-text-muted); font-size: 0.75rem; font-weight: 700; }
+.quiz-card__title { margin: 0; overflow-wrap: anywhere; color: var(--demo-text); font-size: 1.2rem; }
+.quiz-card__source { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.8rem; }
+.quiz-card__actions { margin-top: auto; }
+.quiz-card__actions a { text-decoration: none; }
+.quiz-card__menu { position: relative; }
+.quiz-card__menu-content { position: absolute; right: 0; bottom: calc(100% + 0.4rem); z-index: 10; display: flex; flex-direction: column; min-width: max-content; padding: 0.35rem; border: 1px solid var(--demo-border-color); border-radius: var(--demo-radius-m); background: var(--demo-surface); box-shadow: var(--demo-shadow-s); }
+.quiz-card__menu-content button { border: 0; border-radius: var(--demo-radius-s); background: transparent; color: var(--demo-text); cursor: pointer; padding: 0.55rem 0.7rem; text-align: left; white-space: nowrap; }
+.quiz-card__menu-content button:hover, .quiz-card__menu-content button:focus-visible { background: var(--demo-surface-soft); }
+.quiz-card__menu-content .quiz-card__menu-danger { color: var(--demo-danger, #b91c1c); }
+
+@media (max-width: 640px) { .quiz-catalog { padding-inline: var(--demo-gap-3); } }
+
 .pdd-language-buttons {
     display: flex;
     align-items: center;

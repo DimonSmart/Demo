@@ -1,0 +1,65 @@
+@using Demo.Demos.Pdd
+
+<article class="demo-panel quiz-card @(IsLastOpened ? "quiz-card--last-opened" : null)">
+    <header class="quiz-card__header">
+        <div class="quiz-card__badges">
+            <span class="quiz-card__badge">@(Source.IsBuiltIn ? "Built-in" : "External")</span>
+            @if (IsLastOpened)
+            {
+                <span class="quiz-card__badge">Last opened</span>
+            }
+        </div>
+        <h2 class="quiz-card__title">@DisplayTitle</h2>
+    </header>
+
+    <div class="quiz-card__meta">@QuestionCountText · @LastOpenedText</div>
+
+    @if (!Source.IsBuiltIn)
+    {
+        <div class="quiz-card__source" title="@Source.Url">@Source.Url</div>
+    }
+
+    <footer class="demo-action-bar quiz-card__actions">
+        <button type="button" class="demo-pill-button demo-pill-button--primary" @onclick="Start">
+            @(Source.LastOpenedAtUtc is null ? "Start quiz" : "Continue")
+        </button>
+        <a class="demo-pill-button" href="@StatisticsUrl">Statistics</a>
+        <div class="quiz-card__menu" @onkeydown="HandleMenuKeyDown">
+            <button type="button" class="demo-pill-button" aria-label="Quiz actions for @DisplayTitle" aria-expanded="@menuOpen" aria-controls="@MenuId" @onclick="ToggleMenu">…</button>
+            @if (menuOpen)
+            {
+                <div id="@MenuId" class="quiz-card__menu-content">
+                    <button type="button" @onclick="ResetProgress">Reset progress</button>
+                    @if (!Source.IsBuiltIn)
+                    {
+                        <button type="button" class="quiz-card__menu-danger" @onclick="RemoveSource">Remove source</button>
+                        <button type="button" class="quiz-card__menu-danger" @onclick="RemoveSourceAndProgress">Remove source and progress</button>
+                    }
+                </div>
+            }
+        </div>
+    </footer>
+</article>
+
+@code {
+    [Parameter, EditorRequired] public QuizCatalogEntry Source { get; set; } = null!;
+    [Parameter] public bool IsLastOpened { get; set; }
+    [Parameter, EditorRequired] public EventCallback<QuizCatalogEntry> OnStart { get; set; }
+    [Parameter, EditorRequired] public EventCallback<QuizCatalogEntry> OnResetProgress { get; set; }
+    [Parameter, EditorRequired] public EventCallback<QuizCatalogEntry> OnRemoveSource { get; set; }
+    [Parameter, EditorRequired] public EventCallback<QuizCatalogEntry> OnRemoveSourceAndProgress { get; set; }
+
+    private bool menuOpen;
+    private string DisplayTitle => Source.LastKnownTitle ?? (Source.IsBuiltIn ? "Built-in quiz" : "Quiz");
+    private string QuestionCountText => Source.LastKnownQuestionCount switch { 1 => "1 question", > 1 => $"{Source.LastKnownQuestionCount} questions", _ => "Question count unavailable" };
+    private string LastOpenedText => Source.LastOpenedAtUtc is { } openedAt ? $"Last opened {openedAt.ToLocalTime():dd.MM.yyyy HH:mm}" : "Not opened yet";
+    private string StatisticsUrl => $"/pdd/statistics?source={Uri.EscapeDataString(Source.SourceId)}";
+    private string MenuId => $"quiz-actions-{Source.SourceId}";
+
+    private Task Start() => OnStart.InvokeAsync(Source);
+    private void ToggleMenu() => menuOpen = !menuOpen;
+    private async Task ResetProgress() { menuOpen = false; await OnResetProgress.InvokeAsync(Source); }
+    private async Task RemoveSource() { menuOpen = false; await OnRemoveSource.InvokeAsync(Source); }
+    private async Task RemoveSourceAndProgress() { menuOpen = false; await OnRemoveSourceAndProgress.InvokeAsync(Source); }
+    private void HandleMenuKeyDown(KeyboardEventArgs args) { if (args.Key == "Escape") menuOpen = false; }
+}
