@@ -45,6 +45,10 @@ static void RegisterHashDemoServices(IServiceCollection services)
 static void RegisterPddDemoServices(IServiceCollection services)
 {
     services.AddScoped<CardStorageService>();
+    services.AddScoped<IQuizCatalogService, QuizCatalogService>();
+    services.AddScoped<IQuizSourceLoader, QuizSourceLoader>();
+    services.AddScoped<QuizProgressService>();
+    services.AddScoped<IQuizSessionService, QuizSessionService>();
     services.AddScoped<UserPreferencesStorageService<PddUserPreferences>>();
     services.AddScoped<TextTranslationService>();
     services.AddScoped<IQuizDocumentLoader, QuizDocumentLoader>();

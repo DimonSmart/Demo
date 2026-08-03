@@ -1,263 +1,43 @@
-﻿@page "/pdd"
+@page "/pdd"
 @using Demo.Demos.Common
 @using Demo.Demos.Pdd
 @using Demo.Demos.Pdd.Components
 @using Demo.Core.Quiz
 @using Demo.Services
-@using Microsoft.AspNetCore.Components.Web
-@using Microsoft.Extensions.Configuration
-
-@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject IQuizCatalogService Catalog
+@inject IQuizSessionService Session
+@inject QuizProgressService Progress
 @inject UserPreferencesStorageService<PddUserPreferences> PreferencesStorage
 @inject IDemoPageChromeService PageChrome
-@inject CardStorageService CardStorage
-@inject IJSRuntime JSRuntime
-@inject TextTranslationService TranslationService
-@inject IConfiguration Configuration
-@inject IPddDataService PddDataService
+@inject NavigationManager Navigation
 
 <link rel="stylesheet" href="css/pdd.css" />
 <link rel="stylesheet" href="css/multilanguage.css" />
-
-<div class="pdd-page-container"
-     @onkeydown="HandleKeyDown"
-     @onpointerdown="HandlePointerDown"
-     @onpointerup="HandlePointerUp"
-     tabindex="0">
-    <div class="pdd-top-nav-bar fixed-top-bar">
-        <StatisticsDisplay QuestionQueue="@questionQueue" OnResetProgress="ResetProgress" />
-
-        <div class="pdd-options">
-            <div class="pdd-highlight-toggle">
-                <input type="checkbox"
-                       id="highlightTermsToggle"
-                       checked="@highlightTerms"
-                       @onchange="@OnHighlightTermsChanged"
-                       title="Highlight key terms?" />
-                <label for="highlightTermsToggle"
-                       title="Turn ON/OFF terms highlighting">
-                    Terms
-                </label>
-            </div>
-            <div class="pdd-language-selector">
-                <LanguagePicker Languages="@languages" PrimaryLanguage="@primaryLanguage" OnLanguageChanged="@OnLanguageChanged" />
-            </div>
-        </div>
-    </div>
-
-    <div class="pdd-content">
-        @if (IsLoading)
-        {
-            <div>Please wait. Exam data is loading (around 10 seconds)</div>
-            <div class="pdd-loading-bar-container">
-                <div class="pdd-loading-bar"></div>
-            </div>
-        }
-        else if (currentBatch.Any())
-        {            @foreach (var questionWrapper in currentBatch)
-            {
-                <QuestionDisplay QuestionWrapper="@questionWrapper"
-                                 OnAnswerSelected="@AnswerQuestion"
-                                 PrimaryLanguage="@primaryLanguage"
-                                 Languages="@languages"
-                                 Document="@database"
-                                 HighlightTerms="@highlightTerms" />
-            }
-
-            <BatchNavigation AllQuestionsAnswered="@AllQuestionsInBatchAnswered"
-                             OnNextBatchClicked="@GoToNextBatch" />
-        }
-        else
-        {
-            <p>All questions have been learned! Congratulations!</p>
-        }
-    </div>
+<div class="pdd-page-container">
+@if (loading) { <p>Loading quiz…</p> }
+else if (error is not null) { <p class="pdd-error">@error</p><button @onclick="Retry">Retry</button><button @onclick="ShowCatalog">Choose a quiz</button> }
+else if (choosing) {
+    <h2>Choose a quiz</h2>
+    @foreach (var source in sources) { <div class="pdd-stats-section"><b>@(source.LastKnownTitle ?? (source.IsBuiltIn ? "Built-in PDD quiz" : "Quiz"))</b><div>@(source.IsBuiltIn ? "Built-in quiz" : source.Url)</div><div>@(source.LastKnownQuestionCount?.ToString() ?? "?") questions · last opened @(source.LastOpenedAtUtc?.ToLocalTime().ToString("g") ?? "never")</div><button @onclick="() => Start(source)">Start</button><a href="@($"/pdd/statistics?source={Uri.EscapeDataString(source.SourceId)}")">Statistics</a><button @onclick="() => Reset(source)">Reset progress</button>@if (!source.IsBuiltIn) { <button @onclick="() => Remove(source, false)">Remove source</button><button @onclick="() => Remove(source, true)">Remove source and progress</button> }</div> }
+}
+else if (Session.Current is not null) {
+ <div class="pdd-top-nav-bar fixed-top-bar"><StatisticsDisplay QuestionQueue="queue" OnResetProgress="ResetCurrent" /><div class="pdd-options"><LanguagePicker Languages="languages" PrimaryLanguage="primaryLanguage" OnLanguageChanged="SetLanguage" /></div></div>
+ <div class="pdd-content"><h2>@Title(Session.Current.Document)</h2>@if (notice is not null) { <p>@notice</p> } @if (batch.Any()) { @foreach(var item in batch) { <QuestionDisplay QuestionWrapper="@item" OnAnswerSelected="Answer" PrimaryLanguage="primaryLanguage" Languages="languages" Document="@Session.Current.Document" /> } <BatchNavigation AllQuestionsAnswered="@batch.All(x => x.HasAnswered)" OnNextBatchClicked="Next" /> } else { <p>All questions have been learned!</p> }</div>
+}
 </div>
 
 @code {
-    private const int BATCH_SIZE = 10;
-    private List<QuestionWrapper> currentBatch = new();
-    private bool AllQuestionsInBatchAnswered => currentBatch.All(q => q.HasAnswered);
-
-    private IReadOnlyCollection<QuizQuestion> allQuestions = new List<QuizQuestion>();
-    private QuizDocument? database;
-    private IReadOnlyList<string> languages = [];
-    
-    private bool IsLoading = true;
-    private bool highlightTerms = false;
-
-    // Language selection model
-    private string primaryLanguage = string.Empty;
-
-    private QuestionQueue questionQueue = new QuestionQueue(new List<QuestionStudyCard>());
-    private double pointerDownX;
-    private double pointerDownY;
-
-    protected override void OnInitialized()
-    {
-        base.OnInitialized();
-        PageChrome.SetPage("Practice DGT Spanish Driving Theory Test");
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-
-        var savedPreferences = await PreferencesStorage.LoadPreferencesAsync();
-        if (savedPreferences != null)
-        {
-            highlightTerms = savedPreferences.HighlightTerms;
-            primaryLanguage = savedPreferences.PrimaryLanguage;
-        }
-
-        database = await PddDataService.LoadDatabaseAsync();
-        languages = database.Languages;
-        primaryLanguage = SelectLanguage(primaryLanguage);
-        allQuestions = database.Questions;
-        questionQueue = await LoadQuestionsQueue(allQuestions);
-        LoadNextBatch();
-        IsLoading = false;
-    }
-
-    private async Task OnHighlightTermsChanged(ChangeEventArgs e)
-    {
-        if (e.Value is bool boolValue)
-        {
-            highlightTerms = boolValue;
-        }
-        else if (bool.TryParse(e.Value?.ToString(), out var parsed))
-        {
-            highlightTerms = parsed;
-        }
-        else
-        {
-            highlightTerms = false;
-        }
-
-        await SaveUserPreferencesAsync();
-    }
-
-    private void HandleKeyDown(KeyboardEventArgs e)
-    {
-        if (int.TryParse(e.Key, out int answerIndex) && answerIndex >= 1)
-        {
-            var targetQuestion = currentBatch.FirstOrDefault(q => !q.HasAnswered);
-            if (targetQuestion != null && answerIndex <= targetQuestion.Question.Answers.Count)
-            {
-                var chosenAnswer = targetQuestion.Question.Answers[answerIndex - 1];
-                _ = AnswerQuestion((targetQuestion, chosenAnswer));
-            }
-        }
-    }
-
-    private void HandlePointerDown(PointerEventArgs e)
-    {
-        pointerDownX = e.ClientX;
-        pointerDownY = e.ClientY;
-    }
-
-    private void HandlePointerUp(PointerEventArgs e)
-    {
-        var deltaX = e.ClientX - pointerDownX;
-        var deltaY = e.ClientY - pointerDownY;
-
-        if (Math.Abs(deltaX) > 100 && Math.Abs(deltaY) < 50 && AllQuestionsInBatchAnswered)
-        {
-            GoToNextBatch();
-        }
-    }
-
-
-
-    internal async Task<QuestionQueue> LoadQuestionsQueue(IReadOnlyCollection<QuizQuestion> questions)
-    {
-        if (database is null) return new QuestionQueue([]);
-        var cardSet = await CardStorage.LoadCardsAsync(database.Id, questions.Select(question => question.Id).ToHashSet(StringComparer.Ordinal));
-        if (cardSet != null)
-            return new QuestionQueue(cardSet.Cards);
-        return new QuestionQueue(questions.Select(q => new QuestionStudyCard { Id = q.Id }));
-    }
-
-    private void LoadNextBatch()
-    {
-        currentBatch.Clear();
-        var nextCards = questionQueue.PeekNextQuestionsForStudy(BATCH_SIZE);
-
-        foreach (var studyCard in nextCards)
-        {
-            var question = allQuestions.FirstOrDefault(q => q.Id == studyCard.Id);
-            if (question != null)
-            {
-                currentBatch.Add(new QuestionWrapper
-                    {
-                        Question = question,
-                        StudyCard = studyCard,
-                        HasAnswered = false,
-                        ShowExplanation = false
-                    });
-            }
-        }
-    }
-
-    private async Task AnswerQuestion((QuestionWrapper wrapper, QuizAnswer selectedAnswer) answer)
-    {
-        var (wrapper, selectedAnswer) = answer;
-        if (wrapper.HasAnswered) return;
-
-        wrapper.SelectedAnswer = selectedAnswer;
-        wrapper.HasAnswered = true;
-        questionQueue.ProcessAnswer(wrapper.StudyCard, wrapper.SelectedAnswer.IsCorrect);
-        if (database is not null)
-        {
-            await CardStorage.SaveCardsAsync(new StoredCardsSet { QuizDocumentId = database.Id, Cards = questionQueue.Cards, FormatVersion = "2.0" });
-        }
-
-        StateHasChanged();
-    }
-
-    private void GoToNextBatch()
-    {
-        if (!AllQuestionsInBatchAnswered) return;
-        LoadNextBatch();
-    }
-
-    private async Task ResetProgress()
-    {
-        if (database is not null) await CardStorage.ResetProgressAsync(database.Id);
-        database = await PddDataService.LoadDatabaseAsync();
-        allQuestions = database.Questions;
-        questionQueue = await LoadQuestionsQueue(allQuestions);
-        LoadNextBatch();
-        StateHasChanged();
-    }
-
-    private async Task SaveUserPreferencesAsync()
-    {
-        var preferences = new PddUserPreferences
-            {
-                HighlightTerms = highlightTerms,
-                PrimaryLanguage = primaryLanguage
-            };
-        await PreferencesStorage.SavePreferencesAsync(preferences);
-    }
-
-    private async Task OnLanguageChanged(string language)
-    {
-        primaryLanguage = language;
-        StateHasChanged();
-        await SaveUserPreferencesAsync();
-    }
-
-    private string SelectLanguage(string savedLanguage)
-    {
-        var culture = System.Globalization.CultureInfo.CurrentUICulture.Name;
-        var exactCulture = languages.FirstOrDefault(language => string.Equals(language, culture, StringComparison.OrdinalIgnoreCase));
-        if (exactCulture is not null) return exactCulture;
-        var baseLanguage = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-        var baseCulture = languages.FirstOrDefault(language => string.Equals(language.Split('-')[0], baseLanguage, StringComparison.OrdinalIgnoreCase));
-        if (baseCulture is not null) return baseCulture;
-        var saved = languages.FirstOrDefault(language => string.Equals(language, savedLanguage, StringComparison.OrdinalIgnoreCase));
-        if (saved is not null) return saved;
-        return languages[0];
-    }
+ private IReadOnlyList<QuizCatalogEntry> sources=[]; private bool loading=true, choosing; private string? error, notice; private QuestionQueue queue=new([]); private List<QuestionWrapper> batch=[]; private IReadOnlyList<string> languages=[]; private string primaryLanguage="";
+ protected override async Task OnInitializedAsync() { PageChrome.SetPage("Quiz practice"); await Initialize(); }
+ private async Task Initialize() { try { loading=true; error=null; sources=await Catalog.GetAllAsync(); var uri=new Uri(Navigation.Uri); var url=System.Web.HttpUtility.ParseQueryString(uri.Query)["quizUrl"]; if (!string.IsNullOrWhiteSpace(url)) { var existing=await Catalog.FindByUrlAsync(url); await Start(existing ?? new QuizCatalogEntry { Url=url, AddedAtUtc=DateTime.UtcNow }); } else if (sources.Count == 1) await Start(sources[0]); else choosing=true; } catch(Exception ex) { error=ToMessage(ex); choosing=false; } finally { loading=false; } }
+ private async Task Start(QuizCatalogEntry source) { try { loading=true; error=null; choosing=false; var result=await Session.StartAsync(source); if (result.HasChanges) notice=$"Quiz updated: preserved {result.PreservedQuestions}, changed {result.ResetQuestions}, added {result.AddedQuestions}, removed {result.RemovedQuestions}."; var progress=await Progress.LoadAsync(Session.CurrentSource!.SourceId) ?? throw new InvalidOperationException("Progress was not initialized."); queue=new QuestionQueue(QuizProgressService.ActiveCards(Session.Current!, progress)); languages=Session.Current!.Document.Languages; var saved=await PreferencesStorage.LoadPreferencesAsync(); primaryLanguage=languages.FirstOrDefault(x=>x==saved?.PrimaryLanguage) ?? languages.FirstOrDefault() ?? ""; PageChrome.SetPage(Title(Session.Current.Document)); Next(); } catch(Exception ex) { error=ToMessage(ex); choosing=false; } finally { loading=false; } }
+ private void Next() { batch=[]; foreach(var card in queue.PeekNextQuestionsForStudy(10)) { var question=Session.Current!.Document.Questions.First(q=>q.Id==card.Id); batch.Add(new QuestionWrapper { Question=question, StudyCard=card }); } }
+ private async Task Answer((QuestionWrapper wrapper, QuizAnswer selectedAnswer) value) { if(value.wrapper.HasAnswered) return; value.wrapper.SelectedAnswer=value.selectedAnswer; value.wrapper.HasAnswered=true; queue.ProcessAnswer(value.wrapper.StudyCard,value.selectedAnswer.IsCorrect); await Progress.SaveCardsAsync(Session.Current!, queue.Cards.Append(value.wrapper.StudyCard)); StateHasChanged(); }
+ private async Task ResetCurrent() { if(Session.CurrentSource is not null) { await Progress.ResetAsync(Session.CurrentSource.SourceId); await Start(Session.CurrentSource); } }
+ private Task SetLanguage(string language) { primaryLanguage=language; return PreferencesStorage.SavePreferencesAsync(new PddUserPreferences { PrimaryLanguage=language }); }
+ private async Task Reset(QuizCatalogEntry source) { await Progress.ResetAsync(source.SourceId); }
+ private async Task Remove(QuizCatalogEntry source,bool removeProgress) { await Catalog.RemoveAsync(source.SourceId); if(removeProgress) await Progress.ResetAsync(source.SourceId); sources=await Catalog.GetAllAsync(); }
+ private void ShowCatalog() { error=null; choosing=true; } private Task Retry() => Initialize();
+ private static string Title(QuizDocument d) => d.Title.Values.Values.FirstOrDefault() ?? d.Id;
+ private static string ToMessage(Exception ex) => ex switch { ArgumentException => ex.Message, HttpRequestException => "Quiz resource is unavailable or blocked by CORS.", TaskCanceledException => "Quiz loading timed out.", InvalidDataException => ex.Message, _ => "Unable to load the quiz." };
 }

@@ -7,9 +7,11 @@
 
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
 @inject UserPreferencesStorageService<PddUserPreferences> PreferencesStorage
-@inject CardStorageService CardStorage
 @inject IDemoPageChromeService PageChrome
-@inject IPddDataService PddDataService
+@inject IQuizCatalogService Catalog
+@inject IQuizSessionService Session
+@inject QuizProgressService Progress
+@inject NavigationManager Navigation
 @inject IPddStatisticsService statisticsService
 @inject IPddLanguageService languageService
 
@@ -229,13 +231,17 @@
             // Load user's primary language preference
             primaryLanguage = await languageService.GetPrimaryLanguageAsync();
 
-            var database = await PddDataService.LoadDatabaseAsync();
-            var currentQuestionIds = database.Questions.Select(question => question.Id).ToHashSet(StringComparer.Ordinal);
-            var storedCards = await CardStorage.LoadCardsAsync(database.Id, currentQuestionIds);
-            var studyCards = storedCards?.Cards?.ToList() ?? new List<QuestionStudyCard>();
+            var query = new Uri(Navigation.Uri).Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Split('=', 2)).FirstOrDefault(x => x[0] == "source");
+            var sourceId = query is { Length: 2 } ? Uri.UnescapeDataString(query[1]) : "builtin-pdd";
+            var source = await Catalog.FindBySourceIdAsync(sourceId) ?? throw new InvalidOperationException("Quiz source was not found.");
+            await Session.StartAsync(source);
+            var loaded = Session.Current ?? throw new InvalidOperationException("Quiz was not loaded.");
+            var storedProgress = await Progress.LoadAsync(source.SourceId) ?? throw new InvalidOperationException("Quiz progress was not initialized.");
+            var studyCards = QuizProgressService.ActiveCards(loaded, storedProgress).ToList();
 
             // Generate statistics
-            statistics = await statisticsService.GenerateDetailedStatisticsAsync(studyCards);
+            statistics = await statisticsService.GenerateDetailedStatisticsAsync(loaded.Document, studyCards);
         }
         catch (Exception ex)
         {

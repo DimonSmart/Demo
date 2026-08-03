@@ -10,5 +10,5 @@ public interface IPddStatisticsService
     /// </summary>
     /// <param name="studyCards">User study cards</param>
     /// <returns>Detailed statistics</returns>
-    Task<DetailedLearningStatistics> GenerateDetailedStatisticsAsync(List<QuestionStudyCard> studyCards);
+    Task<DetailedLearningStatistics> GenerateDetailedStatisticsAsync(Demo.Core.Quiz.QuizDocument document, List<QuestionStudyCard> studyCards);
 }

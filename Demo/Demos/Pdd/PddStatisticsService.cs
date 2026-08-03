@@ -4,19 +4,10 @@ namespace Demo.Demos.Pdd;
 
 public class PddStatisticsService : IPddStatisticsService
 {
-    private readonly IPddDataService _pddDataService;
-
-    public PddStatisticsService(IPddDataService pddDataService)
+    public Task<DetailedLearningStatistics> GenerateDetailedStatisticsAsync(QuizDocument document, List<QuestionStudyCard> studyCards)
     {
-        _pddDataService = pddDataService;
-    }
-
-    public async Task<DetailedLearningStatistics> GenerateDetailedStatisticsAsync(List<QuestionStudyCard> studyCards)
-    {
-        var database = await _pddDataService.LoadDatabaseAsync();
-        
-        var allQuestions = database.Questions.ToList();
-        var allTopics = database.Topics.ToList();
+        var allQuestions = document.Questions.ToList();
+        var allTopics = document.Topics.ToList();
         
         // Create dictionary of study cards for fast access
         var studyCardsByQuestionId = studyCards.ToDictionary(sc => sc.Id, sc => sc);
@@ -30,12 +21,12 @@ public class PddStatisticsService : IPddStatisticsService
         // Generate list of most difficult questions
         var difficultQuestions = GenerateDifficultQuestions(allQuestions, allTopics, studyCardsByQuestionId);
 
-        return new DetailedLearningStatistics
+        return Task.FromResult(new DetailedLearningStatistics
         {
             OverallMetrics = overallMetrics,
             TopicStatistics = topicStats,
             MostDifficultQuestions = difficultQuestions
-        };
+        });
     }
 
     private LearningMetrics GenerateOverallMetrics(List<QuizQuestion> allQuestions, Dictionary<string, QuestionStudyCard> studyCards)
