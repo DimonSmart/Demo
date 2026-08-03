@@ -18,6 +18,34 @@ public sealed class QuizDocumentLoaderTests
     }
 
     [Fact]
+    public async Task UnicodeIdentifiersAreAccepted()
+    {
+        var json = ValidJson()
+            .Replace("contract-fixture", "тест 🐒", StringComparison.Ordinal)
+            .Replace("topic-001-ticket-001", "билет обезьяна 🐒", StringComparison.Ordinal)
+            .Replace("topic-001", "тема внутреннего диалога", StringComparison.Ordinal)
+            .Replace("\"a1\"", "\"верный ответ\"", StringComparison.Ordinal)
+            .Replace("\"a2\"", "\"неверный ответ\"", StringComparison.Ordinal);
+
+        var document = await LoadAsync(json);
+
+        Assert.Equal("тест 🐒", document.Id);
+        Assert.Equal("тема внутреннего диалога", document.Topics[0].Id);
+        Assert.Equal("тема внутреннего диалога", document.Questions[0].TopicId);
+        Assert.Equal("билет обезьяна 🐒", document.Questions[0].Id);
+    }
+
+    [Theory]
+    [InlineData("\u0001")]
+    [InlineData("\u200B")]
+    public async Task InvisibleOrControlCharactersInIdentifiersAreRejected(string forbiddenCharacter)
+    {
+        var json = ValidJson().Replace("topic-001", $"topic{forbiddenCharacter}001", StringComparison.Ordinal);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => LoadAsync(json));
+    }
+
+    [Fact]
     public async Task PascalCaseNewJsonIsRejected()
     {
         var json = ValidJson().Replace("schemaVersion", "SchemaVersion", StringComparison.Ordinal);

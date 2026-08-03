@@ -1,4 +1,6 @@
-using System.Text.RegularExpressions;
+using System.Buffers;
+using System.Globalization;
+using System.Text;
 
 namespace Demo.Core.Quiz;
 
@@ -8,7 +10,7 @@ public static partial class QuizDocumentValidator
     {
         if (document.SchemaVersion != QuizDocument.SupportedSchemaVersion)
             throw new InvalidDataException($"Unsupported quiz schema version '{document.SchemaVersion}'.");
-        if (!IdPattern().IsMatch(document.Id))
+        if (!IsValidId(document.Id))
             throw new InvalidDataException("Quiz document id is invalid.");
         if (document.Languages.Count == 0)
             throw new InvalidDataException("Quiz document must contain at least one language.");
@@ -28,7 +30,7 @@ public static partial class QuizDocumentValidator
         var topicIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var topic in document.Topics)
         {
-            if (!IdPattern().IsMatch(topic.Id))
+            if (!IsValidId(topic.Id))
                 throw new InvalidDataException($"Topic id '{topic.Id}' is invalid.");
             if (!topicIds.Add(topic.Id))
                 throw new InvalidDataException($"Topic id '{topic.Id}' is duplicated.");
@@ -62,7 +64,7 @@ public static partial class QuizDocumentValidator
         HashSet<string> questionIds,
         string? imagesBaseUrl)
     {
-        if (!IdPattern().IsMatch(question.Id))
+        if (!IsValidId(question.Id))
             throw new InvalidDataException($"Question id '{question.Id}' is invalid.");
         if (!questionIds.Add(question.Id))
             throw new InvalidDataException($"Question id '{question.Id}' is duplicated.");
@@ -89,8 +91,8 @@ public static partial class QuizDocumentValidator
         var answerIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var answer in question.Answers)
         {
-            if (string.IsNullOrWhiteSpace(answer.Id))
-                throw new InvalidDataException($"Question '{question.Id}' contains answer with empty id.");
+            if (!IsValidId(answer.Id))
+                throw new InvalidDataException($"Question '{question.Id}' contains invalid answer id '{answer.Id}'.");
             if (!answerIds.Add(answer.Id))
                 throw new InvalidDataException($"Question '{question.Id}' contains duplicated answer id '{answer.Id}'.");
             ValidateRequiredText(answer.Text, languages, $"answer '{answer.Id}' text");
@@ -170,6 +172,19 @@ public static partial class QuizDocumentValidator
         ValidateRequiredText(text, languages, name);
     }
 
-    [GeneratedRegex(@"^[a-z0-9][a-z0-9._-]*$", RegexOptions.CultureInvariant)]
-    private static partial Regex IdPattern();
+    private static bool IsValidId(string id)
+    {
+        if (id.Length == 0) return false;
+
+        var remaining = id.AsSpan();
+        while (!remaining.IsEmpty)
+        {
+            var status = Rune.DecodeFromUtf16(remaining, out var rune, out var charsConsumed);
+            if (status != OperationStatus.Done) return false;
+            if (Rune.GetUnicodeCategory(rune) is UnicodeCategory.Control or UnicodeCategory.Format) return false;
+            remaining = remaining[charsConsumed..];
+        }
+
+        return true;
+    }
 }
