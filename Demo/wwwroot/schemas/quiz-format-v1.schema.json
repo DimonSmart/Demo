@@ -34,7 +34,7 @@
       "type": "string",
       "minLength": 1,
       "pattern": "^[^\\u0000-\\u001F\\u007F-\\u009F]+$",
-      "description": "Must not contain Unicode format characters. This restriction is enforced by the quiz document validator."
+      "description": "Must not contain Unicode control or format characters. Format-character validation is enforced by the quiz document validator."
     },
     "languageTag": {
       "type": "string",

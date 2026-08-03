@@ -40,7 +40,8 @@ public sealed class QuizDocumentLoaderTests
     [InlineData("\u200B")]
     public async Task InvisibleOrControlCharactersInIdentifiersAreRejected(string forbiddenCharacter)
     {
-        var json = ValidJson().Replace("topic-001", $"topic{forbiddenCharacter}001", StringComparison.Ordinal);
+        var escapedCharacter = JsonSerializer.Serialize(forbiddenCharacter)[1..^1];
+        var json = ValidJson().Replace("topic-001", $"topic{escapedCharacter}001", StringComparison.Ordinal);
 
         await Assert.ThrowsAsync<InvalidDataException>(() => LoadAsync(json));
     }
