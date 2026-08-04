@@ -28,10 +28,10 @@
       },
       "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}"
     },
-    "https (PDD)": {
+    "https (Quiz)": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "pdd",
+      "launchUrl": "quiz",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },

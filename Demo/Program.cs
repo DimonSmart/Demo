@@ -4,7 +4,7 @@ using Demo.Abstractions;
 using Demo.Demos.Common;
 using Demo.Demos.HashX;
 using Demo.Demos.MazeRunner;
-using Demo.Demos.Pdd;
+using Demo.Demos.Quiz;
 using Demo.Services;
 using Demo.Core.Quiz;
 using DimonSmart.Hash.Interfaces;
@@ -32,7 +32,7 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 builder.Services.AddMediaDevicesService();
 
 RegisterHashDemoServices(builder.Services);
-RegisterPddDemoServices(builder.Services);
+RegisterQuizDemoServices(builder.Services);
 RegisterMazeRunnerDemoServices(builder);
 
 await builder.Build().RunAsync();
@@ -42,19 +42,20 @@ static void RegisterHashDemoServices(IServiceCollection services)
     services.AddScoped<IHashAlgorithm, JsMd5Algorithm>();
 }
 
-static void RegisterPddDemoServices(IServiceCollection services)
+static void RegisterQuizDemoServices(IServiceCollection services)
 {
     services.AddScoped<CardStorageService>();
     services.AddScoped<IQuizCatalogService, QuizCatalogService>();
     services.AddScoped<IQuizSourceLoader, QuizSourceLoader>();
     services.AddScoped<QuizProgressService>();
     services.AddScoped<IQuizSessionService, QuizSessionService>();
-    services.AddScoped<UserPreferencesStorageService<PddUserPreferences>>();
+    services.AddScoped<QuizPreferencesService>();
+    services.AddScoped<QuizSelectionService>();
     services.AddScoped<TextTranslationService>();
     services.AddScoped<IQuizDocumentLoader, QuizDocumentLoader>();
-    services.AddScoped<IPddDataService, PddDataService>();
-    services.AddScoped<IPddStatisticsService, PddStatisticsService>();
-    services.AddScoped<IPddLanguageService, PddLanguageService>();
+    services.AddScoped<IQuizDataService, QuizDataService>();
+    services.AddScoped<IQuizStatisticsService, QuizStatisticsService>();
+    services.AddScoped<IQuizLanguageService, QuizLanguageService>();
 }
 
 static void RegisterMazeRunnerDemoServices(WebAssemblyHostBuilder hostBuilder)

@@ -1,0 +1,307 @@
+@page "/quiz/statistics"
+@using Demo.Demos.Common
+@using Demo.Demos.Quiz
+@using Demo.Core.Quiz
+@using Demo.Services
+@using Microsoft.AspNetCore.Components.Web
+
+@inject QuizPreferencesService Preferences
+@inject QuizSelectionService Selection
+@inject IDemoPageChromeService PageChrome
+@inject IQuizCatalogService Catalog
+@inject IQuizSessionService Session
+@inject QuizProgressService Progress
+@inject NavigationManager Navigation
+@inject IQuizStatisticsService statisticsService
+@inject IQuizLanguageService languageService
+
+<link rel="stylesheet" href="css/quiz.css" />
+
+<div class="quiz-page-container">
+    <div class="quiz-top-nav-bar fixed-top-bar">
+        <div class="quiz-stats-header">
+            <div class="quiz-stats-date">
+                @if (statistics != null)
+                {
+                    <span>Generated: @statistics.GeneratedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                }
+            </div>
+            <label>
+                Choose a quiz
+                <select @bind="selectedSourceId" @bind:after="ChangeSource" disabled="@(sources.Count == 0)">
+                    @foreach (var source in sources)
+                    {
+                        <option value="@source.SourceId">@QuizTitle(source)</option>
+                    }
+                </select>
+            </label>
+            <div class="quiz-navigation">
+                <a href="/quiz" class="quiz-back-link">&larr; Back to Quiz</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="quiz-content">
+        @if (IsLoading)
+        {
+            <div class="quiz-loading">
+                <p>Loading statistics...</p>
+                <div class="quiz-loading-bar-container">
+                    <div class="quiz-loading-bar"></div>
+                </div>
+            </div>
+        }
+        else if (sources.Count == 0)
+        {
+            <div class="quiz-error"><p>No quizzes are registered.</p><a href="/quiz">Go to Quiz</a></div>
+        }
+        else if (error is not null)
+        {
+            <div class="quiz-error"><p>@error</p></div>
+        }
+        else if (statistics == null)
+        {
+            <div class="quiz-error">
+                <p>Error loading statistics.</p>
+            </div>
+        }
+        else
+        {
+            <!-- Overall Statistics -->
+            <div class="quiz-stats-section">
+                <h3>Overall Statistics</h3>
+                <div class="quiz-stats-grid">
+                    <div class="quiz-stat-card">
+                        <div class="quiz-stat-value">@statistics.OverallMetrics.TotalQuestions</div>
+                        <div class="quiz-stat-label">Total Questions</div>
+                    </div>
+                    <div class="quiz-stat-card quiz-stat-success">
+                        <div class="quiz-stat-value">@statistics.OverallMetrics.LearnedQuestions</div>
+                        <div class="quiz-stat-label">Learned</div>
+                        <div class="quiz-stat-percentage">
+                            @(statistics.OverallMetrics.TotalQuestions > 0 ? 
+                              Math.Round((double)statistics.OverallMetrics.LearnedQuestions / statistics.OverallMetrics.TotalQuestions * 100, 1) : 0)%
+                        </div>
+                    </div>
+                    <div class="quiz-stat-card quiz-stat-warning">
+                        <div class="quiz-stat-value">@statistics.OverallMetrics.InProgressQuestions</div>
+                        <div class="quiz-stat-label">In Progress</div>
+                        <div class="quiz-stat-percentage">
+                            @(statistics.OverallMetrics.TotalQuestions > 0 ? 
+                              Math.Round((double)statistics.OverallMetrics.InProgressQuestions / statistics.OverallMetrics.TotalQuestions * 100, 1) : 0)%
+                        </div>
+                    </div>
+                    <div class="quiz-stat-card quiz-stat-info">
+                        <div class="quiz-stat-value">@statistics.OverallMetrics.NotStartedQuestions</div>
+                        <div class="quiz-stat-label">Not Started</div>
+                        <div class="quiz-stat-percentage">
+                            @(statistics.OverallMetrics.TotalQuestions > 0 ? 
+                              Math.Round((double)statistics.OverallMetrics.NotStartedQuestions / statistics.OverallMetrics.TotalQuestions * 100, 1) : 0)%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Topic Statistics -->
+            <div class="quiz-stats-section">
+                <h3>Statistics by Topic</h3>
+                <div class="quiz-topics-stats">
+                    @foreach (var topicStat in statistics.TopicStatistics)
+                    {
+                        <div class="quiz-topic-card">
+                            <div class="quiz-topic-header">
+                                <h4>@GetLocalizedTopicTitle(topicStat.Topic)</h4>
+                                <div class="quiz-topic-progress">
+                                    <span class="quiz-progress-percentage">
+                                        @Math.Round(topicStat.LearnedPercentage, 1)%
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="quiz-progress-bar">
+                                <div class="quiz-progress-fill" style="width: @topicStat.LearnedPercentage%"></div>
+                            </div>
+
+                            <div class="quiz-topic-details">
+                                <div class="quiz-topic-stat">
+                                    <span class="quiz-stat-label">Total:</span>
+                                    <span class="quiz-stat-value">@topicStat.TotalQuestions</span>
+                                </div>
+                                <div class="quiz-topic-stat quiz-stat-success">
+                                    <span class="quiz-stat-label">Learned:</span>
+                                    <span class="quiz-stat-value">@topicStat.LearnedQuestions</span>
+                                </div>
+                                <div class="quiz-topic-stat quiz-stat-warning">
+                                    <span class="quiz-stat-label">In Progress:</span>
+                                    <span class="quiz-stat-value">@topicStat.InProgressQuestions</span>
+                                </div>
+                                <div class="quiz-topic-stat quiz-stat-info">
+                                    <span class="quiz-stat-label">Not Started:</span>
+                                    <span class="quiz-stat-value">@topicStat.NotStartedQuestions</span>
+                                </div>
+                                @if (topicStat.RecentlyStudiedQuestions > 0)
+                                {
+                                    <div class="quiz-topic-stat">
+                                        <span class="quiz-stat-label">Studied this week:</span>
+                                        <span class="quiz-stat-value">@topicStat.RecentlyStudiedQuestions</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Most Difficult Questions -->
+            <div class="quiz-stats-section">
+                <h3>Top 10 Difficult Questions</h3>
+                <div class="quiz-difficult-questions">
+                    @if (statistics.MostDifficultQuestions.Any())
+                    {
+                        @foreach (var (question, index) in statistics.MostDifficultQuestions.Select((q, i) => (q, i + 1)))
+                        {
+                            <div class="quiz-difficult-question">
+                                <div class="quiz-question-rank">
+                                    <span class="quiz-rank-number">@index</span>
+                                </div>
+                                <div class="quiz-question-info">
+                                    <div class="quiz-question-header">
+                                        <span class="quiz-question-id">Question #@question.QuestionId</span>
+                                        <span class="quiz-question-topic">
+                                            @GetLocalizedTopicTitle(question.Topic)
+                                        </span>
+                                    </div>
+                                    <div class="quiz-question-text">
+                                        @GetLocalizedQuestionText(question.Question)
+                                    </div>
+                                    <div class="quiz-question-details">
+                                        <span class="quiz-difficulty-score">
+                                            Difficulty: @question.DifficultyScore
+                                        </span>
+                                        <span class="quiz-attempts">
+                                            Attempts: ~@question.EstimatedAttempts
+                                        </span>
+                                        @if (question.DaysSinceLastAnswer.HasValue)
+                                        {
+                                            <span class="quiz-last-answer">
+                                                Last answer: @question.DaysSinceLastAnswer days ago
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="quiz-last-answer">
+                                                Not answered yet
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="quiz-no-difficult">
+                            @if (statistics.OverallMetrics.LearnedQuestions + statistics.OverallMetrics.InProgressQuestions < 10)
+                            {
+                                <p>Insufficient data to determine difficult questions.</p>
+                                <p>Try answering more questions first - we need some attempt history to identify which questions are challenging for you.</p>
+                            }
+                            else
+                            {
+                                <p>Congratulations! No difficult questions found.</p>
+                                <p>All questions are either learned or being studied successfully!</p>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private DetailedLearningStatistics? statistics;
+    private IReadOnlyList<QuizCatalogEntry> sources = [];
+    private string? selectedSourceId;
+    private string? error;
+    private bool IsLoading = true;
+    private string primaryLanguage = "es"; // Default value
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        PageChrome.SetPage("Quiz statistics");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await InitializeAsync();
+        }
+    }
+
+    private async Task InitializeAsync()
+    {
+        sources = await Catalog.GetAllAsync();
+        if (sources.Count == 0) { IsLoading = false; return; }
+        var query = System.Web.HttpUtility.ParseQueryString(new Uri(Navigation.Uri).Query);
+        var requestedSourceId = query["source"];
+        var preferences = await Preferences.LoadAsync();
+        selectedSourceId = Selection.Select(sources, requestedSourceId, preferences.LastPracticedQuizSourceId)?.SourceId;
+        await LoadStatisticsAsync();
+    }
+
+    private async Task ChangeSource()
+    {
+        if (selectedSourceId is null) return;
+        Navigation.NavigateTo($"/quiz/statistics?source={Uri.EscapeDataString(selectedSourceId)}", replace: true);
+        await LoadStatisticsAsync();
+    }
+
+    private async Task LoadStatisticsAsync()
+    {
+        try
+        {
+            IsLoading = true;
+            error = null;
+            StateHasChanged();
+
+            // Load user's primary language preference
+            primaryLanguage = await languageService.GetPrimaryLanguageAsync();
+
+            var source = sources.FirstOrDefault(source => source.SourceId == selectedSourceId) ?? throw new InvalidOperationException("Quiz source was not found.");
+            await Session.StartAsync(source);
+            var loaded = Session.Current ?? throw new InvalidOperationException("Quiz was not loaded.");
+            var storedProgress = await Progress.LoadAsync(source.SourceId) ?? throw new InvalidOperationException("Quiz progress was not initialized.");
+            var studyCards = QuizProgressService.ActiveCards(loaded, storedProgress).ToList();
+
+            // Generate statistics
+            statistics = await statisticsService.GenerateDetailedStatisticsAsync(loaded.Document, studyCards);
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't show details to user
+            Console.WriteLine($"Error loading statistics: {ex.Message}");
+            statistics = null;
+            error = "The selected quiz could not be loaded. Choose another quiz.";
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private static string QuizTitle(QuizCatalogEntry source) => source.LastKnownTitle ?? (source.IsBuiltIn ? "Spanish driving theory test" : string.IsNullOrWhiteSpace(source.Url) ? "Quiz" : source.Url);
+
+    private string GetLocalizedTopicTitle(QuizTopic topic)
+    {
+        return languageService.GetLocalizedContent(topic.Title, primaryLanguage, "Unknown Topic");
+    }
+
+    private string GetLocalizedQuestionText(QuizQuestion question)
+    {
+        return languageService.GetLocalizedContent(question.Text, primaryLanguage, "Question text not available");
+    }
+}

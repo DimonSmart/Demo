@@ -1,0 +1,49 @@
+@using Demo.Demos.Quiz
+@namespace Demo.Demos.Quiz.Components
+
+@if (EffectiveLanguages.Count > 1)
+{
+    <div class="quiz-language-selector">
+        @if (EffectiveLanguages.Count <= ButtonPickerLanguageLimit)
+        {
+            <div class="quiz-language-buttons" role="group" aria-label="Language">
+                @foreach (var language in EffectiveLanguages)
+                {
+                    <button type="button"
+                            class="quiz-language-button @(IsSelected(language) ? "active" : "")"
+                            @onclick="() => SelectLanguage(language)">
+                        @language
+                    </button>
+                }
+            </div>
+        }
+        else
+        {
+            <label for="primaryLanguage">Language:</label>
+            <select id="primaryLanguage" @bind="PrimaryLanguage" @bind:after="HandleLanguageChanged" class="primary-language-dropdown">
+                @foreach (var language in EffectiveLanguages)
+                {
+                    <option value="@language">@language</option>
+                }
+            </select>
+        }
+    </div>
+}
+
+@code {
+    private const int ButtonPickerLanguageLimit = 5;
+
+    [Parameter] public IReadOnlyList<string> Languages { get; set; } = [];
+    [Parameter] public string PrimaryLanguage { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> OnLanguageChanged { get; set; }
+
+    private IReadOnlyList<string> EffectiveLanguages => LanguageCodes.Normalize(Languages);
+    private Task HandleLanguageChanged() => OnLanguageChanged.InvokeAsync(PrimaryLanguage);
+    private bool IsSelected(string language) => string.Equals(language, PrimaryLanguage, StringComparison.OrdinalIgnoreCase);
+
+    private async Task SelectLanguage(string language)
+    {
+        PrimaryLanguage = language;
+        await OnLanguageChanged.InvokeAsync(language);
+    }
+}

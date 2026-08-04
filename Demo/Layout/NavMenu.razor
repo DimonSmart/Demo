@@ -1,4 +1,4 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">Demo</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
@@ -73,23 +73,23 @@
             <div class="nav-folder-header">
                 <button type="button"
                         class="nav-folder-toggle"
-                        title="@(ShouldShowPddSubmenu ? "Hide Spanish driving rules submenu" : "Show Spanish driving rules submenu")"
-                        @onclick="TogglePddSubmenu"
+                        title="@(ShouldShowQuizSubmenu ? "Hide quiz submenu" : "Show quiz submenu")"
+                        @onclick="ToggleQuizSubmenu"
                         @onclick:stopPropagation="true"
-                        aria-expanded="@ShouldShowPddSubmenu"
-                        aria-controls="pdd-submenu">
-                    <span class="bi @(ShouldShowPddSubmenu ? "bi-list-submenu-expanded-nav-menu" : "bi-list-submenu-collapsed-nav-menu")" aria-hidden="true"></span>
+                        aria-expanded="@ShouldShowQuizSubmenu"
+                        aria-controls="quiz-submenu">
+                    <span class="bi @(ShouldShowQuizSubmenu ? "bi-list-submenu-expanded-nav-menu" : "bi-list-submenu-collapsed-nav-menu")" aria-hidden="true"></span>
                 </button>
-                <NavLink class="nav-link flex-grow-1" href="pdd">
-                    <span class="bi" aria-hidden="true"></span> Spanish driving rules
+                <NavLink class="nav-link flex-grow-1" href="quiz">
+                    <span class="bi" aria-hidden="true"></span> Quiz
                 </NavLink>
             </div>
         </div>
-        @if (ShouldShowPddSubmenu)
+        @if (ShouldShowQuizSubmenu)
         {
-            <div id="pdd-submenu" class="nav-item px-3 ms-4">
-                <NavLink class="nav-link" href="pdd/statistics">
-                    <span class="bi bi-bar-chart-fill-nav-menu" aria-hidden="true"></span> Statistics
+            <div id="quiz-submenu" class="nav-item px-3 ms-4">
+                <NavLink class="nav-link" href="quiz/statistics">
+                    <span class="bi bi-bar-chart-fill-nav-menu" aria-hidden="true"></span> Quiz statistics
                 </NavLink>
             </div>
         }
@@ -110,16 +110,16 @@
 
 @code {
     private bool collapseNavMenu = true;
-    private bool userExpandedPdd;
+    private bool userExpandedQuiz;
 
     [Inject]
     private NavigationManager Navigation { get; set; } = default!;
 
-    private bool ShouldShowPddSubmenu => userExpandedPdd || IsPddStatisticsActive;
+    private bool ShouldShowQuizSubmenu => userExpandedQuiz || IsQuizStatisticsActive;
 
-    private bool IsPddStatisticsActive => Navigation
+    private bool IsQuizStatisticsActive => Navigation
         .ToBaseRelativePath(Navigation.Uri)
-        .StartsWith("pdd/statistics", System.StringComparison.OrdinalIgnoreCase);
+        .StartsWith("quiz/statistics", System.StringComparison.OrdinalIgnoreCase);
 
     protected override void OnInitialized()
     {
@@ -138,9 +138,9 @@
         collapseNavMenu = !collapseNavMenu;
     }
 
-    private void TogglePddSubmenu()
+    private void ToggleQuizSubmenu()
     {
-        userExpandedPdd = !userExpandedPdd;
+        userExpandedQuiz = !userExpandedQuiz;
     }
 
     public void Dispose()

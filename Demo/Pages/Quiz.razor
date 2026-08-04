@@ -1,0 +1,56 @@
+@page "/quiz"
+@using Demo.Demos.Quiz
+@using Demo.Demos.Quiz.Components
+@using Demo.Core.Quiz
+@using Demo.Services
+@inject IQuizCatalogService Catalog
+@inject IQuizSessionService Session
+@inject QuizProgressService Progress
+@inject QuizPreferencesService Preferences
+@inject QuizSelectionService Selection
+@inject IDemoPageChromeService PageChrome
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<link rel="stylesheet" href="css/quiz.css" />
+<link rel="stylesheet" href="css/multilanguage.css" />
+@if (loading)
+{
+    <div class="demo-page demo-page--centered"><section class="demo-panel demo-panel--center">Loading quiz...</section></div>
+}
+else if (error is not null)
+{
+    <div class="demo-page demo-page--centered"><section class="demo-panel demo-panel--center" role="alert"><p>@error</p><button class="demo-pill-button" @onclick="Initialize">Retry</button></section></div>
+}
+else if (choosing)
+{
+    <div class="demo-page demo-page--centered quiz-catalog"><section class="demo-panel demo-panel--center"><h2>Choose a quiz</h2>
+        @if (sources.Count == 0) { <p>No quizzes are registered.</p> }
+        else { <select @bind="selectedSourceId" aria-label="Choose a quiz">@foreach (var source in sources) { <option value="@source.SourceId">@QuizTitle(source)</option> }</select>
+            <div class="demo-action-bar"><button class="demo-pill-button demo-pill-button--primary" @onclick="StartSelected">Start</button><a class="demo-pill-button" href="@StatisticsUrl">Quiz statistics</a></div> }
+    </section></div>
+}
+else if (Session.Current is not null)
+{
+    <div class="quiz-page-container">
+        <div class="quiz-top-nav-bar fixed-top-bar"><StatisticsDisplay QuestionQueue="queue" OnResetProgress="ResetCurrent" /><div class="quiz-options"><LanguagePicker Languages="@languages" PrimaryLanguage="@primaryLanguage" OnLanguageChanged="SetLanguage" /></div><button class="demo-pill-button" @onclick="ChooseAnother">Choose another quiz</button></div>
+        <div class="quiz-content"><h2>@Title(Session.Current.Document)</h2>@if (notice is not null) { <p>@notice</p> } @if (batch.Any()) { @foreach(var item in batch) { <QuestionDisplay QuestionWrapper="@item" OnAnswerSelected="Answer" PrimaryLanguage="@primaryLanguage" Languages="@languages" Document="@Session.Current.Document" /> } <BatchNavigation AllQuestionsAnswered="@batch.All(x => x.HasAnswered)" OnNextBatchClicked="Next" /> } else { <p>All questions have been learned!</p> }</div>
+    </div>
+}
+
+@code {
+ private IReadOnlyList<QuizCatalogEntry> sources=[]; private bool loading=true, choosing=true; private string? selectedSourceId, error, notice; private QuestionQueue queue=new([]); private List<QuestionWrapper> batch=[]; private IReadOnlyList<string> languages=[]; private string primaryLanguage="";
+ protected override async Task OnInitializedAsync() { PageChrome.SetPage("Quiz practice"); await Initialize(); }
+ private async Task Initialize() { try { loading=true; error=null; sources=await Catalog.GetAllAsync(); var url=System.Web.HttpUtility.ParseQueryString(new Uri(Navigation.Uri).Query)["quizUrl"]; if (!string.IsNullOrWhiteSpace(url)) { await Start(await Catalog.FindByUrlAsync(url) ?? new QuizCatalogEntry { Url=url, AddedAtUtc=DateTime.UtcNow }); return; } var preferences=await Preferences.LoadAsync(); selectedSourceId=Selection.Select(sources, null, preferences.LastPracticedQuizSourceId)?.SourceId; choosing=true; } catch(Exception ex) { error=ToMessage(ex); } finally { loading=false; } }
+ private async Task StartSelected() { var source=sources.FirstOrDefault(x => x.SourceId == selectedSourceId); if(source is not null) await Start(source); }
+ private async Task Start(QuizCatalogEntry source) { try { loading=true; error=null; choosing=false; var result=await Session.StartAsync(source); await Preferences.UpdateAsync(p => p.LastPracticedQuizSourceId=Session.CurrentSource!.SourceId); if (result.HasChanges) notice=$"Quiz updated: preserved {result.PreservedQuestions}, changed {result.ResetQuestions}, added {result.AddedQuestions}, removed {result.RemovedQuestions}."; var progress=await Progress.LoadAsync(Session.CurrentSource!.SourceId) ?? throw new InvalidOperationException("Progress was not initialized."); queue=new QuestionQueue(QuizProgressService.ActiveCards(Session.Current!, progress)); languages=LanguageCodes.Normalize(Session.Current!.Document.Languages); primaryLanguage=LanguageCodes.SelectPrimary(languages, (await Preferences.LoadAsync()).PrimaryLanguage); PageChrome.SetPage(Title(Session.Current.Document)); Next(); } catch(Exception ex) { error=ToMessage(ex); choosing=true; } finally { loading=false; } }
+ private void Next() { batch=[]; foreach(var card in queue.PeekNextQuestionsForStudy(10)) { var question=Session.Current!.Document.Questions.First(q=>q.Id==card.Id); batch.Add(new QuestionWrapper { Question=question, StudyCard=card }); } }
+ private async Task Answer((QuestionWrapper wrapper, QuizAnswer selectedAnswer) value) { if(value.wrapper.HasAnswered) return; value.wrapper.SelectedAnswer=value.selectedAnswer; value.wrapper.HasAnswered=true; queue.ProcessAnswer(value.wrapper.StudyCard,value.selectedAnswer.IsCorrect); await Progress.SaveCardsAsync(Session.Current!, queue.Cards.Append(value.wrapper.StudyCard).DistinctBy(card => card.Id)); }
+ private async Task ResetCurrent() { if(Session.CurrentSource is not null) { await Progress.ResetAsync(Session.CurrentSource.SourceId); await Start(Session.CurrentSource); } }
+ private async Task SetLanguage(string language) { primaryLanguage=language; await Preferences.UpdateAsync(p => p.PrimaryLanguage=language); }
+ private void ChooseAnother() { choosing=true; PageChrome.SetPage("Choose a quiz"); }
+ private string StatisticsUrl => selectedSourceId is null ? "/quiz/statistics" : $"/quiz/statistics?source={Uri.EscapeDataString(selectedSourceId)}";
+ private static string QuizTitle(QuizCatalogEntry source) => source.LastKnownTitle ?? (source.IsBuiltIn ? "Spanish driving theory test" : string.IsNullOrWhiteSpace(source.Url) ? "Quiz" : source.Url);
+ private static string Title(QuizDocument d) => d.Title.Values.Values.FirstOrDefault() ?? d.Id;
+ private static string ToMessage(Exception ex) => ex switch { ArgumentException => ex.Message, HttpRequestException => "Quiz resource is unavailable or blocked by CORS.", TaskCanceledException => "Quiz loading timed out.", InvalidDataException => ex.Message, _ => "Unable to load the quiz." };
+}
